@@ -9,7 +9,12 @@ import (
 	"github.com/spf13/pflag"
 
 	"github.com/barthjs/swim-timer/internal/config"
+	"github.com/barthjs/swim-timer/internal/handlers"
+	"github.com/barthjs/swim-timer/internal/omega"
 	"github.com/barthjs/swim-timer/internal/server"
+	"github.com/barthjs/swim-timer/internal/simulator"
+	"github.com/barthjs/swim-timer/internal/store"
+	"github.com/barthjs/swim-timer/internal/ws"
 )
 
 var Version = "dev"
@@ -23,7 +28,7 @@ func main() {
 	// Configuration parameters
 	pflag.StringP("log-level", "l", "", "Logging level (debug, info, warn, error)")
 	pflag.Int("pool-length", 50, "Length of the pool (default 50)")
-	pflag.String("preset-dir", "", "Directory for camera presets")
+	pflag.String("presets-dir", "", "Directory for camera presets")
 	pflag.String("race-data-dir", "", "Directory for race data")
 	pflag.String("serial-port", "", "Serial port for Omega connection")
 	pflag.IntP("simulate", "s", 0, "Start the simulator for the given event ID (default 1 if flag is provided)")
@@ -62,9 +67,61 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	hub := ws.NewHub(logger)
+	go hub.Run(ctx)
+
+	raceStore := store.NewRaceDataStore(cfg.RaceDataDir)
+	if err := raceStore.LoadAll(); err != nil {
+		logger.Warn().Err(err).Msg("failed to load race data, please upload data via the web interface")
+	}
+
+	presetsStore := store.NewPresetsStore(cfg.PresetsDir)
+
+	if cfg.SimulateEvent > 0 {
+		f, slaveName, err := simulator.OpenPTY()
+		if err != nil {
+			logger.Fatal().Err(err).Msg("failed to open pty")
+		}
+
+		cfg.SerialPort = slaveName
+
+		sim := simulator.New(
+			cfg.SimulateEvent,
+			logger,
+			raceStore,
+			f,
+		)
+		go sim.Run(ctx)
+
+		go func() {
+			<-ctx.Done()
+			_ = f.Close()
+		}()
+	}
+
+	connector := omega.NewConnector(
+		cfg.PoolLength,
+		cfg.SerialPort,
+		cfg.RaceDataDir,
+		logger,
+		raceStore,
+		hub,
+	)
+	go connector.Run(ctx)
+
+	h := handlers.New(
+		cfg,
+		logger,
+		raceStore,
+		presetsStore,
+		hub,
+	)
+	handler := h.Routes()
+
 	srv := server.New(
 		cfg.Server,
 		logger,
+		handler,
 		wg,
 	)
 

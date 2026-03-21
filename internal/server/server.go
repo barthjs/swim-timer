@@ -29,13 +29,15 @@ type Server struct {
 func New(
 	cfg config.Server,
 	logger zerolog.Logger,
+	handler http.Handler,
 	wg *sync.WaitGroup,
 ) *Server {
 	return &Server{
-		host:   cfg.Host,
-		port:   cfg.Port,
-		logger: logger,
-		wg:     wg,
+		host:    cfg.Host,
+		port:    cfg.Port,
+		logger:  logger,
+		handler: handler,
+		wg:      wg,
 	}
 }
 

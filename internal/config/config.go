@@ -100,7 +100,7 @@ func Load(cliConfigPath string, flags *pflag.FlagSet) (Config, error) {
 	// Bind environment variables
 	_ = v.BindEnv("log_level", "LOG_LEVEL")
 	_ = v.BindEnv("pool_length", "POOL_LENGTH")
-	_ = v.BindEnv("presets_dir", "PRESET_DIR")
+	_ = v.BindEnv("presets_dir", "PRESETS_DIR")
 	_ = v.BindEnv("race_data_dir", "RACE_DATA_DIR")
 	_ = v.BindEnv("simulate_event", "SIMULATE_EVENT")
 	_ = v.BindEnv("serial_port", "SERIAL_PORT")
@@ -112,7 +112,7 @@ func Load(cliConfigPath string, flags *pflag.FlagSet) (Config, error) {
 	if flags != nil {
 		_ = v.BindPFlag("log_level", flags.Lookup("log-level"))
 		_ = v.BindPFlag("pool_length", flags.Lookup("pool-length"))
-		_ = v.BindPFlag("presets_dir", flags.Lookup("preset-dir"))
+		_ = v.BindPFlag("presets_dir", flags.Lookup("presets-dir"))
 		_ = v.BindPFlag("race_data_dir", flags.Lookup("race-data-dir"))
 		_ = v.BindPFlag("serial_port", flags.Lookup("serial-port"))
 		_ = v.BindPFlag("simulate_event", flags.Lookup("simulate-event"))
@@ -198,7 +198,7 @@ func WriteConfig(cfg Config) error {
 	v.SetConfigType("yaml")
 	v.Set("log_level", cfg.RawLogLevel)
 	v.Set("pool_length", cfg.PoolLength)
-	v.Set("preset_dir", cfg.PresetsDir)
+	v.Set("presets_dir", cfg.PresetsDir)
 	v.Set("race_data_dir", cfg.RaceDataDir)
 	v.Set("serial_port", cfg.SerialPort)
 	v.Set("simulate_event", cfg.SimulateEvent)
