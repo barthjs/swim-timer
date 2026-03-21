@@ -57,6 +57,8 @@ func (h *Handlers) Routes() http.Handler {
 
 	router.HandlerFunc(http.MethodGet, "/api/ping", h.pingHandler)
 
+	router.Handler(http.MethodPost, "/api/auth/login", common.ThenFunc(h.loginHandler))
+
 	router.HandlerFunc(http.MethodGet, "/ws", h.webSocketHandler)
 
 	return alice.New(
