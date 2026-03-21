@@ -24,6 +24,8 @@ func (h *Handlers) Routes() http.Handler {
 		gorillaHandlers.CompressHandler,
 	)
 
+	auth := common.Append(h.requireAuth)
+
 	assetChain := alice.New(
 		gorillaHandlers.CompressHandler,
 		h.cacheHeaderMiddleware,
@@ -58,6 +60,9 @@ func (h *Handlers) Routes() http.Handler {
 	router.HandlerFunc(http.MethodGet, "/api/ping", h.pingHandler)
 
 	router.Handler(http.MethodPost, "/api/auth/login", common.ThenFunc(h.loginHandler))
+
+	router.Handler(http.MethodGet, "/api/config", auth.ThenFunc(h.showConfigHandler))
+	router.Handler(http.MethodPut, "/api/config", auth.ThenFunc(h.updateConfigHandler))
 
 	router.HandlerFunc(http.MethodGet, "/ws", h.webSocketHandler)
 
