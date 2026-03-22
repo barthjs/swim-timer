@@ -77,6 +77,8 @@ func (h *Handlers) Routes() http.Handler {
 	router.Handler(http.MethodPost, "/api/race-data/:id", auth.ThenFunc(h.updateRaceDataHandler))
 	router.Handler(http.MethodPost, "/api/actions/reload-race-data", rateLimited.Then(auth.ThenFunc(h.reloadRaceDataHandler)))
 
+	router.Handler(http.MethodGet, "/api/race-state", common.ThenFunc(h.getRaceStateHandler))
+
 	router.HandlerFunc(http.MethodGet, "/ws", h.webSocketHandler)
 
 	return alice.New(
