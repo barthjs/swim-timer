@@ -67,6 +67,11 @@ func (h *Handlers) Routes() http.Handler {
 	router.Handler(http.MethodGet, "/api/config", auth.ThenFunc(h.showConfigHandler))
 	router.Handler(http.MethodPut, "/api/config", auth.ThenFunc(h.updateConfigHandler))
 
+	router.Handler(http.MethodGet, "/api/presets", common.ThenFunc(h.listPresetsHandler))
+	router.Handler(http.MethodGet, "/api/presets/:name", common.ThenFunc(h.getPresetHandler))
+	router.Handler(http.MethodPost, "/api/presets/:name", auth.ThenFunc(h.savePresetHandler))
+	router.Handler(http.MethodDelete, "/api/presets/:name", auth.ThenFunc(h.deletePresetHandler))
+
 	router.Handler(http.MethodGet, "/api/race-data", auth.ThenFunc(h.listRaceDataHandler))
 	router.Handler(http.MethodPost, "/api/race-data", auth.ThenFunc(h.uploadMultipleRaceDataHandler))
 	router.Handler(http.MethodPost, "/api/race-data/:id", auth.ThenFunc(h.updateRaceDataHandler))
