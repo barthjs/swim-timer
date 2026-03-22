@@ -1,0 +1,41 @@
+@import 'tailwindcss';
+
+@import './fonts.css';
+
+@theme {
+  --font-sans:
+    'Barlow', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+    'Segoe UI Symbol', 'Noto Color Emoji';
+
+  --color-primary: rgba(43, 127, 255, 1);
+  --color-primary-hover: rgba(21, 93, 252, 1);
+
+  --color-info: rgba(0, 166, 244, 1);
+  --color-info-hover: rgba(0, 132, 209, 1);
+
+  --color-success: rgba(0, 188, 125, 1);
+  --color-success-hover: rgba(0, 153, 102, 1);
+
+  --color-warning: rgba(254, 154, 0, 1);
+  --color-warning-hover: rgba(225, 113, 0, 1);
+
+  --color-danger: rgba(251, 44, 54, 1);
+  --color-danger-hover: rgba(231, 0, 11, 1);
+
+  /* Core UI Colors */
+  --color-base: rgba(15, 23, 43, 1);
+  --color-surface: rgba(29, 41, 61, 1);
+  --color-subtle: rgba(49, 65, 88, 1);
+  --color-muted: rgba(144, 161, 185, 1);
+  --color-fg: rgba(241, 245, 249, 1);
+
+  /* Overlay Colors */
+  --color-ov-bg-dark: rgba(15, 23, 42, 0.95);
+  --color-ov-bg-solid: rgba(15, 23, 42, 1);
+  --color-ov-row-bg: rgba(30, 58, 138, 0.7);
+  --color-ov-divider: rgba(255, 255, 255, 0.5);
+
+  --color-ov-primary: rgba(21, 93, 253, 1);
+  --color-ov-secondary: rgba(255, 255, 255, 1);
+  --color-ov-accent: rgba(255, 186, 2, 1);
+}
