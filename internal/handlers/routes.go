@@ -4,6 +4,7 @@ import (
 	"io/fs"
 	"net/http"
 	"strings"
+	"time"
 
 	gorillaHandlers "github.com/gorilla/handlers"
 	"github.com/julienschmidt/httprouter"
@@ -23,6 +24,8 @@ func (h *Handlers) Routes() http.Handler {
 		h.logRequest,
 		gorillaHandlers.CompressHandler,
 	)
+
+	rateLimited := common.Append(h.rateLimit(10, 1*time.Minute))
 
 	auth := common.Append(h.requireAuth)
 
@@ -63,6 +66,11 @@ func (h *Handlers) Routes() http.Handler {
 
 	router.Handler(http.MethodGet, "/api/config", auth.ThenFunc(h.showConfigHandler))
 	router.Handler(http.MethodPut, "/api/config", auth.ThenFunc(h.updateConfigHandler))
+
+	router.Handler(http.MethodGet, "/api/race-data", auth.ThenFunc(h.listRaceDataHandler))
+	router.Handler(http.MethodPost, "/api/race-data", auth.ThenFunc(h.uploadMultipleRaceDataHandler))
+	router.Handler(http.MethodPost, "/api/race-data/:id", auth.ThenFunc(h.updateRaceDataHandler))
+	router.Handler(http.MethodPost, "/api/actions/reload-race-data", rateLimited.Then(auth.ThenFunc(h.reloadRaceDataHandler)))
 
 	router.HandlerFunc(http.MethodGet, "/ws", h.webSocketHandler)
 
