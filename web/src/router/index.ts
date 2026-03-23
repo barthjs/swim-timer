@@ -9,6 +9,12 @@ const routes = [
     component: OverlayLayout,
     children: [
       {
+        path: 'info',
+        name: 'overlay-info',
+        component: () => import('@/pages/overlays/InfoOverlay.vue'),
+        meta: { title: 'overlays.info' },
+      },
+      {
         path: 'timer',
         name: 'overlay-timer',
         component: () => import('@/pages/overlays/TimerOverlay.vue'),

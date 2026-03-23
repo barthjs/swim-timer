@@ -1,5 +1,8 @@
 {
   "overlays": {
+    "event": "Wettkampf {number}",
+    "heat": "Lauf {number} / {max}",
+    "info": "Info",
     "timer": "Timer"
   }
 }

@@ -1,5 +1,8 @@
 {
   "overlays": {
+    "event": "Event {number}",
+    "heat": "Heat {number} / {max}",
+    "info": "Info",
     "timer": "Timer"
   }
 }
