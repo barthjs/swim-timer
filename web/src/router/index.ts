@@ -1,8 +1,43 @@
 import { createRouter, createWebHistory } from 'vue-router';
+import { i18n } from '@/i18n';
+
+import OverlayLayout from '@/layouts/OverlayLayout.vue';
+
+const routes = [
+  {
+    path: '/overlays',
+    component: OverlayLayout,
+    children: [
+      {
+        path: 'timer',
+        name: 'overlay-timer',
+        component: () => import('@/pages/overlays/TimerOverlay.vue'),
+        meta: { title: 'overlays.timer' },
+      },
+    ],
+  },
+  {
+    path: '/:pathMatch(.*)*',
+    redirect: { name: 'home' },
+  },
+];
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
-  routes: [],
+  routes,
+});
+
+router.afterEach((to) => {
+  const { t } = i18n.global;
+  const baseTitle = 'Swim-Timer';
+
+  const name = to.name as string;
+
+  switch (name) {
+    default:
+      document.title = to.meta.title ? `${t(to.meta.title as string)} - ${baseTitle}` : baseTitle;
+      break;
+  }
 });
 
 export default router;
