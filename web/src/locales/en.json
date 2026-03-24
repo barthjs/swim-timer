@@ -3,6 +3,7 @@
     "event": "Event {number}",
     "heat": "Heat {number} / {max}",
     "info": "Info",
+    "lane": "Lane {number}",
     "timer": "Timer"
   }
 }

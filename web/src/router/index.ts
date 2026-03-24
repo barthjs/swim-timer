@@ -15,6 +15,12 @@ const routes = [
         meta: { title: 'overlays.info' },
       },
       {
+        path: 'lane/:number',
+        name: 'overlay-lane',
+        component: () => import('@/pages/overlays/LaneOverlay.vue'),
+        meta: { title: 'overlays.lane' },
+      },
+      {
         path: 'timer',
         name: 'overlay-timer',
         component: () => import('@/pages/overlays/TimerOverlay.vue'),
@@ -40,6 +46,10 @@ router.afterEach((to) => {
   const name = to.name as string;
 
   switch (name) {
+    case 'overlay-lane':
+      document.title = `${t(to.meta.title as string, { number: to.params.number })} - ${baseTitle}`;
+      break;
+
     default:
       document.title = to.meta.title ? `${t(to.meta.title as string)} - ${baseTitle}` : baseTitle;
       break;

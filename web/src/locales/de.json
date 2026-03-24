@@ -3,6 +3,7 @@
     "event": "Wettkampf {number}",
     "heat": "Lauf {number} / {max}",
     "info": "Info",
+    "lane": "Bahn {number}",
     "timer": "Timer"
   }
 }
