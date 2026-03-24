@@ -4,6 +4,7 @@
     "heat": "Heat {number} / {max}",
     "info": "Info",
     "lane": "Lane {number}",
+    "splits": "Splits",
     "startlist": "Startlist",
     "timer": "Timer"
   }

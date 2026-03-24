@@ -21,6 +21,12 @@ const routes = [
         meta: { title: 'overlays.lane' },
       },
       {
+        path: 'splits',
+        name: 'overlay-splits',
+        component: () => import('@/pages/overlays/SplitsOverlay.vue'),
+        meta: { title: 'overlays.splits' },
+      },
+      {
         path: 'startlist',
         name: 'overlay-startlist',
         component: () => import('@/pages/overlays/StartListOverlay.vue'),
