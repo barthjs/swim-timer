@@ -21,6 +21,12 @@ const routes = [
         meta: { title: 'overlays.lane' },
       },
       {
+        path: 'startlist',
+        name: 'overlay-startlist',
+        component: () => import('@/pages/overlays/StartListOverlay.vue'),
+        meta: { title: 'overlays.startlist' },
+      },
+      {
         path: 'timer',
         name: 'overlay-timer',
         component: () => import('@/pages/overlays/TimerOverlay.vue'),

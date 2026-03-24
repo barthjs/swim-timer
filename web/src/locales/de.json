@@ -4,6 +4,7 @@
     "heat": "Lauf {number} / {max}",
     "info": "Info",
     "lane": "Bahn {number}",
+    "startlist": "Startliste",
     "timer": "Timer"
   }
 }
