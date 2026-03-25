@@ -1,4 +1,12 @@
 {
+  "errors": {
+    "authenticationFailed": "Invalid secret.",
+    "badRequest": "Invalid request.",
+    "notFound": "Resource not found.",
+    "serverError": "Server error. Please try again later.",
+    "unauthorized": "Unauthorized. Please log in again.",
+    "unknown": "An unknown error occurred. Please try again."
+  },
   "home": {
     "lanes": "Lanes",
     "overlays": "Overlays"
@@ -11,5 +19,14 @@
     "splits": "Splits",
     "startlist": "Startlist",
     "timer": "Timer"
+  },
+  "validation": {
+    "gte": "Must be at least {gte}.",
+    "len": "Must be exactly {length} characters.",
+    "lte": "Must not exceed {lte}.",
+    "max": "Must not exceed {max}.",
+    "min": "Must be at least {min}.",
+    "oneof": "The value must be one of: {values}.",
+    "required": "This field is required."
   }
 }

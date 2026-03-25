@@ -1,4 +1,12 @@
 {
+  "errors": {
+    "authenticationFailed": "Ungültiges Secret.",
+    "badRequest": "Ungültige Anfrage.",
+    "notFound": "Ressource nicht gefunden.",
+    "serverError": "Serverfehler. Bitte versuche es später erneut.",
+    "unauthorized": "Nicht autorisiert. Bitte melde dich erneut an.",
+    "unknown": "Ein unbekannter Fehler ist aufgetreten. Bitte versuche es erneut."
+  },
   "home": {
     "lanes": "Bahnen",
     "overlays": "Overlays"
@@ -11,5 +19,14 @@
     "splits": "Zwischenzeiten",
     "startlist": "Startliste",
     "timer": "Timer"
+  },
+  "validation": {
+    "gte": "Muss mindestens {gte} betragen.",
+    "len": "Muss genau {length} Zeichen lang sein.",
+    "lte": "Darf {lte} nicht überschreiten.",
+    "max": "Darf {max} Zeichen nicht überschreiten.",
+    "min": "Muss mindestens {min} Zeichen lang sein.",
+    "oneof": "Der Wert muss einer der folgenden sein: {values}.",
+    "required": "Dieses Feld ist erforderlich."
   }
 }

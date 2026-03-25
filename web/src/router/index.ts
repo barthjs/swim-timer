@@ -63,6 +63,23 @@ const router = createRouter({
   routes,
 });
 
+router.beforeEach(async (to) => {
+  if (to.meta.requiresAuth && sessionStorage.getItem('secretKey') === null) {
+    return {
+      name: 'login',
+      query: { redirect: to.fullPath },
+    };
+  }
+
+  if (to.meta.isGuest && sessionStorage.getItem('secretKey') !== null) {
+    return {
+      name: 'home',
+    };
+  }
+
+  return true;
+});
+
 router.afterEach((to) => {
   const { t } = i18n.global;
   const baseTitle = 'Swim-Timer';
