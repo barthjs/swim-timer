@@ -2,8 +2,20 @@ import { createRouter, createWebHistory } from 'vue-router';
 import { i18n } from '@/i18n';
 
 import OverlayLayout from '@/layouts/OverlayLayout.vue';
+import WebLayout from '@/layouts/WebLayout.vue';
 
 const routes = [
+  {
+    path: '/',
+    component: WebLayout,
+    children: [
+      {
+        path: '',
+        name: 'home',
+        component: () => import('@/pages/HomePage.vue'),
+      },
+    ],
+  },
   {
     path: '/overlays',
     component: OverlayLayout,
@@ -58,6 +70,10 @@ router.afterEach((to) => {
   const name = to.name as string;
 
   switch (name) {
+    case 'home':
+      document.title = baseTitle;
+      break;
+
     case 'overlay-lane':
       document.title = `${t(to.meta.title as string, { number: to.params.number })} - ${baseTitle}`;
       break;

@@ -1,4 +1,8 @@
 {
+  "home": {
+    "lanes": "Lanes",
+    "overlays": "Overlays"
+  },
   "overlays": {
     "event": "Event {number}",
     "heat": "Heat {number} / {max}",

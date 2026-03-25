@@ -1,4 +1,8 @@
 {
+  "home": {
+    "lanes": "Bahnen",
+    "overlays": "Overlays"
+  },
   "overlays": {
     "event": "Wettkampf {number}",
     "heat": "Lauf {number} / {max}",
