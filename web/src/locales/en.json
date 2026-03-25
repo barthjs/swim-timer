@@ -11,6 +11,11 @@
     "lanes": "Lanes",
     "overlays": "Overlays"
   },
+  "login": {
+    "invalidSecret": "Invalid Secret",
+    "secret": "Secret",
+    "title": "Login"
+  },
   "overlays": {
     "event": "Event {number}",
     "heat": "Heat {number} / {max}",

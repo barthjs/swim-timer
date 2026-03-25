@@ -11,6 +11,11 @@
     "lanes": "Bahnen",
     "overlays": "Overlays"
   },
+  "login": {
+    "invalidSecret": "Ungültiges Secret",
+    "secret": "Secret",
+    "title": "Login"
+  },
   "overlays": {
     "event": "Wettkampf {number}",
     "heat": "Lauf {number} / {max}",

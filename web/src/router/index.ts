@@ -14,6 +14,12 @@ const routes = [
         name: 'home',
         component: () => import('@/pages/HomePage.vue'),
       },
+      {
+        path: '/login',
+        name: 'login',
+        component: () => import('@/pages/LoginPage.vue'),
+        meta: { isGuest: true, title: 'login.title' },
+      },
     ],
   },
   {
