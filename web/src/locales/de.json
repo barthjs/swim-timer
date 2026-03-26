@@ -1,4 +1,9 @@
 {
+  "common": {
+    "unsavedChangesConfirm": "Du hast ungespeicherte Änderungen. Möchtest du die Seite wirklich verlassen?",
+    "cancel": "Abbrechen",
+    "confirm": "Bestätigen"
+  },
   "errors": {
     "authenticationFailed": "Ungültiges Secret.",
     "badRequest": "Ungültige Anfrage.",

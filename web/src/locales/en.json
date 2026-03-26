@@ -1,4 +1,9 @@
 {
+  "common": {
+    "unsavedChangesConfirm": "You have unsaved changes. Are you sure you want to leave?",
+    "cancel": "Cancel",
+    "confirm": "Confirm"
+  },
   "errors": {
     "authenticationFailed": "Invalid secret.",
     "badRequest": "Invalid request.",
