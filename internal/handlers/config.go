@@ -10,7 +10,7 @@ type ConfigInput struct {
 	ConfigFilePath string `json:"config_file_path"`
 	LogLevel       string `json:"log_level" validate:"required,oneof=debug info warn error"`
 	PoolLength     int    `json:"pool_length" validate:"required,min=1,max=1000000"`
-	PresetDir      string `json:"preset_dir" validate:"required,min=1,max=255"`
+	PresetsDir     string `json:"presets_dir" validate:"required,min=1,max=255"`
 	RaceDataDir    string `json:"race_data_dir" validate:"required,min=1,max=255"`
 	SerialPort     string `json:"serial_port" validate:"max=255"`
 	SimulateEvent  int    `json:"simulate_event" validate:"min=0,max=1000000"`
@@ -46,7 +46,7 @@ func (h *Handlers) updateConfigHandler(w http.ResponseWriter, r *http.Request) {
 		ConfigFilePath: h.cfg.ConfigFilePath,
 		RawLogLevel:    input.LogLevel,
 		PoolLength:     input.PoolLength,
-		PresetsDir:     input.PresetDir,
+		PresetsDir:     input.PresetsDir,
 		RaceDataDir:    input.RaceDataDir,
 		SerialPort:     input.SerialPort,
 		SimulateEvent:  input.SimulateEvent,

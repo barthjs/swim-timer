@@ -37,3 +37,18 @@ export interface RaceState {
   start_time?: string;
   lanes: Record<number, Lane>; // Sorted by lane number
 }
+
+export interface Config {
+  config_file_path: string;
+  log_level: string;
+  pool_length: number;
+  presets_dir: string;
+  race_data_dir: string;
+  serial_port: string;
+  simulate_event: number;
+  server: {
+    host: string;
+    port: number;
+  };
+  secret: string;
+}

@@ -16,6 +16,22 @@ onMounted(() => {
   <div class="m-auto flex w-full max-w-2xl flex-col space-y-6">
     <section class="bg-surface flex flex-col space-y-4 rounded-xl p-5">
       <h2 class="border-subtle border-b pb-1 font-bold tracking-wider uppercase">
+        {{ $t('home.configuration') }}
+      </h2>
+
+      <div class="grid grid-cols-2 gap-2">
+        <RouterLink
+          :to="{ name: 'config' }"
+          class="border-subtle hover:bg-base flex items-center justify-between rounded-md border px-3 py-2 transition-colors"
+        >
+          <span>{{ $t('config.title') }}</span>
+          <ArrowRight :size="18" class="text-muted" />
+        </RouterLink>
+      </div>
+    </section>
+
+    <section class="bg-surface flex flex-col space-y-4 rounded-xl p-5">
+      <h2 class="border-subtle border-b pb-1 font-bold tracking-wider uppercase">
         {{ $t('home.overlays') }}
       </h2>
 

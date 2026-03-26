@@ -15,6 +15,12 @@ const routes = [
         component: () => import('@/pages/HomePage.vue'),
       },
       {
+        path: '/config',
+        name: 'config',
+        component: () => import('@/pages/ConfigPage.vue'),
+        meta: { requiresAuth: true, title: 'config.title' },
+      },
+      {
         path: '/login',
         name: 'login',
         component: () => import('@/pages/LoginPage.vue'),

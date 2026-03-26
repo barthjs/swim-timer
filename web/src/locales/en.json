@@ -1,8 +1,31 @@
 {
   "common": {
-    "unsavedChangesConfirm": "You have unsaved changes. Are you sure you want to leave?",
+    "backToHome": "Back to Home",
     "cancel": "Cancel",
-    "confirm": "Confirm"
+    "confirm": "Confirm",
+    "discardChanges": "Discard Changes",
+    "save": "Save",
+    "unsavedChangesConfirm": "You have unsaved changes. Are you sure you want to leave?"
+  },
+  "config": {
+    "configFilePath": "Loaded Configuration File",
+    "configMismatch": "The loaded configuration may differ from the config file due to environment variables or CLI flags.",
+    "loadError": "Failed to load configuration.",
+    "loading": "Loading configuration...",
+    "logLevel": "Log Level",
+    "poolLength": "Pool Length (meters)",
+    "presetsDir": "Presets Directory",
+    "raceDataDir": "Race Data Directory",
+    "restartRequired": "Configuration saved. The application must be restarted for changes to take effect.",
+    "saveConfirm": "Save the configuration changes?",
+    "saveError": "Failed to save configuration.",
+    "saveSuccess": "Configuration saved successfully.",
+    "secret": "Secret",
+    "serialPort": "Serial Port",
+    "serverHost": "Server Host",
+    "serverPort": "Server Port",
+    "simulateEvent": "Simulate Event",
+    "title": "Configuration"
   },
   "errors": {
     "authenticationFailed": "Invalid secret.",
@@ -13,6 +36,7 @@
     "unknown": "An unknown error occurred. Please try again."
   },
   "home": {
+    "configuration": "Configuration",
     "lanes": "Lanes",
     "overlays": "Overlays"
   },

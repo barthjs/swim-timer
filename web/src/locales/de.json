@@ -1,8 +1,31 @@
 {
   "common": {
-    "unsavedChangesConfirm": "Du hast ungespeicherte Änderungen. Möchtest du die Seite wirklich verlassen?",
+    "backToHome": "Zurück zur Startseite",
     "cancel": "Abbrechen",
-    "confirm": "Bestätigen"
+    "confirm": "Bestätigen",
+    "discardChanges": "Änderungen verwerfen",
+    "save": "Speichern",
+    "unsavedChangesConfirm": "Du hast ungespeicherte Änderungen. Möchtest du die Seite wirklich verlassen?"
+  },
+  "config": {
+    "configFilePath": "Geladene Konfigurationsdatei",
+    "configMismatch": "Die geladene Konfiguration könnte sich von der Konfigurationsdatei unterscheiden, da Umgebungsvariablen oder CLI-Flags diese überschreiben können.",
+    "loadError": "Fehler beim Laden der Konfiguration.",
+    "loading": "Konfiguration wird geladen...",
+    "logLevel": "Log-Level",
+    "poolLength": "Beckenlänge (Meter)",
+    "presetsDir": "Presets-Verzeichnis",
+    "raceDataDir": "Renndaten-Verzeichnis",
+    "restartRequired": "Konfiguration gespeichert. Die Anwendung muss neu gestartet werden, damit die Änderungen wirksam werden.",
+    "saveConfirm": "Konfigurationsänderungen speichern?",
+    "saveError": "Fehler beim Speichern der Konfiguration.",
+    "saveSuccess": "Konfiguration erfolgreich gespeichert.",
+    "secret": "Secret",
+    "serialPort": "Serielle Schnittstelle",
+    "serverHost": "Server-Host",
+    "serverPort": "Server-Port",
+    "simulateEvent": "Wettkampf simulieren",
+    "title": "Konfiguration"
   },
   "errors": {
     "authenticationFailed": "Ungültiges Secret.",
@@ -13,6 +36,7 @@
     "unknown": "Ein unbekannter Fehler ist aufgetreten. Bitte versuche es erneut."
   },
   "home": {
+    "configuration": "Konfiguration",
     "lanes": "Bahnen",
     "overlays": "Overlays"
   },

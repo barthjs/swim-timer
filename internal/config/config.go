@@ -27,7 +27,7 @@ type Config struct {
 	SerialPort     string        `mapstructure:"serial_port" json:"serial_port"`
 	SimulateEvent  int           `mapstructure:"simulate_event" json:"simulate_event"`
 	Server         Server        `mapstructure:"server" json:"server"`
-	Secret         string        `mapstructure:"secret" json:"secret"`
+	Secret         string        `mapstructure:"secret" json:"-"`
 }
 
 // Load reads the configuration from defaults, environment variables, config file, and CLI flags.
