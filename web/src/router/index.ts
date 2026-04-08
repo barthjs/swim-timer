@@ -26,6 +26,12 @@ const routes = [
         component: () => import('@/pages/LoginPage.vue'),
         meta: { isGuest: true, title: 'login.title' },
       },
+      {
+        path: '/race-data',
+        name: 'race-data',
+        component: () => import('@/pages/RaceDataPage.vue'),
+        meta: { requiresAuth: true, title: 'raceData.title' },
+      },
     ],
   },
   {

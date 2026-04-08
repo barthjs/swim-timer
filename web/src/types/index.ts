@@ -52,3 +52,15 @@ export interface Config {
   };
   secret: string;
 }
+
+export interface RaceDataFile {
+  id: string;
+  exists: boolean;
+  isUploading: boolean;
+}
+
+export interface RaceDataUploadResult {
+  filename: string;
+  matched: boolean;
+  error?: string;
+}

@@ -54,6 +54,31 @@
     "startlist": "Startlist",
     "timer": "Timer"
   },
+  "raceData": {
+    "available": "Available",
+    "fetchError": "Failed to fetch race data.",
+    "fileNames": {
+      "LSTCAT": "Categories",
+      "LSTCONC": "Persons",
+      "LSTLONG": "Distances",
+      "LSTRACE": "Races",
+      "LSTSTART": "Starts",
+      "LSTSTYLE": "Styles"
+    },
+    "fileReady": "This file is loaded and ready.",
+    "fileRequired": "This file is required for full functionality.",
+    "missing": "Missing",
+    "reload": "Reload Store",
+    "reloadError": "Failed to reload race data.",
+    "reloadSuccess": "Race data reloaded successfully.",
+    "title": "Race Data",
+    "upload": "Upload",
+    "uploadError": "Failed to upload {name}.",
+    "uploadMultiple": "Upload Multiple Files",
+    "uploadMultipleError": "Failed to upload files.",
+    "uploadMultipleSuccess": "Successfully processed {count} files.",
+    "uploadSuccess": "{name} uploaded successfully."
+  },
   "validation": {
     "gte": "Must be at least {gte}.",
     "len": "Must be exactly {length} characters.",

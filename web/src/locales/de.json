@@ -54,6 +54,31 @@
     "startlist": "Startliste",
     "timer": "Timer"
   },
+  "raceData": {
+    "available": "Vorhanden",
+    "fetchError": "Fehler beim Abrufen der Renndaten.",
+    "fileNames": {
+      "LSTCAT": "Kategorien",
+      "LSTCONC": "Teilnehmer",
+      "LSTLONG": "Distanzen",
+      "LSTRACE": "Wettkämpfe",
+      "LSTSTART": "Starts",
+      "LSTSTYLE": "Stile"
+    },
+    "fileReady": "Diese Datei ist geladen und bereit.",
+    "fileRequired": "Diese Datei wird für den vollen Funktionsumfang benötigt.",
+    "missing": "Fehlt",
+    "reload": "Speicher neu laden",
+    "reloadError": "Renndaten konnten nicht neu geladen werden.",
+    "reloadSuccess": "Renndaten erfolgreich neu geladen.",
+    "title": "Renndaten",
+    "upload": "Hochladen",
+    "uploadError": "{name} konnte nicht hochgeladen werden.",
+    "uploadMultiple": "Mehrere Dateien hochladen",
+    "uploadMultipleError": "Fehler beim Hochladen der Dateien.",
+    "uploadMultipleSuccess": "{count} Dateien erfolgreich verarbeitet.",
+    "uploadSuccess": "{name} erfolgreich hochgeladen."
+  },
   "validation": {
     "gte": "Muss mindestens {gte} betragen.",
     "len": "Muss genau {length} Zeichen lang sein.",
