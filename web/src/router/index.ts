@@ -35,6 +35,12 @@ const routes = [
     ],
   },
   {
+    path: '/race-overview',
+    name: 'race-overview',
+    component: () => import('@/pages/RaceOverview.vue'),
+    meta: { title: 'raceOverview.title' },
+  },
+  {
     path: '/overlays',
     component: OverlayLayout,
     children: [

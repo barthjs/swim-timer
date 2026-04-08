@@ -79,6 +79,16 @@
     "uploadMultipleSuccess": "{count} Dateien erfolgreich verarbeitet.",
     "uploadSuccess": "{name} erfolgreich hochgeladen."
   },
+  "raceOverview": {
+    "club": "Verein",
+    "laneAbbr": "Bahn",
+    "lapCount": "Runden",
+    "meter": "Meter",
+    "name": "Name",
+    "rank": "Platz",
+    "time": "Zeit",
+    "title": "Rennübersicht"
+  },
   "validation": {
     "gte": "Muss mindestens {gte} betragen.",
     "len": "Muss genau {length} Zeichen lang sein.",

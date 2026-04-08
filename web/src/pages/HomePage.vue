@@ -27,6 +27,22 @@ onMounted(() => {
           <span>{{ $t('config.title') }}</span>
           <ArrowRight :size="18" class="text-muted" />
         </RouterLink>
+
+        <RouterLink
+          :to="{ name: 'race-data' }"
+          class="border-subtle hover:bg-base flex items-center justify-between rounded-md border px-3 py-2 transition-colors"
+        >
+          <span>{{ $t('raceData.title') }}</span>
+          <ArrowRight :size="18" class="text-muted" />
+        </RouterLink>
+
+        <RouterLink
+          :to="{ name: 'race-overview' }"
+          class="border-subtle hover:bg-base flex items-center justify-between rounded-md border px-3 py-2 transition-colors"
+        >
+          <span>{{ $t('raceOverview.title') }}</span>
+          <ArrowRight :size="18" class="text-muted" />
+        </RouterLink>
       </div>
     </section>
 
