@@ -1,14 +1,36 @@
 <script setup lang="ts">
-import { onMounted } from 'vue';
+import { onMounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { RouterLink } from 'vue-router';
 import { ArrowRight } from 'lucide-vue-next';
 
+import { presetsApi } from '@/api/presetsApi.ts';
+
 import { useRaceStore } from '@/stores/raceStore.ts';
+import { useToastStore } from '@/stores/toastStore.ts';
+
+import { getErrorMessageKey, isApiError } from '@/types/api.ts';
+
+const presetNames = ref<string[]>([]);
+
+const { t } = useI18n();
 
 const store = useRaceStore();
+const toastStore = useToastStore();
+
+const loadPresetNames = async (): Promise<void> => {
+  try {
+    presetNames.value = await presetsApi.getPresetNames();
+  } catch (err) {
+    const message = isApiError(err) ? t(getErrorMessageKey(err)) : t('home.loadPresetsError');
+    toastStore.error(message, 15000);
+    console.error(err);
+  }
+};
 
 onMounted(() => {
   store.connect();
+  loadPresetNames();
 });
 </script>
 
@@ -89,6 +111,27 @@ onMounted(() => {
           class="border-subtle hover:bg-base flex items-center justify-between rounded-md border px-3 py-2 transition-colors"
         >
           <span>{{ $t('overlays.timer') }}</span>
+          <ArrowRight :size="18" class="text-muted" />
+        </RouterLink>
+      </div>
+    </section>
+
+    <section
+      v-if="presetNames.length > 0"
+      class="bg-surface flex flex-col space-y-4 rounded-xl p-5"
+    >
+      <h2 class="border-subtle border-b pb-1 font-bold tracking-wider uppercase">
+        {{ $t('home.arOverlays') }}
+      </h2>
+
+      <div class="grid grid-cols-2 gap-2">
+        <RouterLink
+          v-for="preset in presetNames"
+          :key="preset"
+          :to="{ name: 'overlay-ar', params: { preset: preset } }"
+          class="border-subtle hover:bg-base flex items-center justify-between rounded-md border px-3 py-2 transition-colors"
+        >
+          <span>{{ preset }}</span>
           <ArrowRight :size="18" class="text-muted" />
         </RouterLink>
       </div>

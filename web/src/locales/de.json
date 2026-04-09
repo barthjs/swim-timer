@@ -77,8 +77,10 @@
     "unknown": "Ein unbekannter Fehler ist aufgetreten. Bitte versuche es erneut."
   },
   "home": {
+    "arOverlays": "AR Overlays",
     "configuration": "Konfiguration",
     "lanes": "Bahnen",
+    "loadPresetsError": "Fehler beim Laden der Presets.",
     "overlays": "Overlays"
   },
   "login": {
@@ -87,6 +89,7 @@
     "title": "Login"
   },
   "overlays": {
+    "ar": "AR {preset}",
     "event": "Wettkampf {number}",
     "heat": "Lauf {number} / {max}",
     "info": "Info",

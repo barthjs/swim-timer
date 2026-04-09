@@ -51,6 +51,12 @@ const routes = [
     component: OverlayLayout,
     children: [
       {
+        path: 'ar/:preset',
+        name: 'overlay-ar',
+        component: () => import('@/pages/overlays/AROverlay.vue'),
+        meta: { title: 'overlays.ar' },
+      },
+      {
         path: 'info',
         name: 'overlay-info',
         component: () => import('@/pages/overlays/InfoOverlay.vue'),

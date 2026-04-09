@@ -77,8 +77,10 @@
     "unknown": "An unknown error occurred. Please try again."
   },
   "home": {
+    "arOverlays": "AR Overlays",
     "configuration": "Configuration",
     "lanes": "Lanes",
+    "loadPresetsError": "Failed to load presets.",
     "overlays": "Overlays"
   },
   "login": {
@@ -87,6 +89,7 @@
     "title": "Login"
   },
   "overlays": {
+    "ar": "AR {preset}",
     "event": "Event {number}",
     "heat": "Heat {number} / {max}",
     "info": "Info",
