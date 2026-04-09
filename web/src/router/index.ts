@@ -35,6 +35,12 @@ const routes = [
     ],
   },
   {
+    path: '/editor',
+    name: 'editor',
+    component: () => import('@/pages/EditorPage.vue'),
+    meta: { requiresAuth: true, title: 'editor.title' },
+  },
+  {
     path: '/race-overview',
     name: 'race-overview',
     component: () => import('@/pages/RaceOverview.vue'),

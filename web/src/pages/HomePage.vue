@@ -29,6 +29,14 @@ onMounted(() => {
         </RouterLink>
 
         <RouterLink
+          :to="{ name: 'editor' }"
+          class="border-subtle hover:bg-base flex items-center justify-between rounded-md border px-3 py-2 transition-colors"
+        >
+          <span>{{ $t('editor.title') }}</span>
+          <ArrowRight :size="18" class="text-muted" />
+        </RouterLink>
+
+        <RouterLink
           :to="{ name: 'race-data' }"
           class="border-subtle hover:bg-base flex items-center justify-between rounded-md border px-3 py-2 transition-colors"
         >

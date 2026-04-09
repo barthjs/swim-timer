@@ -53,6 +53,41 @@ export interface Config {
   secret: string;
 }
 
+export interface Point {
+  x: number;
+  y: number;
+}
+
+export enum CornerKey {
+  TopLeft = 'tl',
+  TopRight = 'tr',
+  BottomRight = 'br',
+  BottomLeft = 'bl',
+}
+
+export interface LanePreset {
+  [CornerKey.TopLeft]: Point;
+  [CornerKey.TopRight]: Point;
+  [CornerKey.BottomRight]: Point;
+  [CornerKey.BottomLeft]: Point;
+  locked?: boolean; // Locks the movement in the Editor
+}
+
+export enum TextAnchor {
+  Left = 'left',
+  Right = 'right',
+}
+
+export interface Preset {
+  name: string;
+  comment: string | null;
+  virtualWidth: number;
+  virtualHeight: number;
+  reverseLanes: boolean; // true maps visual top lane to the highest race lane number
+  textAnchor: TextAnchor; // layout direction based on camera position
+  lanes: Record<number, LanePreset>;
+}
+
 export interface RaceDataFile {
   id: string;
   exists: boolean;
