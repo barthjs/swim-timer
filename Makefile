@@ -3,11 +3,12 @@
 # ==================================================================================== #
 
 BINARY_NAME := swim-timer
+VERSION     ?= dev
 
 GOOS    ?= $(shell go env GOOS)
 GOARCH  ?= $(shell go env GOARCH)
 OUT     ?= bin/$(BINARY_NAME)
-LDFLAGS ?= -s -w
+LDFLAGS ?= -s -w -X 'main.Version=$(VERSION)'
 
 # ==================================================================================== #
 # HELPERS
@@ -79,47 +80,58 @@ audit:
 .PHONY: build-frontend
 build-frontend:
 	cd web && \
+	export VITE_APP_VERSION=$(VERSION) && \
 	npm install && \
 	npm run build
 
 ## build-backend: build only the backend
 .PHONY: build-backend
 build-backend:
-	GOOS=$(GOOS) GOARCH=$(GOARCH) go build -ldflags="$(LDFLAGS)" -o "$(OUT)" ./cmd/
+	GOOS=$(GOOS) GOARCH=$(GOARCH) VERSION=$(VERSION) OUT=$(OUT) sh ./scripts/go-build.sh
 
 ## build: build the whole application
 .PHONY: build
 build: build-frontend build-backend
 
-## build-linux-x64: build for Linux x64
-.PHONY: build-linux-x64
-build-linux-x64:
-	GOOS=linux GOARCH=amd64 go build -ldflags="$(LDFLAGS)" -o "dist/$(BINARY_NAME)-linux-x64/$(BINARY_NAME)" ./cmd/
+## build-linux-386: build for Linux 386
+.PHONY: build-linux-386
+build-linux-386: build-frontend
+	GOOS=linux GOARCH=386 VERSION=$(VERSION) OUT=dist/$(BINARY_NAME)_linux_386/$(BINARY_NAME) sh ./scripts/go-build.sh
+
+## build-linux-amd64: build for Linux AMD64
+.PHONY: build-linux-amd64
+build-linux-amd64: build-frontend
+	GOOS=linux GOARCH=amd64 VERSION=$(VERSION) OUT=dist/$(BINARY_NAME)_linux_amd64/$(BINARY_NAME) sh ./scripts/go-build.sh
 
 ## build-linux-arm64: build for Linux ARM64
 .PHONY: build-linux-arm64
-build-linux-arm64:
-	GOOS=linux GOARCH=arm64 go build -ldflags="$(LDFLAGS)" -o "dist/$(BINARY_NAME)-linux-arm64/$(BINARY_NAME)" ./cmd/
+build-linux-arm64: build-frontend
+	GOOS=linux GOARCH=arm64 VERSION=$(VERSION) OUT=dist/$(BINARY_NAME)_linux_arm64/$(BINARY_NAME) sh ./scripts/go-build.sh
 
-## build-windows-x64: build for Windows x64
-.PHONY: build-windows-x64
-build-windows-x64:
+## build-winres: create Windows resources
+.PHONY: build-winres
+build-winres:
 	go-winres make --in cmd/winres.json --out cmd/rsrc --product-version=git-tag --file-version=git-tag
-	GOOS=windows GOARCH=amd64 go build -ldflags="$(LDFLAGS) -H=windowsgui" -o "dist/$(BINARY_NAME)-windows-x64/$(BINARY_NAME).exe" ./cmd/
+
+## build-windows-386: build for Windows 386
+.PHONY: build-windows-386
+build-windows-386: build-frontend build-winres
+	GOOS=windows GOARCH=386 VERSION=$(VERSION) OUT=dist/$(BINARY_NAME)_windows_386/$(BINARY_NAME).exe sh ./scripts/go-build.sh
+
+## build-windows-amd64: build for Windows AMD64
+.PHONY: build-windows-amd64
+build-windows-amd64: build-frontend build-winres
+	GOOS=windows GOARCH=amd64 VERSION=$(VERSION) OUT=dist/$(BINARY_NAME)_windows_amd64/$(BINARY_NAME).exe sh ./scripts/go-build.sh
 
 ## build-windows-arm64: build for Windows ARM64
 .PHONY: build-windows-arm64
-build-windows-arm64:
-	go-winres make --in cmd/winres.json --out cmd/rsrc --product-version=git-tag --file-version=git-tag
-	GOOS=windows GOARCH=arm64 go build -ldflags="$(LDFLAGS) -H=windowsgui" -o "dist/$(BINARY_NAME)-windows-arm64/$(BINARY_NAME).exe" ./cmd/
+build-windows-arm64: build-frontend build-winres
+	GOOS=windows GOARCH=arm64 VERSION=$(VERSION) OUT=dist/$(BINARY_NAME)_windows_arm64/$(BINARY_NAME).exe sh ./scripts/go-build.sh
 
 ## build-all: build for all supported platforms
 .PHONY: build-all
-build-all: build-frontend build-windows-x64 build-windows-arm64 build-linux-x64 build-linux-arm64
-
-# ==================================================================================== #
-# DOCKER
-# ==================================================================================== #
+build-all:
+	./scripts/build-release.sh $(VERSION)
 
 ## docker-build: build Docker image
 .PHONY: docker-build

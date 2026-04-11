@@ -1,0 +1,14 @@
+.github
+docs
+.dockerignore
+.editorconfig
+.env*
+.gitattributes
+.gitignore
+compose.yaml
+Dockerfile
+install.sh
+LICENSE
+MAKEFILE
+README.md
+SECURITY.md
