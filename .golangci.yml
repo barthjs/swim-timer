@@ -1,0 +1,57 @@
+version: "2"
+
+linters:
+  default: standard
+  enable:
+    - errorlint
+    - nilerr
+
+    - bodyclose
+    - noctx
+    - rowserrcheck
+    - sqlclosecheck
+
+    - exhaustive
+    - usestdlibvars
+
+    - godot
+    - misspell
+  settings:
+    errcheck:
+      disable-default-exclusions: true
+      check-blank: false
+      check-type-assertions: true
+    errorlint:
+      asserts: true
+      comparison: true
+      errorf: true
+    exhaustive:
+      default-signifies-exhaustive: true
+    godot:
+      scope: declarations
+      capital: false
+    misspell:
+      locale: US
+  exclusions:
+    generated: lax
+    paths:
+      - docs/api/docs.go
+      - docs/api/node_modules
+      - web/node_modules
+
+formatters:
+  enable:
+    - gofmt
+    - gci
+  settings:
+    gci:
+      sections:
+        - standard
+        - default
+        - localmodule
+  exclusions:
+    generated: lax
+    paths:
+      - docs/api/docs.go
+      - docs/api/node_modules
+      - web/node_modules

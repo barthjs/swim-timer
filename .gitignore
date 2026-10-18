@@ -1,6 +1,10 @@
 /.idea
 /bin
+/coverage
 /data
 /dist
 .env
 *.syso
+config.json
+config.toml
+config.yaml

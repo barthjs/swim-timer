@@ -1,214 +1,125 @@
 package config
 
 import (
-	"errors"
-	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/joho/godotenv"
-	"github.com/rs/zerolog"
 	"github.com/spf13/pflag"
-	"github.com/spf13/viper"
+
+	"github.com/barthjs/swim-timer/internal/appdirs"
+	"github.com/barthjs/swim-timer/internal/config/structconf"
 )
 
-type Server struct {
-	Host string `mapstructure:"host" json:"host"`
-	Port int    `mapstructure:"port" json:"port"`
-}
+// AppName names the binary and the application's config and data directories.
+const AppName = "swim-timer"
 
+// AppTitle is the display name of the application.
+const AppTitle = "Swim-Timer"
+
+// AppRepository is the GitHub repository the releases are published in, as owner/name.
+const AppRepository = "barthjs/swim-timer"
+
+// Length limits of text settings.
+const (
+	maxShortText = 100
+	maxText      = 255
+	maxPath      = 1024
+)
+
+// Config holds the application configuration, one field per section.
+// Its settings are declared by struct tags (see structconf).
 type Config struct {
-	ConfigFilePath string        `mapstructure:"-" json:"config_file_path"`
-	LogLevel       zerolog.Level `mapstructure:"-" json:"-"`
-	RawLogLevel    string        `mapstructure:"log_level" json:"log_level"`
-	PoolLength     int           `mapstructure:"pool_length" json:"pool_length"`
-	PresetsDir     string        `mapstructure:"presets_dir" json:"presets_dir"`
-	RaceDataDir    string        `mapstructure:"race_data_dir" json:"race_data_dir"`
-	SerialPort     string        `mapstructure:"serial_port" json:"serial_port"`
-	SimulateEvent  int           `mapstructure:"simulate_event" json:"simulate_event"`
-	Server         Server        `mapstructure:"server" json:"server"`
-	Secret         string        `mapstructure:"secret" json:"-"`
+	App     AppConfig     `mapstructure:"app" json:"app"`
+	Log     LogConfig     `mapstructure:"log" json:"log"`
+	Server  ServerConfig  `mapstructure:"server" json:"server"`
+	Storage StorageConfig `mapstructure:"storage" json:"storage"`
+	Theme   ThemeConfig   `mapstructure:"theme" json:"theme"`
+	Timing  TimingConfig  `mapstructure:"timing" json:"timing"`
 }
 
-// Load reads the configuration from defaults, environment variables, config file, and CLI flags.
-// Precedence order: defaults → config file → env vars → CLI flags
-// A config file is searched in these locations (first found is used):
-//   - CLI-specified path (if provided)
-//   - ~/.config/swim-timer/config.yaml (User config directory)
-//   - ./config.yaml (Current directory)
-func Load(cliConfigPath string, flags *pflag.FlagSet) (Config, error) {
-	// Load the .env file if it exists (errors are ignored as the file is optional)
+// Load resolves the configuration from command-line flags, environment variables, a config file,
+// and the defaults (see structconf.Load), and validates it. A .env file in the working directory,
+// if present, fills the environment first. The flags may be nil for a command that registers none.
+func Load(flags *pflag.FlagSet) (Config, error) {
+	// The .env file is optional, so an error reading it is ignored
 	_ = godotenv.Load()
 
-	v := viper.New()
-
-	var defaultDataDir string
-	if configDir, err := os.UserConfigDir(); err == nil {
-		defaultDataDir = filepath.Join(configDir, "swim-timer")
-	} else {
-		defaultDataDir = "."
-	}
-
-	// Defaults
-	v.SetDefault("log_level", "warn")
-	v.SetDefault("pool_length", 50)
-	v.SetDefault("presets_dir", filepath.Join(defaultDataDir, "data/presets"))
-	v.SetDefault("race_data_dir", filepath.Join(defaultDataDir, "data/race-data"))
-	v.SetDefault("simulate_event", 0)
-	v.SetDefault("serial_port", "")
-	v.SetDefault("server.host", "*")
-	v.SetDefault("server.port", 8080)
-	v.SetDefault("secret", "")
-
-	// Try to find and load config file from multiple locations
-	var configFileUsed string
-	if cliConfigPath != "" {
-		// Explicit CLI path takes precedence
-		configFileUsed = cliConfigPath
-		if info, err := os.Stat(cliConfigPath); err == nil && !info.IsDir() {
-			v.SetConfigFile(cliConfigPath)
-			_ = v.ReadInConfig()
-		}
-	} else {
-		configPaths := []string{
-			filepath.Join(defaultDataDir, "config.yaml"),
-			"./config.yaml",
-		}
-
-		for _, path := range configPaths {
-			if info, err := os.Stat(path); err == nil && !info.IsDir() {
-				v.SetConfigFile(path)
-				if err := v.ReadInConfig(); err == nil {
-					configFileUsed = path
-					break
-				}
-			}
-		}
-
-		// If no config file found, create one at the default location if possible
-		if configFileUsed == "" && defaultDataDir != "." {
-			defaultConfigPath := filepath.Join(defaultDataDir, "config.yaml")
-			if err := os.MkdirAll(defaultDataDir, 0755); err == nil {
-				v.SetConfigFile(defaultConfigPath)
-				if err := v.SafeWriteConfigAs(defaultConfigPath); err == nil {
-					configFileUsed = defaultConfigPath
-				}
-			}
-		}
-	}
-
-	// Bind environment variables
-	_ = v.BindEnv("log_level", "LOG_LEVEL")
-	_ = v.BindEnv("pool_length", "POOL_LENGTH")
-	_ = v.BindEnv("presets_dir", "PRESETS_DIR")
-	_ = v.BindEnv("race_data_dir", "RACE_DATA_DIR")
-	_ = v.BindEnv("simulate_event", "SIMULATE_EVENT")
-	_ = v.BindEnv("serial_port", "SERIAL_PORT")
-	_ = v.BindEnv("server.host", "SERVER_HOST")
-	_ = v.BindEnv("server.port", "SERVER_PORT")
-	_ = v.BindEnv("secret", "SECRET")
-
-	// Bind CLI flags
-	if flags != nil {
-		_ = v.BindPFlag("log_level", flags.Lookup("log-level"))
-		_ = v.BindPFlag("pool_length", flags.Lookup("pool-length"))
-		_ = v.BindPFlag("presets_dir", flags.Lookup("presets-dir"))
-		_ = v.BindPFlag("race_data_dir", flags.Lookup("race-data-dir"))
-		_ = v.BindPFlag("serial_port", flags.Lookup("serial-port"))
-		_ = v.BindPFlag("simulate_event", flags.Lookup("simulate-event"))
-		_ = v.BindPFlag("server.host", flags.Lookup("host"))
-		_ = v.BindPFlag("server.port", flags.Lookup("port"))
-		_ = v.BindPFlag("secret", flags.Lookup("secret"))
-	}
-
 	var cfg Config
-	if err := v.Unmarshal(&cfg); err != nil {
+	if err := structconf.Load(AppName, flags, &cfg); err != nil {
 		return Config{}, err
 	}
 
-	if configFileUsed != "" {
-		absPath, err := filepath.Abs(configFileUsed)
-		if err == nil {
-			cfg.ConfigFilePath = absPath
-		} else {
-			cfg.ConfigFilePath = configFileUsed
-		}
-	}
-
-	// Ensure data directories exist and are writable
-	if err := ensureWritableDir(cfg.PresetsDir); err != nil {
+	if err := Validate(&cfg); err != nil {
 		return Config{}, err
 	}
-	if err := ensureWritableDir(cfg.RaceDataDir); err != nil {
-		return Config{}, err
-	}
-
-	cfg.LogLevel = parseLogLevel(cfg.RawLogLevel)
-	cfg.Server.Host = normalizeHost(cfg.Server.Host)
 
 	return cfg, nil
 }
 
-func ensureWritableDir(path string) error {
+// Defaults returns the configuration built from the struct-tag defaults alone. It is not validated yet,
+// since settings without a default, such as secrets, may be required. Tests set what they need and then call Validate.
+func Defaults() (Config, error) {
+	var cfg Config
+	if err := structconf.Defaults(&cfg); err != nil {
+		return Config{}, err
+	}
+	return cfg, nil
+}
+
+// Validate validates every section of cfg and normalizes its values in place.
+// It reports every invalid setting at once instead of stopping at the first one.
+func Validate(cfg *Config) error {
+	var p structconf.Problems
+
+	p.Add(validateApp(&cfg.App))
+	p.Add(validateLog(&cfg.Log))
+	p.Add(validateServer(&cfg.Server))
+	p.Add(validateStorage(&cfg.Storage))
+	p.Add(validateTheme(&cfg.Theme))
+	p.Add(validateTiming(&cfg.Timing))
+	p.Add(structconf.CheckValues(cfg))
+
+	return p.Err()
+}
+
+// ResolveDataPath returns path, or if it is empty, subdir below the application's data directory
+// (see appdirs.DataDir), so a default location does not depend on the working directory.
+func ResolveDataPath(path, subdir string) (string, error) {
+	if path != "" {
+		return path, nil
+	}
+
+	dir, err := appdirs.DataDir(AppName)
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(dir, subdir), nil
+}
+
+// DataPaths returns the locations ResolveDataPath chooses from, in the order it tries them, without creating any:
+// path alone, or if it is empty, subdir below each candidate of the data directory (see appdirs.DataDirs).
+func DataPaths(path, subdir string) []string {
+	if path != "" {
+		return []string{
+			path,
+		}
+	}
+
+	dirs := appdirs.DataDirs(AppName)
+	paths := make([]string, 0, len(dirs))
+	for _, dir := range dirs {
+		paths = append(paths, filepath.Join(dir, subdir))
+	}
+	return paths
+}
+
+// cleanPath trims and cleans a configured path. An empty path stays empty instead of becoming ".",
+// since it selects the default location (see ResolveDataPath).
+func cleanPath(path string) string {
+	path = strings.TrimSpace(path)
 	if path == "" {
-		return errors.New("directory path cannot be empty")
-	}
-	if err := os.MkdirAll(path, 0755); err != nil {
-		return err
-	}
-	return nil
-}
-
-// parseLogLevel converts a string to a zerolog level safely.
-func parseLogLevel(levelStr string) zerolog.Level {
-	switch strings.ToLower(levelStr) {
-	case "debug":
-		return zerolog.DebugLevel
-	case "info":
-		return zerolog.InfoLevel
-	case "warn", "warning":
-		return zerolog.WarnLevel
-	case "error":
-		return zerolog.ErrorLevel
-	default:
-		return zerolog.WarnLevel
-	}
-}
-
-func normalizeHost(host string) string {
-	switch strings.TrimSpace(host) {
-	case "", "*", "0.0.0.0", "::":
 		return ""
-	default:
-		return host
 	}
-}
-
-// WriteConfig writes the configuration to the config file.
-func WriteConfig(cfg Config) error {
-	if cfg.ConfigFilePath == "" {
-		return errors.New("config file path not set")
-	}
-
-	if err := ensureWritableDir(filepath.Dir(cfg.ConfigFilePath)); err != nil {
-		return err
-	}
-
-	v := viper.New()
-	v.SetConfigType("yaml")
-	v.Set("log_level", cfg.RawLogLevel)
-	v.Set("pool_length", cfg.PoolLength)
-	v.Set("presets_dir", cfg.PresetsDir)
-	v.Set("race_data_dir", cfg.RaceDataDir)
-	v.Set("serial_port", cfg.SerialPort)
-	v.Set("simulate_event", cfg.SimulateEvent)
-	v.Set("server.host", cfg.Server.Host)
-	v.Set("server.port", cfg.Server.Port)
-	v.Set("secret", cfg.Secret)
-
-	if err := v.WriteConfigAs(cfg.ConfigFilePath); err != nil {
-		return err
-	}
-
-	return nil
+	return filepath.Clean(path)
 }

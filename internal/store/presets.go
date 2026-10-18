@@ -1,125 +1,137 @@
 package store
 
 import (
-	"encoding/json"
+	"bytes"
+	"context"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"errors"
-	"os"
-	"path/filepath"
-	"strings"
+	"fmt"
+	"slices"
 	"sync"
 
-	"github.com/barthjs/swim-timer/internal/data"
+	"github.com/barthjs/swim-timer/internal/apperr"
+	"github.com/barthjs/swim-timer/internal/domain"
+	"github.com/barthjs/swim-timer/internal/media"
 )
 
-// PresetsStore is a simple file-based store for presets.
-// Each preset is stored as a JSON file in the specified directory.
-type PresetsStore struct {
-	mu  sync.Mutex
-	dir string
+const (
+	// presetsFolder is the storage folder the presets are kept in.
+	presetsFolder = "presets"
+	// presetExtension is the extension of a preset file.
+	presetExtension = ".json"
+)
+
+// PresetStore keeps every preset as a JSON file in the storage, named after the preset.
+type PresetStore struct {
+	storage media.Storage
+
+	mu sync.Mutex
 }
 
-const presetExtension = ".json"
-
-var ErrInvalidPreset = errors.New("invalid preset")
-
-// NewPresetsStore creates a new PresetsStore.
-func NewPresetsStore(dir string) *PresetsStore {
-	return &PresetsStore{dir: dir}
+// NewPresetStore creates a PresetStore.
+func NewPresetStore(storage media.Storage) *PresetStore {
+	return &PresetStore{
+		storage: storage,
+	}
 }
 
-// List returns a list of all available presets.
-func (s *PresetsStore) List() ([]string, error) {
+// List returns the names of all presets, sorted by name.
+func (s *PresetStore) List(ctx context.Context) ([]string, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	if err := os.MkdirAll(s.dir, 0755); err != nil {
-		return nil, err
-	}
-
-	entries, err := os.ReadDir(s.dir)
+	paths, err := s.storage.List(ctx, presetsFolder+"/")
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("store: listing presets: %w", err)
 	}
 
-	presets := make([]string, 0, len(entries))
-	for _, entry := range entries {
-		if !entry.IsDir() && filepath.Ext(entry.Name()) == presetExtension {
-			presets = append(presets, strings.TrimSuffix(entry.Name(), presetExtension))
+	names := make([]string, 0, len(paths))
+	for _, p := range paths {
+		name, ok := fileName(presetsFolder, p, presetExtension)
+		if !ok {
+			continue
 		}
+		names = append(names, name)
 	}
+	slices.Sort(names)
 
-	return presets, nil
+	return names, nil
 }
 
-// Get returns the contents of a preset.
-func (s *PresetsStore) Get(name string) ([]byte, error) {
+// Get returns the preset with the given name, or apperr.ErrNotFound if it does not exist.
+// A name that cannot address a preset file fails with ErrInvalidName.
+func (s *PresetStore) Get(ctx context.Context, name string) (*domain.Preset, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	path, err := s.securePath(name)
+	p, err := filePath(presetsFolder, name, presetExtension)
 	if err != nil {
 		return nil, err
 	}
 
-	return os.ReadFile(path)
+	data, err := media.ReadAll(ctx, s.storage, p)
+	if err != nil {
+		if errors.Is(err, media.ErrNotFound) {
+			return nil, apperr.ErrNotFound
+		}
+		return nil, fmt.Errorf("store: reading preset %q: %w", name, err)
+	}
+
+	var preset domain.Preset
+	if err := json.Unmarshal(data, &preset); err != nil {
+		return nil, fmt.Errorf("store: decoding preset %q: %w", name, err)
+	}
+
+	return &preset, nil
 }
 
-// Save saves a preset to the store.
-func (s *PresetsStore) Save(name string, data data.Preset) error {
+// Save writes the preset under the given name, replacing an existing one.
+// A name that cannot address a preset file fails with ErrInvalidName.
+func (s *PresetStore) Save(ctx context.Context, name string, preset domain.Preset) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	if err := os.MkdirAll(s.dir, 0755); err != nil {
-		return err
-	}
-
-	path, err := s.securePath(name)
+	p, err := filePath(presetsFolder, name, presetExtension)
 	if err != nil {
 		return err
 	}
 
-	marshaled, err := json.MarshalIndent(data, "", "  ")
+	// Sorted lane keys keep the file stable between saves
+	data, err := json.Marshal(preset, jsontext.WithIndent("  "), json.Deterministic(true))
 	if err != nil {
-		return err
+		return fmt.Errorf("store: encoding preset %q: %w", name, err)
 	}
 
-	return os.WriteFile(path, marshaled, 0644)
+	if err := s.storage.Put(ctx, p, bytes.NewReader(data), int64(len(data))); err != nil {
+		return fmt.Errorf("store: saving preset %q: %w", name, err)
+	}
+
+	return nil
 }
 
-// Delete removes a preset from the store.
-func (s *PresetsStore) Delete(name string) error {
+// Delete removes the preset with the given name, or returns apperr.ErrNotFound if it does not exist.
+// A name that cannot address a preset file fails with ErrInvalidName.
+func (s *PresetStore) Delete(ctx context.Context, name string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	path, err := s.securePath(name)
+	p, err := filePath(presetsFolder, name, presetExtension)
 	if err != nil {
 		return err
 	}
 
-	return os.Remove(path)
-}
-
-// securePath returns the absolute path to a preset file, ensuring it is within the store directory.
-func (s *PresetsStore) securePath(name string) (string, error) {
-	cleanName := filepath.Clean(name)
-	absBase, err := filepath.Abs(s.dir)
+	exists, err := s.storage.Exists(ctx, p)
 	if err != nil {
-		return "", err
+		return fmt.Errorf("store: checking preset %q: %w", name, err)
+	}
+	if !exists {
+		return apperr.ErrNotFound
 	}
 
-	target := filepath.Join(s.dir, cleanName+presetExtension)
-	absTarget, err := filepath.Abs(target)
-	if err != nil {
-		return "", err
+	if err := s.storage.Delete(ctx, p); err != nil {
+		return fmt.Errorf("store: deleting preset %q: %w", name, err)
 	}
 
-	rel, err := filepath.Rel(absBase, absTarget)
-	if err != nil {
-		return "", err
-	}
-	if strings.HasPrefix(rel, "..") {
-		return "", ErrInvalidPreset
-	}
-
-	return absTarget, nil
+	return nil
 }
