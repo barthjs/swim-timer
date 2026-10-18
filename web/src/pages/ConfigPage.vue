@@ -1,315 +1,314 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, ref, useTemplateRef, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { ChevronLeft } from 'lucide-vue-next';
+import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router';
+import type { FormErrorEvent } from '@nuxt/ui';
+import { useToast } from '@nuxt/ui/composables';
 
-import { configApi } from '@/api/configApi.ts';
-
-import BaseButton from '@/components/BaseButton.vue';
-import ConfirmModal from '@/components/ConfirmModal.vue';
-import FormInput from '@/components/FormInput.vue';
-import SelectDropdown from '@/components/SelectDropdown.vue';
-
-import { useFormValidation } from '@/composables/useFormValidation.ts';
-import { useUnsavedChanges } from '@/composables/useUnsavedChanges.ts';
-
-import { useToastStore } from '@/stores/toastStore.ts';
-
-import type { Config } from '@/types';
-import { getErrorMessageKey, isApiError, isValidationError } from '@/types/api.ts';
-
-const loading = ref(false);
-const saving = ref(false);
-const hasChanges = ref(false);
-const showConfirmModal = ref(false);
+import { ApiError } from '@/api/errors';
+import { configRepository } from '@/api/repositories/config';
+import ConfigAppSection from '@/components/config/ConfigAppSection.vue';
+import ConfigFileInfo from '@/components/config/ConfigFileInfo.vue';
+import ConfigResetMenu from '@/components/config/ConfigResetMenu.vue';
+import ConfigServerSection from '@/components/config/ConfigServerSection.vue';
+import ConfigStorageSection from '@/components/config/ConfigStorageSection.vue';
+import ConfigThemeSection from '@/components/config/ConfigThemeSection.vue';
+import ConfigTimingSection from '@/components/config/ConfigTimingSection.vue';
+import { useApiError } from '@/composables/useApiError';
+import { provideConfigForm } from '@/composables/useConfigForm';
+import { useConfirm } from '@/composables/ui/useConfirm';
+import { useDiscardGuard } from '@/composables/form/useDiscardConfirm';
+import type { FormErrorTarget } from '@/composables/form/useFormValidation';
+import { useMutation } from '@/composables/form/useMutation';
+import { useSaveShortcut, type SubmitTarget } from '@/composables/form/useSaveShortcut';
+import { useUnloadGuard } from '@/composables/useUnloadGuard';
+import { FORM_VALIDATE_ON } from '@/lib/form/validation';
 
 const { t } = useI18n();
+const { messageFor } = useApiError();
+const { confirm } = useConfirm();
+const toast = useToast();
 
-const toastStore = useToastStore();
-const { errors, setErrors, clearErrors } = useFormValidation();
+const config = provideConfigForm();
+const form = useTemplateRef<FormErrorTarget & SubmitTarget>('form');
 
-useUnsavedChanges(hasChanges);
+const loading = ref(true);
+const loadFailed = ref(false);
+const loadError = ref<unknown>(null);
 
-const config = reactive<Config>({
-  config_file_path: '',
-  log_level: '',
-  pool_length: 0,
-  presets_dir: '',
-  race_data_dir: '',
-  serial_port: '',
-  simulate_event: 0,
-  server: {
-    host: '',
-    port: 8080,
-  },
-  secret: '',
-});
-
-const initialConfig = reactive<Config>({
-  config_file_path: '',
-  log_level: '',
-  pool_length: 0,
-  presets_dir: '',
-  race_data_dir: '',
-  serial_port: '',
-  simulate_event: 0,
-  server: {
-    host: '',
-    port: 8080,
-  },
-  secret: '',
-});
-
-const logLevelOptions = ['debug', 'info', 'warn', 'error'];
-
-const loadConfig = async () => {
+/** load reads the configuration from the server. */
+async function load(): Promise<void> {
   loading.value = true;
-
+  loadFailed.value = false;
+  loadError.value = null;
   try {
-    const data = await configApi.getConfig();
-    config.config_file_path = data.config_file_path;
-    config.log_level = data.log_level;
-    config.pool_length = data.pool_length;
-    config.presets_dir = data.presets_dir;
-    config.race_data_dir = data.race_data_dir;
-    config.serial_port = data.serial_port;
-    config.simulate_event = data.simulate_event;
-    config.server.host = data.server.host;
-    config.server.port = data.server.port;
-    config.secret = data.secret;
-
-    initialConfig.config_file_path = data.config_file_path;
-    initialConfig.log_level = data.log_level;
-    initialConfig.pool_length = data.pool_length;
-    initialConfig.presets_dir = data.presets_dir;
-    initialConfig.race_data_dir = data.race_data_dir;
-    initialConfig.serial_port = data.serial_port;
-    initialConfig.simulate_event = data.simulate_event;
-    initialConfig.server.host = data.server.host;
-    initialConfig.server.port = data.server.port;
-    initialConfig.secret = data.secret;
-
-    hasChanges.value = false;
-  } catch (error) {
-    console.error('Failed to load config:', error);
-
-    if (isApiError(error)) {
-      toastStore.error(t(getErrorMessageKey(error)));
-    } else {
-      toastStore.error(t('config.loadError'));
-    }
+    config.applyResponse(await configRepository.get());
+  } catch (err) {
+    loadFailed.value = true;
+    loadError.value = err;
   } finally {
     loading.value = false;
   }
-};
+}
 
-const handleConfirmSave = async () => {
-  showConfirmModal.value = false;
-  saving.value = true;
+onMounted(load);
 
-  try {
-    await configApi.updateConfig(config);
+/** resetChanges drops every change and the errors shown for them. */
+function resetChanges(): void {
+  config.resetChanges();
+  form.value?.clear();
+}
 
-    initialConfig.config_file_path = config.config_file_path;
-    initialConfig.log_level = config.log_level;
-    initialConfig.pool_length = config.pool_length;
-    initialConfig.presets_dir = config.presets_dir;
-    initialConfig.race_data_dir = config.race_data_dir;
-    initialConfig.serial_port = config.serial_port;
-    initialConfig.simulate_event = config.simulate_event;
-    initialConfig.server.host = config.server.host;
-    initialConfig.server.port = config.server.port;
-    initialConfig.secret = config.secret;
+useUnloadGuard(() => config.isDirty.value);
 
-    hasChanges.value = false;
-    clearErrors();
-    toastStore.warning(t('config.restartRequired'));
-  } catch (error) {
-    console.error('Failed to save config:', error);
+const restartNoticeOpen = ref(false);
 
-    if (isValidationError(error)) {
-      setErrors(error.errors);
-    } else if (isApiError(error)) {
-      toastStore.error(t(getErrorMessageKey(error)));
-    } else {
-      toastStore.error(t('config.saveError'));
-    }
-  } finally {
-    saving.value = false;
-  }
-};
+const { mutate: persist, pending: saving } = useMutation(
+  () => configRepository.save(config.saveRequest()),
+  {
+    form,
+    values: config.state,
+    onSuccess: (response) => {
+      config.applyResponse(response);
+      restartNoticeOpen.value = true;
+    },
+    onError: (err) => {
+      // A configuration the server rejects as a whole, such as an invalid list of origins, is reported
+      // with the reason of the server, since no single field shows it.
+      if (!(err instanceof ApiError) || err.code !== 'bad_request') return false;
+      toast.add({
+        title: t('pages.config.saveError'),
+        description: err.message,
+        icon: 'i-lucide-circle-alert',
+        color: 'error',
+        duration: 0,
+      });
+      return true;
+    },
+  },
+);
 
-const openSaveConfirm = () => {
-  showConfirmModal.value = true;
-};
+/**
+ * saveDescription explains what saving does and names the changed settings that a flag
+ * or an environment variable overrides, since saving them to the config file has no effect.
+ */
+function saveDescription(): string {
+  const description = t('pages.config.saveDescription');
+  const overridden = config.overriddenChanges();
+  if (overridden.length === 0) return description;
+  const names = overridden.map((source) => source.name).join(', ');
+  return `${description} ${t('pages.config.saveOverridden', { names })}`;
+}
 
-const discardChanges = () => {
-  Object.assign(config, initialConfig);
-  hasChanges.value = false;
-  clearErrors();
-};
+/** save writes the configuration after a confirmation, since it only takes effect after a restart. */
+async function save(): Promise<void> {
+  const confirmed = await confirm({
+    title: t('pages.config.saveTitle'),
+    description: saveDescription(),
+    confirmLabel: t('common.save'),
+    icon: 'i-lucide-save',
+  });
+  if (confirmed) void persist();
+}
 
-const updateField = (field: string, value: string | number): void => {
-  const keys = field.split('.');
-  let obj: Record<string, unknown> = config;
-  for (let i = 0; i < keys.length - 1; i++) {
-    const key = keys[i];
-    if (!key) return;
-    obj = obj[key] as Record<string, unknown>;
-  }
-  const lastKey = keys[keys.length - 1];
-  if (lastKey) {
-    obj[lastKey] = value;
-  }
+const { kbds: saveKbds } = useSaveShortcut(form, () => config.isDirty.value && !saving.value);
 
-  hasChanges.value = JSON.stringify(config) !== JSON.stringify(initialConfig);
-};
+const { confirmDiscard } = useDiscardGuard(config.isDirty);
 
-onMounted(() => {
-  loadConfig();
+onBeforeRouteLeave(() => confirmDiscard());
+
+// Computed, since the language can change after the page is set up
+const tabs = computed(() => [
+  {
+    label: t('pages.config.sections.app'),
+    icon: 'i-lucide-info',
+    slot: 'app' as const,
+    value: 'app',
+  },
+  {
+    label: t('pages.config.sections.timing'),
+    icon: 'i-lucide-timer',
+    slot: 'timing' as const,
+    value: 'timing',
+  },
+  {
+    label: t('pages.config.sections.server'),
+    icon: 'i-lucide-network',
+    slot: 'server' as const,
+    value: 'server',
+  },
+  {
+    label: t('pages.config.sections.storage'),
+    icon: 'i-lucide-hard-drive',
+    slot: 'storage' as const,
+    value: 'storage',
+  },
+  {
+    label: t('pages.config.sections.theme'),
+    icon: 'i-lucide-palette',
+    slot: 'theme' as const,
+    value: 'theme',
+  },
+]);
+
+const route = useRoute();
+const router = useRouter();
+const tabValues = tabs.value.map((tab) => tab.value);
+
+/** tabFromQuery returns the tab named in the URL, or the first tab. */
+function tabFromQuery(): string {
+  const query = route.query.tab;
+  return typeof query === 'string' && tabValues.includes(query)
+    ? query
+    : (tabs.value[0]?.value ?? 'app');
+}
+
+const activeTab = ref(tabFromQuery());
+
+/** activeSections returns the configuration sections of the open tab. The log settings are part of the app tab. */
+const activeSections = computed(() =>
+  activeTab.value === 'app' ? ['app', 'log'] : [activeTab.value],
+);
+const activeLabel = computed(
+  () => tabs.value.find((tab) => tab.value === activeTab.value)?.label ?? '',
+);
+
+watch(activeTab, (tab) => {
+  if (route.query.tab === tab) return;
+  void router.push({
+    query: {
+      ...route.query,
+      tab,
+    },
+  });
 });
+
+watch(
+  () => route.query.tab,
+  () => {
+    activeTab.value = tabFromQuery();
+  },
+);
+
+/**
+ * showFirstError opens the tab of the first field that failed validation,
+ * since the tabs only render the fields of the open one. The log settings are part of the app tab.
+ */
+function showFirstError(event: FormErrorEvent): void {
+  const section = event.errors[0]?.name?.split('.')[0];
+  if (!section) return;
+  const tab = section === 'log' ? 'app' : section;
+  if (tabValues.includes(tab)) activeTab.value = tab;
+}
 </script>
 
 <template>
-  <div class="mx-auto flex w-full max-w-2xl flex-col space-y-6">
-    <div class="flex items-center gap-2">
-      <RouterLink :to="{ name: 'home' }">
-        <BaseButton
-          variant="ghost"
-          :icon="ChevronLeft"
-          size="icon"
-          :title="$t('common.backToHome')"
-        />
-      </RouterLink>
-      <h1 class="text-3xl font-bold">{{ $t('config.title') }}</h1>
-    </div>
+  <div class="flex flex-col gap-4">
+    <!--
+      On small screens the badge of unsaved changes moves into a row of its own below the title
+      and the reset button only shows its icon, so the title and the buttons keep one row.
+    -->
+    <div class="flex flex-wrap items-center gap-2">
+      <h1 class="text-highlighted mr-auto text-xl font-semibold">{{ t('pages.config.title') }}</h1>
 
-    <div v-if="loading" class="py-8 text-center">
-      <p class="text-muted">{{ $t('config.loading') }}</p>
-    </div>
+      <template v-if="!loading && !loadFailed">
+        <div v-if="config.isDirty.value" class="order-last basis-full sm:order-none sm:basis-auto">
+          <UBadge
+            icon="i-lucide-circle-alert"
+            color="warning"
+            variant="solid"
+            class="flex h-8 w-fit items-center px-3"
+          >
+            {{ t('pages.config.unsavedChanges') }}
+          </UBadge>
+        </div>
 
-    <div v-else>
-      <div class="bg-warning/10 border-warning mb-6 rounded-lg border p-4">
-        <p class="text-warning text-sm">{{ $t('config.configMismatch') }}</p>
-      </div>
-
-      <div
-        v-if="config.config_file_path"
-        class="bg-surface border-subtle mb-6 rounded-lg border p-4"
-      >
-        <p class="text-fg-secondary text-xs font-medium">{{ $t('config.configFilePath') }}</p>
-        <p class="text-fg mt-1 font-mono text-sm break-all">{{ config.config_file_path }}</p>
-      </div>
-
-      <form
-        @submit.prevent="openSaveConfirm"
-        class="bg-surface border-subtle space-y-6 rounded-lg border p-6"
-      >
-        <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
-          <div class="flex flex-col gap-2">
-            <label class="text-fg text-sm font-medium">{{ $t('config.logLevel') }}</label>
-            <SelectDropdown
-              :model-value="config.log_level"
-              :options="logLevelOptions"
-              :placeholder="$t('config.logLevel')"
-              @update:model-value="updateField('log_level', $event)"
+        <div class="flex items-center gap-2">
+          <UButton
+            v-if="config.isDirty.value"
+            :label="t('common.reset')"
+            :aria-label="t('common.reset')"
+            icon="i-lucide-rotate-ccw"
+            color="neutral"
+            variant="outline"
+            :ui="{ label: 'hidden sm:inline' }"
+            @click="resetChanges"
+          />
+          <ConfigResetMenu :sections="activeSections" :label="activeLabel" />
+          <UTooltip :text="t('common.save')" :kbds="saveKbds">
+            <UButton
+              type="submit"
+              form="config-form"
+              :label="t('common.save')"
+              icon="i-lucide-save"
+              :disabled="!config.isDirty.value"
+              :loading="saving"
             />
-            <p v-if="errors.LogLevel" class="text-danger text-sm">
-              {{ errors.LogLevel }}
-            </p>
-          </div>
-
-          <FormInput
-            :label="$t('config.poolLength')"
-            type="number"
-            :model-value="config.pool_length"
-            :error="errors.PoolLength"
-            :min="1"
-            :max="1000000"
-            @update:model-value="updateField('pool_length', $event)"
-          />
+          </UTooltip>
         </div>
-
-        <FormInput
-          :label="$t('config.presetsDir')"
-          type="text"
-          :model-value="config.presets_dir"
-          :error="errors.PresetDir"
-          required
-          @update:model-value="updateField('presets_dir', $event)"
-        />
-
-        <FormInput
-          :label="$t('config.raceDataDir')"
-          type="text"
-          :model-value="config.race_data_dir"
-          :error="errors.RaceDataDir"
-          required
-          @update:model-value="updateField('race_data_dir', $event)"
-        />
-
-        <FormInput
-          :label="$t('config.serialPort')"
-          type="text"
-          :model-value="config.serial_port"
-          :error="errors.SerialPort"
-          @update:model-value="updateField('serial_port', $event)"
-        />
-
-        <FormInput
-          :label="$t('config.simulateEvent')"
-          type="number"
-          :model-value="config.simulate_event"
-          :error="errors.SimulateEvent"
-          :min="0"
-          :max="1000000"
-          @update:model-value="updateField('simulate_event', $event)"
-        />
-
-        <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
-          <FormInput
-            :label="$t('config.serverHost')"
-            type="text"
-            :model-value="config.server.host"
-            :error="errors['Server.Host']"
-            @update:model-value="updateField('server.host', $event)"
-          />
-
-          <FormInput
-            :label="$t('config.serverPort')"
-            type="number"
-            :model-value="config.server.port"
-            :error="errors['Server.Port']"
-            :min="1"
-            :max="65535"
-            @update:model-value="updateField('server.port', $event)"
-          />
-        </div>
-
-        <FormInput
-          :label="$t('config.secret')"
-          type="password"
-          :model-value="config.secret"
-          :error="errors.Secret"
-          @update:model-value="updateField('secret', $event)"
-        />
-
-        <div class="border-subtle flex justify-end gap-3 border-t pt-4">
-          <BaseButton v-if="hasChanges" variant="danger" @click="discardChanges">
-            {{ $t('common.discardChanges') }}
-          </BaseButton>
-          <BaseButton variant="primary" type="submit" :disabled="!hasChanges || saving">
-            {{ saving ? $t('config.loading') : $t('common.save') }}
-          </BaseButton>
-        </div>
-      </form>
+      </template>
     </div>
 
-    <ConfirmModal
-      :is-open="showConfirmModal"
-      :message="$t('config.saveConfirm')"
-      @confirm="handleConfirmSave"
-      @cancel="showConfirmModal = false"
+    <ConfigFileInfo v-if="!loading && !loadFailed" />
+
+    <div v-if="loading" class="flex flex-col gap-4">
+      <USkeleton class="h-10 w-full" />
+      <USkeleton class="h-64 w-full" />
+    </div>
+
+    <UAlert
+      v-else-if="loadFailed"
+      :title="t('pages.config.loadError')"
+      :description="messageFor(loadError)"
+      icon="i-lucide-circle-alert"
+      color="error"
     />
+
+    <UForm
+      :validate-on="FORM_VALIDATE_ON"
+      v-else
+      id="config-form"
+      ref="form"
+      :state="config.state"
+      :validate="config.validate"
+      class="space-y-4"
+      @submit="void save()"
+      @error="showFirstError"
+    >
+      <!-- Small screens choose the section from a select, so the tabs only show from sm up. -->
+      <div class="mb-4 sm:hidden">
+        <USelect v-model="activeTab" :items="tabs" class="w-full" />
+      </div>
+
+      <UTabs v-model="activeTab" :items="tabs" class="w-full" :ui="{ list: 'hidden sm:flex' }">
+        <template #app>
+          <ConfigAppSection />
+        </template>
+        <template #timing>
+          <ConfigTimingSection />
+        </template>
+        <template #server>
+          <ConfigServerSection />
+        </template>
+        <template #storage>
+          <ConfigStorageSection />
+        </template>
+        <template #theme>
+          <ConfigThemeSection />
+        </template>
+      </UTabs>
+    </UForm>
+
+    <UModal
+      v-model:open="restartNoticeOpen"
+      :title="t('pages.config.restartTitle')"
+      :description="t('pages.config.restartDescription')"
+    >
+      <template #footer>
+        <div class="flex w-full justify-end">
+          <UButton :label="t('common.ok')" @click="restartNoticeOpen = false" />
+        </div>
+      </template>
+    </UModal>
   </div>
 </template>

@@ -1,0 +1,27 @@
+/*
+The overlays are loaded by the browser sources of streaming software, which often embed an older Chromium.
+This stylesheet therefore avoids Tailwind and Nuxt UI, whose output relies on cascade layers (Chromium 99)
+and oklch colors (Chromium 111), and sticks to plain CSS with rgb colors that such browsers render.
+*/
+@import './overlay-fonts.css';
+@import '@fontsource-variable/jetbrains-mono';
+@import './overlay-tokens.css';
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: transparent;
+}
+
+body {
+  font-family: var(--overlay-font-sans), sans-serif;
+  color: var(--overlay-secondary);
+  -webkit-font-smoothing: antialiased;
+}

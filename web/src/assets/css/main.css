@@ -1,41 +1,41 @@
 @import 'tailwindcss';
+@import '@nuxt/ui';
 
 @import './fonts.css';
+@import './overlay-fonts.css';
+@import './theme.css';
+@import './table.css';
+
+/*
+The brand palette, which the Nuxt UI options select as the primary color. Declared as static, since Tailwind
+only emits theme variables that a utility class uses, while Nuxt UI references the shades through its own variables.
+*/
+@theme static {
+  --color-brand-50: #ebf8ff;
+  --color-brand-100: #d1f0ff;
+  --color-brand-200: #a3e0ff;
+  --color-brand-300: #60c7fb;
+  --color-brand-400: #16a9f3;
+  --color-brand-500: #0088cc;
+  --color-brand-600: #006da3;
+  --color-brand-700: #005c8a;
+  --color-brand-800: #004b71;
+  --color-brand-900: #003a57;
+  --color-brand-950: #002538;
+}
 
 @theme {
-  --font-sans:
-    'Barlow', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-    'Segoe UI Symbol', 'Noto Color Emoji';
+  /*
+  The lane outlines of the preset editor. They are drawn over a camera image or a transparent
+  browser source, so they need strong, fixed colors that stand out from any background.
+  */
+  --color-editor-lane: rgb(234 179 8);
+  --color-editor-lane-selected: rgb(236 72 153);
+  --color-editor-lane-locked: rgb(100 116 139);
+  --color-editor-lane-invalid: rgb(239 68 68);
+  --color-editor-handle: rgb(255 255 255);
+  --color-editor-label-outline: rgb(0 0 0 / 0.7);
 
-  --color-primary: rgba(43, 127, 255, 1);
-  --color-primary-hover: rgba(21, 93, 252, 1);
-
-  --color-info: rgba(0, 166, 244, 1);
-  --color-info-hover: rgba(0, 132, 209, 1);
-
-  --color-success: rgba(0, 188, 125, 1);
-  --color-success-hover: rgba(0, 153, 102, 1);
-
-  --color-warning: rgba(254, 154, 0, 1);
-  --color-warning-hover: rgba(225, 113, 0, 1);
-
-  --color-danger: rgba(251, 44, 54, 1);
-  --color-danger-hover: rgba(231, 0, 11, 1);
-
-  /* Core UI Colors */
-  --color-base: rgba(15, 23, 43, 1);
-  --color-surface: rgba(29, 41, 61, 1);
-  --color-subtle: rgba(49, 65, 88, 1);
-  --color-muted: rgba(144, 161, 185, 1);
-  --color-fg: rgba(241, 245, 249, 1);
-
-  /* Overlay Colors */
-  --color-ov-bg-dark: rgba(15, 23, 42, 0.95);
-  --color-ov-bg-solid: rgba(15, 23, 42, 1);
-  --color-ov-row-bg: rgba(30, 58, 138, 0.7);
-  --color-ov-divider: rgba(255, 255, 255, 0.5);
-
-  --color-ov-primary: rgba(21, 93, 253, 1);
-  --color-ov-secondary: rgba(255, 255, 255, 1);
-  --color-ov-accent: rgba(255, 186, 2, 1);
+  /* The grid of the preset editor, which has to stay visible on a dark page as well. */
+  --color-editor-grid: color-mix(in srgb, var(--ui-text-muted) 35%, transparent);
 }

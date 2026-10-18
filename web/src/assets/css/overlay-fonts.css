@@ -1,0 +1,9 @@
+/*
+ * barlow - the font of the overlays and of their preview in the preset editor. Every subset per weight,
+ * since the weight files declare each subset with its unicode-range, see fonts.css.
+ */
+@import '@fontsource/barlow/400.css';
+@import '@fontsource/barlow/500.css';
+@import '@fontsource/barlow/600.css';
+@import '@fontsource/barlow/700.css';
+@import '@fontsource/barlow/800.css';

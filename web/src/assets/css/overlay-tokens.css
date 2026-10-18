@@ -1,0 +1,19 @@
+/*
+The colors and fonts of the broadcast graphics, shared by the overlays and the preview in the preset editor.
+Plain CSS with rgb colors, so the overlays render them in the older Chromium of streaming software (see overlay.css).
+*/
+:root {
+  /* Composited onto the video stream, so the colors stay fixed independent of any UI theme. */
+  --overlay-primary: rgb(21, 93, 253);
+  --overlay-secondary: rgb(255, 255, 255);
+  --overlay-accent: rgb(255, 186, 2);
+  --overlay-ink: rgb(15, 23, 43);
+  --overlay-bar: rgb(15, 23, 42);
+  --overlay-panel: rgba(15, 23, 42, 0.95);
+  --overlay-row: rgba(30, 58, 138, 0.7);
+  --overlay-divider: rgba(255, 255, 255, 0.5);
+  --overlay-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+
+  --overlay-font-sans: 'Barlow', ui-sans-serif, system-ui, sans-serif;
+  --overlay-font-mono: 'JetBrains Mono Variable', ui-monospace, SFMono-Regular, monospace;
+}

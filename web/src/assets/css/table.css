@@ -1,0 +1,18 @@
+/*
+The striped rows of the tables and the row under the pointer, set per color mode.
+The hover is a step stronger than the stripe, so it also stands out on a striped row.
+*/
+@theme inline {
+  --color-table-stripe: var(--table-stripe);
+  --color-table-hover: var(--table-hover);
+}
+
+:root:not(.dark) {
+  --table-stripe: color-mix(in oklab, var(--ui-color-neutral-200) 75%, var(--ui-bg));
+  --table-hover: color-mix(in oklab, var(--ui-color-neutral-300) 75%, var(--ui-bg));
+}
+
+:root.dark {
+  --table-stripe: color-mix(in oklab, var(--ui-color-neutral-800) 70%, var(--ui-bg));
+  --table-hover: var(--ui-color-neutral-700);
+}

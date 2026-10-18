@@ -1,76 +1,98 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { reactive, useTemplateRef } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { RouterLink, useRouter } from 'vue-router';
-import { Loader2 } from 'lucide-vue-next';
+import { useRoute, useRouter } from 'vue-router';
 
-import { authApi } from '@/api/authApi.ts';
-
-import BaseButton from '@/components/BaseButton.vue';
-
-import { isApiError, getErrorMessageKey } from '@/types/api.ts';
-
-const key = ref('');
-const error = ref('');
-const isLoading = ref(false);
+import { ApiError } from '@/api/errors';
+import { authRepository } from '@/api/repositories/auth';
+import type { AuthLoginRequest } from '@/api/types';
+import PasswordField from '@/components/form/PasswordField.vue';
+import type { FormErrorTarget } from '@/composables/form/useFormValidation';
+import { useMutation } from '@/composables/form/useMutation';
+import { redirectTarget } from '@/lib/auth/redirect';
+import { FORM_VALIDATE_ON } from '@/lib/form/validation';
+import { useAuthStore } from '@/stores/auth';
 
 const { t } = useI18n();
 const router = useRouter();
+const route = useRoute();
 
-async function handleLogin() {
-  if (isLoading.value) return;
-  isLoading.value = true;
-  error.value = '';
+const authStore = useAuthStore();
 
-  try {
-    await authApi.login(key.value);
-    sessionStorage.setItem('secretKey', key.value);
+// The server accepts an empty password while no admin password is set, so the form has no client validation
+const state = reactive<AuthLoginRequest>({
+  password: '',
+});
+const form = useTemplateRef<FormErrorTarget>('form');
 
-    const redirect = router.currentRoute.value.query.redirect as string | undefined;
-    if (redirect) {
-      await router.push(redirect);
-    } else {
-      await router.push({ name: 'home' });
+const {
+  mutate: login,
+  pending,
+  errorMessage,
+} = useMutation(
+  async () => {
+    try {
+      await authRepository.login({
+        password: state.password,
+      });
+    } catch (err) {
+      // The server rejects a login with a session that another tab already started, which counts as logged in
+      if (err instanceof ApiError && err.status === 409) return;
+      throw err;
     }
-  } catch (err) {
-    if (isApiError(err)) {
-      error.value = t(getErrorMessageKey(err));
-    } else {
-      error.value = t('login.invalidSecret');
-    }
-    console.error(err);
-  } finally {
-    isLoading.value = false;
-  }
-}
+  },
+  {
+    form,
+    values: state,
+    toast: false,
+    onSuccess: async () => {
+      await authStore.refresh();
+      await router.push(
+        redirectTarget(route.query, {
+          name: 'dashboard',
+        }),
+      );
+    },
+  },
+);
 </script>
 
 <template>
-  <div
-    class="bg-surface shadow-1xl m-auto flex w-full max-w-md flex-col items-center space-y-4 rounded-xl p-8"
-  >
-    <RouterLink :to="{ name: 'home' }">
-      <img src="@/assets/images/logo/favicon.svg" alt="Swim-Timer" class="w-24" />
-    </RouterLink>
+  <div class="relative flex flex-1 items-center justify-center">
+    <UButton
+      :label="t('common.back')"
+      icon="i-lucide-arrow-left"
+      color="neutral"
+      variant="ghost"
+      :to="{ name: 'dashboard' }"
+      class="absolute top-4 left-4"
+    />
 
-    <h2 class="text-2xl font-bold">{{ $t('login.title') }}</h2>
+    <UCard class="w-full max-w-sm">
+      <template #header>
+        <div class="flex flex-col items-center gap-3">
+          <img src="@/assets/images/logo/favicon.svg" alt="" class="size-12" />
+          <h1 class="text-highlighted text-center text-xl font-semibold">
+            {{ t('pages.login.title') }}
+          </h1>
+        </div>
+      </template>
 
-    <form @submit.prevent="handleLogin" class="flex w-full flex-col space-y-4">
-      <input
-        v-model="key"
-        type="password"
-        :placeholder="$t('login.secret')"
-        autofocus
-        class="border-subtle bg-base focus:ring-primary rounded-lg border px-4 py-3 focus:ring-2 focus:outline-none"
-      />
-      <p v-if="error" class="text-danger text-center font-medium">
-        {{ error }}
-      </p>
+      <UForm
+        :validate-on="FORM_VALIDATE_ON"
+        ref="form"
+        :state="state"
+        class="space-y-4"
+        @submit="login()"
+      >
+        <UFormField :label="t('fields.password')" name="password">
+          <PasswordField v-model="state.password" autocomplete="current-password" autofocus />
+        </UFormField>
 
-      <BaseButton type="submit" :disabled="isLoading" class="py-3">
-        <Loader2 v-if="isLoading" class="animate-spin" :size="20" />
-        <span v-else>{{ $t('login.title') }}</span>
-      </BaseButton>
-    </form>
+        <p v-if="errorMessage" class="text-error text-sm">{{ errorMessage }}</p>
+
+        <UButton type="submit" :label="t('pages.login.submit')" :loading="pending" block />
+      </UForm>
+    </UCard>
   </div>
 </template>

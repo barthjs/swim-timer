@@ -1,92 +1,130 @@
-import type { ApiErrorResponse, ValidationErrorResponse } from '@/types/api';
-import {
-  ApiError,
-  AuthenticationError,
-  BadRequestError,
-  NotFoundError,
-  ServerError,
-  UnauthorizedError,
-  ValidationError,
-} from '@/types/api';
+import { ApiError, type ApiErrorResponse } from '@/api/errors';
 
-export async function apiClient<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-  const headers = new Headers(options.headers);
+const baseURL = '/api';
+const REQUEST_TIMEOUT_MS = 30_000;
 
-  if (!headers.has('Content-Type') && !(options.body instanceof FormData)) {
-    headers.set('Content-Type', 'application/json');
+/** UPLOAD_TIMEOUT_MS matches the time the server allows an upload route. */
+export const UPLOAD_TIMEOUT_MS = 5 * 60_000;
+
+// Runs when a request fails because the session is missing or expired.
+// It is registered by the app instead of imported here, so another entry point can use the client
+// without pulling in the router, its pages, and Nuxt UI.
+let onAuthenticationRequired: (() => void) | null = null;
+
+/**
+ * setAuthenticationRequiredHandler registers what happens when the session is missing or expired.
+ */
+export function setAuthenticationRequiredHandler(handler: () => void): void {
+  onAuthenticationRequired = handler;
+}
+
+export type ApiFetchOptions = Omit<RequestInit, 'body'> & {
+  body?: BodyInit | Record<string, unknown> | null;
+  skipAuthRedirect?: boolean;
+  // Milliseconds until the request is aborted, the default fits every route except uploads.
+  timeout?: number;
+};
+
+/** parseJSON reads and parses a response body. */
+async function parseJSON<T>(response: Response): Promise<T | undefined> {
+  const text = await response.text();
+  if (!text) return undefined;
+
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    return undefined;
   }
+}
 
-  const response = await fetch(buildUrl(endpoint), {
-    ...options,
-    headers,
-  });
+/**
+ * apiFetch sends a request to the API and returns the parsed response. A plain object body is sent
+ * as JSON. A failed request throws an ApiError, and a missing session calls the registered handler.
+ */
+export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): Promise<T> {
+  const { skipAuthRedirect, timeout: timeoutMs, body, headers, signal, ...rest } = options;
+
+  const isPlainBody = body !== undefined && body !== null && !(body instanceof FormData);
+
+  // The timeout covers reading the body as well, a response that stops halfway would hang otherwise.
+  // A signal of the caller still cancels the request.
+  const timeoutController = new AbortController();
+  const timeout = setTimeout(() => timeoutController.abort(), timeoutMs ?? REQUEST_TIMEOUT_MS);
+  const requestSignal = signal
+    ? AbortSignal.any([timeoutController.signal, signal])
+    : timeoutController.signal;
+
+  try {
+    return await send<T>(
+      `${baseURL}${path}`,
+      {
+        ...rest,
+        headers: {
+          ...(isPlainBody
+            ? {
+                'Content-Type': 'application/json',
+              }
+            : {}),
+          ...headers,
+        },
+        credentials: 'include',
+        body: isPlainBody ? JSON.stringify(body) : (body as BodyInit | null | undefined),
+        signal: requestSignal,
+      },
+      skipAuthRedirect,
+    );
+  } catch (err) {
+    if (
+      timeoutController.signal.aborted &&
+      err instanceof DOMException &&
+      err.name === 'AbortError'
+    ) {
+      throw new ApiError({
+        message: 'request timed out',
+        status: 0,
+        code: 'timeout',
+      });
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+/** send runs the request, reads its body, and turns a failed response into an ApiError. */
+async function send<T>(url: string, init: RequestInit, skipAuthRedirect?: boolean): Promise<T> {
+  const response = await fetch(url, init);
 
   if (!response.ok) {
-    await handleErrorResponse(response, endpoint);
-  }
+    const data = (await parseJSON<ApiErrorResponse>(response)) ?? {
+      code: 'server_error',
+      message: 'request failed',
+    };
 
-  const contentType = response.headers.get('content-type');
-
-  if (contentType?.includes('application/json')) {
-    return await response.json();
-  }
-
-  if (
-    contentType?.includes('application/pdf') ||
-    contentType?.includes('image/') ||
-    contentType?.includes('application/octet-stream')
-  ) {
-    return (await response.blob()) as T;
-  }
-
-  return (await response.text()) as T;
-}
-
-export async function authApiClient<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-  const token = sessionStorage.getItem('secretKey');
-  const headers = new Headers(options.headers);
-  headers.set('Authorization', token ? `Bearer ${token}` : '');
-
-  return apiClient<T>(endpoint, {
-    ...options,
-    headers,
-  });
-}
-
-async function handleErrorResponse(response: Response, endpoint: string = ''): Promise<never> {
-  const contentType = response.headers.get('content-type');
-
-  if (contentType?.includes('application/json')) {
-    const data = (await response.json()) as ApiErrorResponse | ValidationErrorResponse;
-
-    switch (response.status) {
-      case 400:
-        throw new BadRequestError(data.message);
-      case 401:
-        if (endpoint.includes('/auth/login')) {
-          throw new AuthenticationError(data.message);
-        }
-        throw new UnauthorizedError(data.message);
-      case 404:
-        throw new NotFoundError(data.message);
-      case 422:
-        if ('errors' in data && data.errors) {
-          throw new ValidationError(data.errors, data.message);
-        }
-        throw new ApiError(response.status, data.message);
-      case 500:
-      case 502:
-      case 503:
-      case 504:
-        throw new ServerError(data.message);
-      default:
-        throw new ApiError(response.status, data.message);
+    // Only a missing or expired session leads to the login. A wrong password (invalid_credentials) is also a 401,
+    // but is an expected outcome on the login form itself.
+    if (response.status === 401 && data.code === 'authentication_required' && !skipAuthRedirect) {
+      onAuthenticationRequired?.();
     }
+
+    throw new ApiError({
+      message: data.message,
+      status: response.status,
+      code: data.code,
+      fields: data.errors,
+      retryAfter: parseRetryAfter(response.headers.get('Retry-After')),
+      requestId: data.requestId ?? response.headers.get('X-Request-ID') ?? undefined,
+    });
   }
 
-  throw new ApiError(response.status, `${response.status} ${response.statusText}`);
+  return (await parseJSON<T>(response)) as T;
 }
 
-function buildUrl(endpoint: string): string {
-  return `/api/${endpoint.replace(/^\/+/, '')}`;
+/**
+ * parseRetryAfter reads the Retry-After header in its seconds form, the only form the server sends.
+ */
+function parseRetryAfter(value: string | null): number | undefined {
+  if (value === null) return undefined;
+  const seconds = Number(value);
+  return Number.isInteger(seconds) && seconds >= 0 ? seconds : undefined;
 }

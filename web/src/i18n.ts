@@ -1,52 +1,29 @@
 import { createI18n } from 'vue-i18n';
 
-const SUPPORTED_LOCALES = ['en', 'de'];
-const FALLBACK_LOCALE = 'en';
+import en from '@/locales/en.json';
+import de from '@/locales/de.json';
 
-function getBrowserLocale(): string {
-  const navigatorLang: string | undefined = navigator.languages
-    ? navigator.languages[0]
-    : navigator.language;
-
-  if (!navigatorLang) return FALLBACK_LOCALE;
-
-  const shortLang = navigatorLang.split('-')[0];
-  if (!shortLang) return FALLBACK_LOCALE;
-
-  const lowerShortLang = shortLang.toLowerCase();
-  return SUPPORTED_LOCALES.includes(lowerShortLang) ? lowerShortLang : FALLBACK_LOCALE;
-}
-
-const initialLocale = getBrowserLocale();
+export const supportedLocales = ['en', 'de'] as const;
+export type SupportedLocale = (typeof supportedLocales)[number];
 
 export const i18n = createI18n({
   legacy: false,
-  locale: initialLocale,
-  fallbackLocale: FALLBACK_LOCALE,
-  messages: {},
+  locale: 'en',
+  fallbackLocale: 'en',
+  messages: {
+    en,
+    de,
+  },
 });
 
-const loadedLanguages: string[] = [];
-
-function setI18nLanguage(locale: string) {
-  i18n.global.locale.value = locale;
-  document.querySelector('html')!.setAttribute('lang', locale);
+/** isSupportedLocale reports whether the app has translations for a language. */
+function isSupportedLocale(value: string): value is SupportedLocale {
+  return (supportedLocales as readonly string[]).includes(value);
 }
 
-export async function loadLocaleMessages(locale: string) {
-  if (loadedLanguages.includes(locale)) {
-    return setI18nLanguage(locale);
-  }
-
-  try {
-    const messages = await import(`./locales/${locale}.json`);
-
-    i18n.global.setLocaleMessage(locale, messages);
-    loadedLanguages.push(locale);
-    return setI18nLanguage(locale);
-  } catch (error) {
-    console.error(`Failed to load locale messages for ${locale}:`, error);
+/** setLocaleFromBackend switches the active locale to the backend-configured app-wide language. */
+export function setLocaleFromBackend(language: string): void {
+  if (isSupportedLocale(language)) {
+    i18n.global.locale.value = language;
   }
 }
-
-await loadLocaleMessages(initialLocale);

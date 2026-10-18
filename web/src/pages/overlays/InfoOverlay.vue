@@ -1,36 +1,62 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import HeatHeading from '@/components/overlay/HeatHeading.vue';
+import HeatTimer from '@/components/timing/HeatTimer.vue';
+import { useLiveStore } from '@/stores/live';
 
-import { useRaceStore } from '@/stores/raceStore.ts';
-
-const store = useRaceStore();
-
-const initialTimeDisplay = computed(() => store.getDisplayTime());
+const liveStore = useLiveStore();
 </script>
 
 <template>
-  <div class="items-start justify-end pb-[5vh] pl-[5vw]">
-    <div v-if="store.state" class="flex flex-col gap-2">
-      <div
-        id="timer"
-        class="bg-ov-primary flex h-14 items-center self-start rounded-md px-6 font-mono text-4xl font-extrabold tracking-wide tabular-nums"
-      >
-        {{ initialTimeDisplay }}
-      </div>
+  <div class="bottom-left">
+    <div v-if="liveStore.state && liveStore.state.status" class="stack">
+      <HeatTimer class="timer" />
 
-      <div
-        class="bg-ov-bg-solid flex h-14 items-center gap-4 rounded-md px-6 text-2xl font-bold uppercase"
-      >
-        <span class="text-ov-accent">
-          {{ $t('overlays.event', { number: store.state.event }) }}
-        </span>
-        <span class="bg-ov-divider h-5 w-0.5"></span>
-        <span>{{ store.state.name }}</span>
-        <span class="bg-ov-divider h-5 w-0.5"></span>
-        <span>
-          {{ $t('overlays.heat', { number: store.state.heat, max: store.state.max_heat }) }}
-        </span>
+      <div class="bar">
+        <HeatHeading :state="liveStore.state" size="small" />
       </div>
     </div>
   </div>
 </template>
+
+<style scoped>
+.bottom-left {
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding-bottom: 5vh;
+  padding-left: 5vw;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.timer {
+  display: flex;
+  align-self: flex-start;
+  align-items: center;
+  height: 3.5rem;
+  padding: 0 1.5rem;
+  border-radius: 0.375rem;
+  background: var(--overlay-primary);
+  font-family: var(--overlay-font-mono), monospace;
+  font-size: 2.25rem;
+  font-weight: 800;
+  letter-spacing: 0.025em;
+  font-variant-numeric: tabular-nums;
+}
+
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  height: 3.5rem;
+  padding: 0 1.5rem;
+  border-radius: 0.375rem;
+  background: var(--overlay-bar);
+  font-size: 1.5rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+</style>

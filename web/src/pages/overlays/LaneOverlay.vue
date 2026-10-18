@@ -2,35 +2,40 @@
 import { computed } from 'vue';
 import { useRoute } from 'vue-router';
 
-import { useRaceStore } from '@/stores/raceStore.ts';
-
-import type { Lane } from '@/types';
+import type { Lane } from '@/api/types';
+import { fullName } from '@/lib/names';
+import { useLiveStore } from '@/stores/live';
 
 const route = useRoute();
-const store = useRaceStore();
+const liveStore = useLiveStore();
 
-const laneData = computed<Lane | null>(() => {
-  if (!store.state) return null;
-  const laneNum = Number(route.params.number as string);
-  return store.state.lanes[laneNum] ?? null;
+const lane = computed<Lane | null>(() => {
+  const state = liveStore.state;
+  if (!state || !state.status) return null;
+  return state.lanes[String(route.params.number)] ?? null;
 });
+
+// A lane without a competitor only shows its number.
+const name = computed(() =>
+  lane.value ? fullName(lane.value.firstName, lane.value.lastName) : '',
+);
 </script>
 
 <template>
-  <div class="items-start justify-end pb-[5vh] pl-[5vw]">
+  <div class="bottom-left">
     <Transition appear name="slide-in">
-      <div v-if="laneData" class="flex h-12 text-3xl font-extrabold uppercase">
-        <div class="bg-ov-accent flex w-10 items-center justify-center px-6">
-          {{ laneData.number }}
+      <div v-if="lane" class="row">
+        <div class="number">
+          {{ lane.number }}
         </div>
 
-        <div class="bg-ov-secondary flex items-center space-x-2 px-6 text-base shadow-lg">
-          <span class="block truncate">{{ laneData.first_name }} {{ laneData.last_name }}</span>
-          <span class="block">({{ laneData.birthyear }})</span>
+        <div v-if="name" class="name">
+          <span class="truncate">{{ name }}</span>
+          <span v-if="lane.birthYear" class="year">({{ lane.birthYear }})</span>
         </div>
 
-        <div class="bg-ov-primary flex items-center justify-center px-6 whitespace-nowrap">
-          {{ laneData.club }}
+        <div v-if="lane.club" class="club">
+          <span class="truncate">{{ lane.club }}</span>
         </div>
       </div>
     </Transition>
@@ -38,6 +43,63 @@ const laneData = computed<Lane | null>(() => {
 </template>
 
 <style scoped>
+.bottom-left {
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding-bottom: 5vh;
+  padding-left: 5vw;
+}
+
+.row {
+  display: flex;
+  max-width: 90vw;
+  height: 3rem;
+  font-size: 1.875rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.number {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.5rem;
+  padding: 0 1.5rem;
+  background: var(--overlay-accent);
+}
+
+.name {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0 1.5rem;
+  background: var(--overlay-secondary);
+  color: var(--overlay-ink);
+  box-shadow: var(--overlay-shadow);
+}
+
+.year {
+  flex-shrink: 0;
+}
+
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.club {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: center;
+  padding: 0 1.5rem;
+  background: var(--overlay-primary);
+  white-space: nowrap;
+}
+
 .slide-in-enter-active,
 .slide-in-leave-active {
   transition:

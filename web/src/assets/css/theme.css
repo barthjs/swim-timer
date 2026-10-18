@@ -1,0 +1,73 @@
+/* The fonts and the semantic colors of the Nuxt UI theme. fonts.css loads the font files. */
+@theme {
+  --font-sans:
+    'Poppins', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+    'Segoe UI Symbol', 'Noto Color Emoji';
+
+  --font-mono: 'JetBrains Mono Variable', ui-monospace, SFMono-Regular, monospace;
+
+  /*
+  Text on solid colored surfaces such as buttons and badges, set in the Nuxt UI options.
+  Nuxt UI uses its inverted text there, which turns black in dark mode.
+  */
+  --color-on-accent: #fff;
+}
+
+/*
+Nuxt UI uses the light 400 shades with black text in dark mode and the 500 shades in light mode.
+Both modes use darker shades instead, so white text stays readable on them. The doubled selectors
+outrank the variables Nuxt UI injects at runtime.
+
+The text, background, and border shades sit one step further from the background than in Nuxt UI,
+so text stays readable and cards, headers, and inputs stand apart from the page. Inverted surfaces,
+such as solid neutral badges and tooltips, use the primary color instead of black or white.
+*/
+:root:not(.dark) {
+  --ui-primary: var(--ui-color-primary-700);
+  --ui-success: var(--ui-color-success-700);
+  --ui-info: var(--ui-color-info-600);
+  --ui-warning: var(--ui-color-warning-700);
+  --ui-error: var(--ui-color-error-700);
+
+  --ui-text-dimmed: var(--ui-color-neutral-500);
+  --ui-text-muted: var(--ui-color-neutral-600);
+  --ui-text-toned: var(--ui-color-neutral-700);
+  --ui-text: var(--ui-color-neutral-800);
+  --ui-text-highlighted: var(--ui-color-neutral-950);
+
+  --ui-bg-muted: var(--ui-color-neutral-100);
+  --ui-bg-elevated: var(--ui-color-neutral-200);
+  --ui-bg-accented: var(--ui-color-neutral-300);
+  --ui-bg-inverted: var(--ui-color-primary-900);
+
+  --ui-border: var(--ui-color-neutral-300);
+  --ui-border-muted: var(--ui-color-neutral-200);
+  --ui-border-accented: var(--ui-color-neutral-400);
+  --ui-border-inverted: var(--ui-color-primary-900);
+}
+
+:root.dark {
+  --ui-primary: var(--ui-color-primary-500);
+  --ui-secondary: var(--ui-color-secondary-500);
+  --ui-success: var(--ui-color-success-600);
+  --ui-info: var(--ui-color-info-500);
+  --ui-warning: var(--ui-color-warning-500);
+  --ui-error: var(--ui-color-error-500);
+
+  --ui-text-dimmed: var(--ui-color-neutral-400);
+  --ui-text-muted: var(--ui-color-neutral-300);
+  --ui-text-toned: var(--ui-color-neutral-200);
+  --ui-text: var(--ui-color-neutral-100);
+  --ui-text-inverted: var(--ui-color-primary-950);
+
+  --ui-bg: var(--ui-color-neutral-900);
+  --ui-bg-muted: var(--ui-color-neutral-800);
+  --ui-bg-elevated: var(--ui-color-neutral-800);
+  --ui-bg-accented: var(--ui-color-neutral-700);
+  --ui-bg-inverted: var(--ui-color-primary-200);
+
+  --ui-border: var(--ui-color-neutral-700);
+  --ui-border-muted: var(--ui-color-neutral-800);
+  --ui-border-accented: var(--ui-color-neutral-600);
+  --ui-border-inverted: var(--ui-color-primary-200);
+}

@@ -1,44 +1,12 @@
-/* inter-regular - latin */
-@font-face {
-  font-display: swap;
-  font-family: 'Inter';
-  font-style: normal;
-  font-weight: 400;
-  src: url('../fonts/inter-v20-latin-regular.woff2') format('woff2');
-}
+/*
+ * poppins - every subset per weight. The subset files of the package carry no unicode-range, so importing latin
+ * and latin-ext separately would let one replace the other. The weight files declare each subset with its range,
+ * and the browser only loads the files of the characters a page shows, such as latin-ext for Š, Ž, and Ÿ.
+ */
+@import '@fontsource/poppins/400.css';
+@import '@fontsource/poppins/500.css';
+@import '@fontsource/poppins/600.css';
+@import '@fontsource/poppins/700.css';
 
-/* inter-500 - latin */
-@font-face {
-  font-display: swap;
-  font-family: 'Inter';
-  font-style: normal;
-  font-weight: 500;
-  src: url('../fonts/inter-v20-latin-500.woff2') format('woff2');
-}
-
-/* inter-600 - latin */
-@font-face {
-  font-display: swap;
-  font-family: 'Inter';
-  font-style: normal;
-  font-weight: 600;
-  src: url('../fonts/inter-v20-latin-600.woff2') format('woff2');
-}
-
-/* inter-700 - latin */
-@font-face {
-  font-display: swap;
-  font-family: 'Inter';
-  font-style: normal;
-  font-weight: 700;
-  src: url('../fonts/inter-v20-latin-700.woff2') format('woff2');
-}
-
-/* inter-800 - latin */
-@font-face {
-  font-display: swap;
-  font-family: 'Inter';
-  font-style: normal;
-  font-weight: 800;
-  src: url('../fonts/inter-v20-latin-800.woff2') format('woff2');
-}
+/* jetbrains-mono - variable, every subset with its unicode-range */
+@import '@fontsource-variable/jetbrains-mono';

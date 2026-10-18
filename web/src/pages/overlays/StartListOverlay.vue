@@ -1,92 +1,170 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 
-import { useRaceStore } from '@/stores/raceStore.ts';
+import { HeatStatus } from '@/api/types';
+import HeatHeading from '@/components/overlay/HeatHeading.vue';
+import { compareResults, isResultRanked } from '@/lib/heat';
+import { fullName } from '@/lib/names';
+import { formatSwimtime } from '@/lib/time';
+import { useLiveStore } from '@/stores/live';
 
-import { formatSwimtime } from '@/utils/time.ts';
+const liveStore = useLiveStore();
 
-import { RaceStatus } from '@/types';
+const official = computed(() => liveStore.state?.status === HeatStatus.Official);
 
-const store = useRaceStore();
+// The start list is hidden before the first heat and while the heat runs, and shows the results once it is official.
+const visible = computed(
+  () =>
+    !!liveStore.state &&
+    !!liveStore.state.status &&
+    Object.keys(liveStore.state.lanes).length > 0 &&
+    liveStore.state.status !== HeatStatus.Start,
+);
 
+// Official results are ordered by rank, the start list by lane, see compareResults.
 const sortedLanes = computed(() => {
-  if (!store.state) return [];
-  const lanes = Object.values(store.state.lanes);
+  if (!liveStore.state) return [];
+  const lanes = Object.values(liveStore.state.lanes);
 
-  if (store.state.status === RaceStatus.Official) {
-    return [...lanes].sort((a, b) => a.rank - b.rank);
+  if (!official.value) {
+    return lanes.sort((a, b) => a.number - b.number);
   }
-
-  return lanes.sort((a, b) => a.number - b.number);
+  return lanes.sort(compareResults);
 });
 </script>
 
 <template>
-  <div class="items-center justify-center">
-    <div
-      v-if="
-        store.state &&
-        Object.keys(store.state.lanes).length > 0 &&
-        store.state.status !== RaceStatus.Start
-      "
-      class="bg-ov-bg-dark flex w-full max-w-7xl flex-col gap-8 rounded-xl p-10 uppercase shadow-2xl"
-    >
-      <div class="flex items-center justify-center gap-5 text-3xl font-extrabold">
-        <span class="text-ov-accent">
-          {{ $t('overlays.event', { number: store.state.event }) }}
-        </span>
-        <span class="bg-ov-divider h-7 w-1"></span>
-        <span>{{ store.state.name }}</span>
-        <span class="bg-ov-divider h-7 w-1"></span>
-        <span>
-          {{ $t('overlays.heat', { number: store.state.heat, max: store.state.max_heat }) }}
-        </span>
+  <div class="center">
+    <div v-if="visible && liveStore.state" class="panel">
+      <div class="heading">
+        <HeatHeading :state="liveStore.state" size="large" show-final />
       </div>
 
-      <div class="flex flex-col gap-3">
-        <div
-          v-for="lane in sortedLanes"
-          :key="lane.number"
-          :class="[
-            'bg-ov-row-bg flex h-16 items-center overflow-hidden rounded-md text-2xl font-bold',
-          ]"
-        >
-          <div
-            :class="[
-              'bg-ov-primary flex h-full shrink-0 items-center justify-center',
-              store.state.status === RaceStatus.Official ? 'w-24' : 'w-20',
-            ]"
-          >
-            <template v-if="store.state.status === RaceStatus.Official">
-              {{ lane.rank }}. ({{ lane.number }})
-            </template>
-            <template v-else>
-              {{ lane.number }}
-            </template>
+      <div class="rows">
+        <div v-for="lane in sortedLanes" :key="lane.number" class="row">
+          <div class="number" :class="{ official }">
+            <template v-if="official && isResultRanked(lane)"
+              >{{ lane.rank }}. ({{ lane.number }})</template
+            >
+            <template v-else-if="official">({{ lane.number }})</template>
+            <template v-else>{{ lane.number }}</template>
           </div>
 
-          <div class="flex grow items-center space-x-2 px-8">
-            <span class="block truncate">{{ lane.first_name }} {{ lane.last_name }}</span>
-            <span class="block">({{ lane.birthyear }})</span>
+          <div class="name">
+            <span class="truncate">{{ fullName(lane.firstName, lane.lastName) }}</span>
+            <span v-if="lane.birthYear" class="year">({{ lane.birthYear }})</span>
           </div>
 
-          <div
-            :class="[
-              'shrink-0 truncate pr-8 text-right',
-              store.state.status === RaceStatus.Official ? 'min-w-48' : 'w-120 truncate',
-            ]"
-          >
+          <div class="club truncate" :class="{ official }">
             {{ lane.club }}
           </div>
 
-          <div
-            v-if="store.state.status === RaceStatus.Official"
-            class="w-40 shrink-0 pr-4 text-center tracking-wide tabular-nums"
-          >
-            {{ formatSwimtime(lane.time) }}
+          <div v-if="official" class="time">
+            <template v-if="lane.finished">{{ formatSwimtime(lane.time) }}</template>
           </div>
         </div>
       </div>
     </div>
   </div>
 </template>
+
+<style scoped>
+.center {
+  align-items: center;
+  justify-content: center;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  width: 100%;
+  max-width: 80rem;
+  padding: 2.5rem;
+  border-radius: 0.75rem;
+  background: var(--overlay-panel);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  text-transform: uppercase;
+}
+
+.heading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.25rem;
+  font-size: 1.875rem;
+  font-weight: 800;
+}
+
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  height: 4rem;
+  overflow: hidden;
+  border-radius: 0.375rem;
+  background: var(--overlay-row);
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.number {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 5rem;
+  height: 100%;
+  background: var(--overlay-primary);
+}
+
+.number.official {
+  width: 6rem;
+}
+
+.name {
+  display: flex;
+  flex-grow: 1;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  padding: 0 2rem;
+}
+
+.year {
+  flex-shrink: 0;
+}
+
+.club {
+  flex-shrink: 0;
+  width: 30rem;
+  padding-right: 2rem;
+  text-align: right;
+}
+
+.club.official {
+  width: auto;
+  min-width: 12rem;
+  max-width: 30rem;
+}
+
+.time {
+  flex-shrink: 0;
+  width: 10rem;
+  padding-right: 1rem;
+  text-align: center;
+  letter-spacing: 0.025em;
+  font-variant-numeric: tabular-nums;
+}
+
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+</style>
