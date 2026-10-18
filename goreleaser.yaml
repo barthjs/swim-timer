@@ -1,0 +1,137 @@
+version: 2
+
+project_name: swim-timer
+
+before:
+  hooks:
+    - sh -c "cd web && npm ci --omit=dev"
+    - sh -c "cd web && VITE_APP_VERSION={{ .Tag }} npm run build-only"
+    - sh -c "cd docs/api && npm ci --omit=dev"
+    - sh -c "cd docs/api && npm run build"
+    # The man pages and completions come from running this binary, so it is built for the host,
+    # also when a single-target build sets GOOS and GOARCH for another platform.
+    - sh -c "env -u GOOS -u GOARCH -u GOARM go build -o bin/swim-timer ./cmd/swim-timer"
+    - bin/swim-timer gen man bin/man
+    - sh -c "gzip -9nf bin/man/*.1"
+    - sh -c "mkdir -p bin/completions"
+    - sh -c "bin/swim-timer completion bash > bin/completions/swim-timer"
+    - sh -c "bin/swim-timer completion zsh > bin/completions/_swim-timer"
+    - sh -c "bin/swim-timer completion fish > bin/completions/swim-timer.fish"
+    - go-winres make --in cmd/swim-timer/winres.json --out cmd/swim-timer/rsrc --product-version=git-tag --file-version=git-tag
+
+builds:
+  - main: ./cmd/swim-timer
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - windows
+    goarch:
+      - "386"
+      - amd64
+      - arm
+      - arm64
+      - riscv64
+    goarm:
+      - "6"
+      - "7"
+    flags:
+      - -trimpath
+    ldflags:
+      - >-
+        -s -w -X main.Version={{ .Tag }}
+        {{ if eq .Os "windows" }}-H windowsgui{{ end }}
+    mod_timestamp: "{{ .CommitTimestamp }}"
+
+archives:
+  - name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}{{ with .Arm }}v{{ . }}{{ end }}"
+    format_overrides:
+      - goos: windows
+        formats:
+          - zip
+
+nfpms:
+  - vendor: barthjs
+    homepage: https://github.com/barthjs/swim-timer
+    maintainer: "Jonas Barth <143815039+barthjs@users.noreply.github.com>"
+    description: Overlays for swimming competitions from Swiss Timing devices
+    license: MIT
+    formats:
+      - deb
+    section: utils
+    contents:
+      - src: packaging/systemd/swim-timer.service
+        dst: /lib/systemd/system/swim-timer.service
+      - src: packaging/swim-timer.desktop
+        dst: /usr/share/applications/swim-timer.desktop
+      - src: bin/man/*.1.gz
+        dst: /usr/share/man/man1/
+      - src: bin/completions/swim-timer
+        dst: /usr/share/bash-completion/completions/swim-timer
+      - src: bin/completions/_swim-timer
+        dst: /usr/share/zsh/vendor-completions/_swim-timer
+      - src: bin/completions/swim-timer.fish
+        dst: /usr/share/fish/vendor_completions.d/swim-timer.fish
+      - dst: /etc/swim-timer
+        type: dir
+      - dst: /var/lib/swim-timer
+        type: dir
+    scripts:
+      postinstall: packaging/scripts/postinstall.sh
+      preremove: packaging/scripts/preremove.sh
+      postremove: packaging/scripts/postremove.sh
+
+dockers_v2:
+  - images:
+      - ghcr.io/barthjs/swim-timer
+    tags:
+      - "{{ .Version }}"
+      - "{{ if not .Prerelease }}{{ .Major }}.{{ .Minor }}{{ end }}"
+      - "{{ if not .Prerelease }}{{ .Major }}{{ end }}"
+      - "{{ if not .Prerelease }}latest{{ end }}"
+    platforms:
+      - linux/amd64
+      - linux/arm64
+    flags:
+      - --target=release
+    extra_files:
+      - scripts/entrypoint.sh
+    labels:
+      org.opencontainers.image.title: "{{ .ProjectName }}"
+      org.opencontainers.image.description: Overlays for swimming competitions from Swiss Timing devices
+      org.opencontainers.image.source: https://github.com/barthjs/swim-timer
+      org.opencontainers.image.url: https://github.com/barthjs/swim-timer
+      org.opencontainers.image.version: "{{ .Version }}"
+      org.opencontainers.image.revision: "{{ .FullCommit }}"
+      org.opencontainers.image.created: "{{ .Date }}"
+      org.opencontainers.image.licenses: MIT
+    # Registries read the description of a multi-platform image from the annotations of its index, not from the labels.
+    annotations:
+      org.opencontainers.image.description: Overlays for swimming competitions from Swiss Timing devices
+      org.opencontainers.image.source: https://github.com/barthjs/swim-timer
+      org.opencontainers.image.licenses: MIT
+
+checksum:
+  name_template: checksums.txt
+
+changelog:
+  disable: "{{ not .PreviousTag }}"
+  use: git
+  format: "{{ .Message }}"
+  groups:
+    - title: Features
+      regexp: '^feat(\(.+\))?!?:'
+      order: 0
+    - title: Bug Fixes
+      regexp: '^fix(\(.+\))?!?:'
+      order: 1
+    - title: Other
+      order: 999
+  filters:
+    exclude:
+      - "^Merge "
+
+release:
+  draft: true
+  footer: >-
+    {{ if .PreviousTag }}**Full Changelog**: https://github.com/{{ .Env.GITHUB_REPOSITORY }}/compare/{{ .PreviousTag }}...{{ .Tag }}{{ end }}

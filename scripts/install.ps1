@@ -10,7 +10,7 @@ $ErrorActionPreference = 'Stop'
 
 $REPO = 'barthjs/swim-timer'
 $APP_NAME = 'swim-timer'
-$APP_DISPLAY_NAME = 'Swim Timer'
+$APP_DISPLAY_NAME = 'Swim-Timer'
 
 $Colors = @{
     Green = "`e[32m"
@@ -18,11 +18,6 @@ $Colors = @{
     Yellow = "`e[33m"
     Blue = "`e[34m"
     Reset = "`e[0m"
-}
-
-function Write-Header
-{
-    Write-Host "${$Colors.Green}=== Swim Timer Installer ===${$Colors.Reset}`n"
 }
 
 function Write-Info
@@ -68,10 +63,11 @@ if ($Help)
     exit 0
 }
 
-Write-Header
+Write-Host "$($Colors.Green)=== ${APP_NAME} installer ===$($Colors.Reset)`n"
 
-$Architecture = [System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture
+$Architecture = [System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture
 $ArchMapping = @{
+    'X86' = '386'
     'X64' = 'amd64'
     'Arm64' = 'arm64'
 }
@@ -111,16 +107,16 @@ Write-Info "Installation mode: $Mode"
 
 if ($Mode -eq 'User')
 {
+    $ConfigDir = Join-Path $env:APPDATA $APP_NAME
     $InstallDir = Join-Path $env:LOCALAPPDATA 'Programs' $APP_NAME
     $StartMenuDir = Join-Path $env:APPDATA 'Microsoft' 'Windows' 'Start Menu' 'Programs'
-    $ConfigDir = Join-Path $env:APPDATA $APP_NAME
     $ShortcutPath = Join-Path $StartMenuDir "$APP_DISPLAY_NAME.lnk"
 }
 else
 {
+    $ConfigDir = Join-Path $env:ProgramData $APP_NAME
     $InstallDir = Join-Path $env:ProgramFiles $APP_NAME
     $StartMenuDir = Join-Path $env:ProgramData 'Microsoft' 'Windows' 'Start Menu' 'Programs'
-    $ConfigDir = Join-Path $env:ProgramData $APP_NAME
     $ShortcutPath = Join-Path $StartMenuDir "$APP_DISPLAY_NAME.lnk"
 }
 
@@ -189,45 +185,48 @@ try
     if ($ChecksumAsset)
     {
         $ChecksumPath = Join-Path $TmpDir 'checksums.txt'
+        $ChecksumsFetched = $false
         try
         {
             Invoke-WebRequest `
                 -Uri $ChecksumAsset.url `
                 -Headers $DownloadHeaders `
                 -OutFile $ChecksumPath `
-                -ErrorAction SilentlyContinue
-
-            if (Test-Path $ChecksumPath)
-            {
-                $BinaryChecksum = (Get-FileHash -Path $BinaryPath -Algorithm SHA256).Hash.ToLower()
-                $ChecksumContent = Get-Content $ChecksumPath -Raw
-
-                if ($ChecksumContent -match "^([a-f0-9]{64})\s+.*$(([System.IO.Path]::GetFileName($BinaryPath)).Replace('.', '\.') )\s*$")
-                {
-                    $ExpectedChecksum = $Matches[1].ToLower()
-                    if ($BinaryChecksum -eq $ExpectedChecksum)
-                    {
-                        Write-Success "Binary integrity verified"
-                    }
-                    else
-                    {
-                        Write-Warn "Binary integrity check failed"
-                    }
-                }
-                else
-                {
-                    Write-Warn "Checksum format not recognized"
-                }
-            }
+                -ErrorAction Stop
+            $ChecksumsFetched = $true
         }
         catch
         {
-            Write-Warn "Failed to verify checksums: $_"
+            Write-Warn "Failed to download checksums, skipping integrity check: $_"
+        }
+
+        if ($ChecksumsFetched)
+        {
+            $BinaryFileName = [System.IO.Path]::GetFileName($BinaryPath)
+            $ExpectedLine = Get-Content $ChecksumPath | Where-Object { ($_ -split '\s+')[1] -eq $BinaryFileName } | Select-Object -First 1
+
+            if (-not $ExpectedLine)
+            {
+                Write-Warn "Checksum entry not found for $BinaryFileName, skipping integrity check"
+            }
+            else
+            {
+                $ExpectedChecksum = ($ExpectedLine -split '\s+')[0].ToLower()
+                $BinaryChecksum = (Get-FileHash -Path $BinaryPath -Algorithm SHA256).Hash.ToLower()
+                if ($BinaryChecksum -eq $ExpectedChecksum)
+                {
+                    Write-Success "Binary integrity verified"
+                }
+                else
+                {
+                    throw "Binary integrity check failed for $BinaryFileName"
+                }
+            }
         }
     }
     else
     {
-        Write-Warn "Checksums file not available"
+        Write-Warn "Checksums file not available, skipping integrity check"
     }
 
     Expand-Archive -Path $BinaryPath -DestinationPath $TmpDir -Force
@@ -261,7 +260,7 @@ try
     $Shortcut = $WshShell.CreateShortcut($ShortcutPath)
     $Shortcut.TargetPath = $FinalBinaryPath
     $Shortcut.WorkingDirectory = $ConfigDir
-    $Shortcut.Description = "$APP_DISPLAY_NAME - HTML overlays with timing data for swimming competitions"
+    $Shortcut.Description = "$APP_DISPLAY_NAME"
     $Shortcut.Save()
     Write-Success "Shortcut created at $ShortcutPath"
 
@@ -273,7 +272,7 @@ try
         Write-Info "Installing Windows Service..."
 
         $ServiceName = "SwimTimer"
-        $ServiceDisplayName = "Swim Timer"
+        $ServiceDisplayName = "Swim-Timer"
 
         $ExistingService = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
         if ($ExistingService)
@@ -284,33 +283,37 @@ try
             Remove-Service -Name $ServiceName -Force -ErrorAction SilentlyContinue
         }
 
-        if (Get-Command nssm -ErrorAction SilentlyContinue)
+        # The binary has no Windows service handler of its own, so NSSM runs it as a service.
+        if (-not (Get-Command nssm -ErrorAction SilentlyContinue))
         {
-            Write-Info "Using NSSM to install service..."
-            nssm install $ServiceName $FinalBinaryPath
-            nssm set $ServiceName AppDirectory $ConfigDir
-            nssm set $ServiceName AppNoConsole 1
-            nssm set $ServiceName AppRestartDelay 5000
+            Write-Warn "The service requires NSSM, which was not found."
+            Write-Host "Install it, for example with: winget install nssm"
+            Write-Host "Then run this script again to install the service."
         }
         else
         {
-            Write-Info "Using sc.exe to install service..."
-            $ServicePath = "`"$FinalBinaryPath`""
-            sc.exe create $ServiceName binPath=$ServicePath DisplayName=$ServiceDisplayName start=auto
-        }
+            Write-Info "Using NSSM to install service..."
+            nssm install $ServiceName $FinalBinaryPath
+            nssm set $ServiceName DisplayName $ServiceDisplayName
+            nssm set $ServiceName AppDirectory $ConfigDir
+            nssm set $ServiceName AppNoConsole 1
+            nssm set $ServiceName AppRestartDelay 5000
+            # Tells the application that NSSM restarts it, so it does not start a second instance after an update.
+            nssm set $ServiceName AppEnvironmentExtra SWIM_TIMER_SUPERVISED=1
 
-        Write-Success "Service created: $ServiceName"
+            Write-Success "Service created: $ServiceName"
 
-        Write-Host ""
-        $StartServiceChoice = Read-Host "Enable and start the service now? (Y/n)"
+            Write-Host ""
+            $StartServiceChoice = Read-Host "Enable and start the service now? (Y/n)"
 
-        if ($StartServiceChoice -match '^[Yy]$|^$')
-        {
-            Write-Info "Starting service..."
-            Set-Service -Name $ServiceName -StartupType Automatic
-            Start-Service -Name $ServiceName
-            Write-Success "Service enabled and started"
-            Write-Host "Check status with: Get-Service $ServiceName"
+            if ($StartServiceChoice -match '^[Yy]$|^$')
+            {
+                Write-Info "Starting service..."
+                Set-Service -Name $ServiceName -StartupType Automatic
+                Start-Service -Name $ServiceName
+                Write-Success "Service enabled and started"
+                Write-Host "Check status with: Get-Service $ServiceName"
+            }
         }
     }
     else

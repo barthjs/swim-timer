@@ -1,5 +1,4 @@
-# syntax=docker/dockerfile:1.7-labs
-FROM node:24-alpine AS node-builder
+FROM --platform=$BUILDPLATFORM node:24-alpine AS web-builder
 WORKDIR /build/web
 
 ARG VERSION=dev
@@ -11,27 +10,40 @@ RUN npm ci --omit=dev
 COPY web/ ./
 RUN npm run build-only
 
-FROM golang:1.26-alpine AS go-builder
+FROM --platform=$BUILDPLATFORM node:24-alpine AS apidocs-builder
+WORKDIR /build/docs/api
+
+COPY docs/api/package*.json ./
+RUN npm ci --omit=dev
+
+COPY docs/api/ ./
+RUN npm run build
+
+FROM --platform=$BUILDPLATFORM golang:1.27-alpine AS api-builder
 WORKDIR /build
 
 ARG VERSION=dev
-ENV APP_VERSION=${VERSION}
+ARG TARGETOS
+ARG TARGETARCH
 
 COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
-COPY --from=node-builder /build/web/dist ./web/dist
-RUN CGO_ENABLED=0 go build -ldflags="-s -w -X 'main.Version=${APP_VERSION}'" -o ./swim-timer ./cmd/
+COPY --from=web-builder /build/web/dist ./web/dist
+COPY --from=apidocs-builder /build/docs/api/dist ./docs/api/dist
+RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -ldflags="-s -w -X 'main.Version=${VERSION}'" -o ./bin/swim-timer ./cmd/swim-timer/
 
-FROM alpine:latest
-WORKDIR /app
+FROM alpine:latest AS runtime
 
 ENV APP_USER=application \
     PUID=1000 \
     PGID=1000 \
-    PRESETS_DIR=/app/data/presets \
-    RACE_DATA_DIR=/app/data/race-data
+    CONFIG_FILE=/data/config.yaml \
+    LOG_PATH=/data/logs \
+    STORAGE_PATH=/data/storage \
+    XDG_CONFIG_HOME=/data \
+    SWIM_TIMER_SUPERVISED=1
 
 RUN set -eux \
     && addgroup -g ${PGID} ${APP_USER} \
@@ -40,15 +52,24 @@ RUN set -eux \
     shadow \
     su-exec
 
-COPY --from=go-builder /build/swim-timer ./swim-timer
-
-COPY entrypoint.sh /entrypoint.sh
+COPY scripts/entrypoint.sh /entrypoint.sh
 
 EXPOSE 8080
 
 ENTRYPOINT ["/entrypoint.sh"]
 
-CMD ["/app/swim-timer" , "--config", "/app/data/config.yaml"]
+CMD ["swim-timer"]
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD wget -nv --spider http://localhost:8080/api/ping || exit 1
+    CMD ["swim-timer", "healthcheck"]
+
+# GoReleaser builds this target from the binaries of its own build, which it places under the target platform.
+FROM runtime AS release
+
+ARG TARGETPLATFORM
+
+COPY ${TARGETPLATFORM}/swim-timer /usr/local/bin
+
+FROM runtime AS prod
+
+COPY --from=api-builder /build/bin/swim-timer /usr/local/bin

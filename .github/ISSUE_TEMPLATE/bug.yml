@@ -29,10 +29,14 @@ body:
       options:
         - Linux, AMD64 (x86_64)
         - Linux, ARM64
+        - Linux, ARMv7
+        - Linux, ARMv6
         - Linux, 386
+        - Linux, RISC-V 64
         - Windows, AMD64 (x86_64)
         - Windows, ARM64
         - Windows, 386
+        - Container image
     validations:
       required: true
 
@@ -44,9 +48,16 @@ body:
       options:
         - Brave
         - Chrome
+        - Chromium
         - Firefox
         - Microsoft Edge
         - Safari
+
+  - type: input
+    id: browser_version
+    attributes:
+      label: Browser version
+      placeholder: e.g., Chrome 123
 
   - type: textarea
     id: summary

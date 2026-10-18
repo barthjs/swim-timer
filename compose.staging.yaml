@@ -1,0 +1,16 @@
+services:
+  swim-timer:
+    build:
+      context: .
+      target: prod
+    pull_policy: never
+    image: ghcr.io/barthjs/swim-timer:staging
+    container_name: swim-timer-staging
+    restart: unless-stopped
+    ports:
+      - 8080:8080
+    devices:
+      - /dev/ttyUSB0:/dev/ttyUSB0
+    volumes:
+      - ./data:/data
+    env_file: .env

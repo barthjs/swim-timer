@@ -1,12 +1,12 @@
 services:
   swim-timer:
-    image: barthjs/swim-timer:latest
+    image: ghcr.io/barthjs/swim-timer:latest
     container_name: swim-timer
     restart: unless-stopped
-    devices:
-      - /dev/ttyUSB0:/dev/ttyUSB0
     ports:
       - 8080:8080
+    devices:
+      - /dev/ttyUSB0:/dev/ttyUSB0
     volumes:
-      - ./data:/app/data
+      - ./data:/data
     env_file: .env

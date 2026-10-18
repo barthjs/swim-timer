@@ -1,0 +1,90 @@
+name: Tests
+
+on:
+  pull_request:
+    branches:
+      - main
+
+  workflow_call:
+
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            docs/api/package-lock.json
+            web/package-lock.json
+
+      - name: Setup golangci-lint
+        uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.15.0
+          install-only: true
+
+      - name: Install NPM dependencies
+        run: |
+          npm ci --prefix docs/api
+          npm ci --prefix web
+
+      - name: Check types
+        run: npm run type-check --prefix docs/api
+
+      - name: Build assets
+        run: |
+          npm run build --prefix docs/api
+          npm run build-only --prefix web
+
+      - name: Run tests
+        run: make test
+
+  frontend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    defaults:
+      run:
+        working-directory: web
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install NPM dependencies
+        run: npm ci
+
+      - name: Build assets
+        run: npm run build-only
+
+      - name: Check types
+        run: npm run type-check
+
+      - name: Run tests
+        run: npm run test

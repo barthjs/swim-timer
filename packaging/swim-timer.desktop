@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Swim-Timer
+Comment=Swimming competition overlays
+Type=Application
+Exec=/usr/bin/swim-timer
+Terminal=false
+Icon=chronometer
+Categories=Utility;
