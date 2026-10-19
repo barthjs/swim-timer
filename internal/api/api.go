@@ -37,6 +37,7 @@ type API struct {
 	recordingService *service.RecordingService
 	timingService    *service.TimingService
 	updateService    *service.UpdateService
+	webhookService   *service.WebhookService
 }
 
 // Options holds the settings the API reads at runtime.
@@ -77,6 +78,7 @@ type Deps struct {
 	RecordingService *service.RecordingService
 	TimingService    *service.TimingService
 	UpdateService    *service.UpdateService
+	WebhookService   *service.WebhookService
 }
 
 // New creates an API. ctx ends with the application.
@@ -105,6 +107,7 @@ func New(ctx context.Context, d Deps) *API {
 		recordingService: d.RecordingService,
 		timingService:    d.TimingService,
 		updateService:    d.UpdateService,
+		webhookService:   d.WebhookService,
 	}
 }
 

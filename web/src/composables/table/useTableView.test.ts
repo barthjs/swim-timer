@@ -69,6 +69,32 @@ describe('useTableView', () => {
       });
     });
 
+    it('keeps the sort in memory for a view outside the URL', () => {
+      fake = fakeRouter({
+        tab: 'items',
+        sort: 'number',
+      });
+      const table = useTableView(rows, {
+        sortable: ['name', 'number'],
+        value: (row, id) => row[id as keyof Row],
+        inUrl: false,
+      });
+
+      table.sort.value = {
+        id: 'name',
+        desc: true,
+      };
+
+      expect(table.sort.value).toEqual({
+        id: 'name',
+        desc: true,
+      });
+      expect(fake.route.query).toEqual({
+        tab: 'items',
+        sort: 'number',
+      });
+    });
+
     it('removes the sort from the URL', () => {
       fake = fakeRouter({
         tab: 'items',

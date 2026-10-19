@@ -80,6 +80,8 @@ export const routes: RouteRecordRaw[] = [
         meta: {
           titleKey: 'pages.config.title',
           requiresAuth: true,
+          // The table of the webhooks reaches down to the footer like the other tables
+          fillViewport: (route) => route.query.tab === 'webhook',
         },
         component: () => import('@/pages/ConfigPage.vue'),
       },

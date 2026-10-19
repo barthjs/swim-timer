@@ -1,4 +1,4 @@
-import type { RouteRecordRaw } from 'vue-router';
+import type { RouteLocationNormalizedLoaded, RouteRecordRaw } from 'vue-router';
 import { describe, expect, it, vi } from 'vitest';
 
 import AdminLayout from '@/layouts/AdminLayout.vue';
@@ -81,11 +81,28 @@ describe('routes', () => {
     }
   });
 
-  it('gives only the editor and the meet overview the viewport height', () => {
+  it('gives only the editor, the meet overview, and the webhook tab the viewport height', () => {
     for (const [name, route] of byName) {
+      if (name === 'config') continue;
       const expected = name === 'editor' || name === 'meet' ? true : undefined;
       expect(route.meta?.fillViewport).toBe(expected);
     }
+  });
+
+  it('gives the configuration the viewport height only on the webhook tab', () => {
+    const fill = byName.get('config')?.meta?.fillViewport;
+
+    const filled = ['webhook', 'server'].map((tab) =>
+      typeof fill === 'function'
+        ? fill({
+            query: {
+              tab,
+            },
+          } as unknown as RouteLocationNormalizedLoaded)
+        : fill,
+    );
+
+    expect(filled).toEqual([true, false]);
   });
 
   it('sends unknown paths to the dashboard', () => {

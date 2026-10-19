@@ -18,6 +18,7 @@ import (
 	"github.com/barthjs/swim-timer/internal/api"
 	"github.com/barthjs/swim-timer/internal/config"
 	"github.com/barthjs/swim-timer/internal/config/structconf"
+	"github.com/barthjs/swim-timer/internal/domain"
 	"github.com/barthjs/swim-timer/internal/health"
 	"github.com/barthjs/swim-timer/internal/media"
 	"github.com/barthjs/swim-timer/internal/omega"
@@ -27,6 +28,7 @@ import (
 	"github.com/barthjs/swim-timer/internal/service"
 	"github.com/barthjs/swim-timer/internal/session"
 	"github.com/barthjs/swim-timer/internal/store"
+	"github.com/barthjs/swim-timer/internal/webhook"
 	"github.com/barthjs/swim-timer/internal/ws"
 )
 
@@ -61,6 +63,7 @@ type App struct {
 
 	hub         *ws.Hub
 	timing      *service.TimingService
+	webhooks    *service.WebhookService
 	rateLimiter ratelimiter.Limiter
 
 	// simulate replays simulated frames into the virtual port, nil without the simulator.
@@ -124,13 +127,27 @@ func New(ctx context.Context, logger zerolog.Logger, cfg config.Config, deps Dep
 		return nil
 	}))
 
+	// The preview of a webhook sends the current data of its event, which the services below hold
+	var timing *service.TimingService
+	var meetService *service.MeetService
+	a.webhooks = service.NewWebhookService(logger, webhook.New(webhookOptions(cfg, deps.Version)), stores.Webhook, func(event domain.WebhookEvent) any {
+		return webhookSample(event, timing, meetService)
+	})
+
 	// The hub asks the timing service for the snapshot a newly connected overlay receives,
 	// while the timing service broadcasts through the hub, so the snapshot is resolved lazily.
 	// Clients can only connect once the application runs, after the timing service is assigned.
-	var timing *service.TimingService
 	a.hub = ws.New(logger, func() ([]byte, error) { return timing.Snapshot() })
-	timing = service.NewTimingService(logger, timingOptions(cfg.Timing), a.hub, device, recorder, meetStore)
+	timing = service.NewTimingService(logger, timingOptions(cfg.Timing), a.hub, device, recorder, meetStore, func(heat *domain.LiveHeat) {
+		a.webhooks.Publish(domain.WebhookEventHeatUpdated, func() any { return heat })
+	})
 	a.timing = timing
+
+	// A reload records the meet files in use and sends the new meet to the webhooks, as the meet overview shows it
+	meetService = service.NewMeetService(logger, a.hub, meetStore, func() {
+		timing.RecordMeet()
+		a.webhooks.Publish(domain.WebhookEventMeetReloaded, func() any { return api.ToMeetResponse(meetService.GetOverview()) })
+	})
 
 	updater := deps.Updater
 	if updater == nil {
@@ -155,10 +172,11 @@ func New(ctx context.Context, logger zerolog.Logger, cfg config.Config, deps Dep
 			Sources:  deps.ConfigSources,
 		}),
 		PresetService:    service.NewPresetService(presetStore),
-		MeetService:      service.NewMeetService(logger, a.hub, meetStore, timing.RecordMeet),
+		MeetService:      meetService,
 		RecordingService: service.NewRecordingService(recordingOptions(cfg.Timing), recorder, recordingStore),
 		TimingService:    timing,
 		UpdateService:    service.NewUpdateService(logger, updater, deps.OnUpdated),
+		WebhookService:   a.webhooks,
 	}).Routes()
 
 	return a, nil
@@ -173,6 +191,7 @@ func (a *App) Handler() http.Handler {
 func (a *App) Start(ctx context.Context) {
 	a.background.Go(func() { a.hub.Run(ctx) })
 	a.background.Go(func() { a.timing.Run(ctx) })
+	a.background.Go(func() { a.webhooks.Run(ctx) })
 	if a.simulate != nil {
 		a.background.Go(func() { a.simulate(ctx) })
 	}
@@ -261,4 +280,16 @@ func newRecorder(logger zerolog.Logger, cfg config.Config, version string) *reco
 	}
 	dir := filepath.Join(options.LocalPath, store.RecordingsFolder)
 	return recording.NewWriter(logger, recorderOptions(cfg.Timing, dir, version))
+}
+
+// webhookSample returns the data a webhook receives with an event, as it is now.
+func webhookSample(event domain.WebhookEvent, timing *service.TimingService, meetService *service.MeetService) any {
+	switch event {
+	case domain.WebhookEventHeatUpdated:
+		return timing.GetLiveHeat()
+	case domain.WebhookEventMeetReloaded:
+		return api.ToMeetResponse(meetService.GetOverview())
+	default:
+		return nil
+	}
 }

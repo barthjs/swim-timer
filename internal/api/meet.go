@@ -40,7 +40,7 @@ var (
 //	@Success		200	{object}	MeetResponse
 //	@Router			/meet [get]
 func (a *API) meetOverviewGetHandler(w http.ResponseWriter, r *http.Request) {
-	a.writeJSON(w, r, http.StatusOK, toMeetResponse(a.meetService.GetOverview()), nil)
+	a.writeJSON(w, r, http.StatusOK, ToMeetResponse(a.meetService.GetOverview()), nil)
 }
 
 // MeetResponse is the whole meet. Competitors are listed once and referenced by id from the start entries.
@@ -118,7 +118,7 @@ func (a *API) meetEventListHandler(w http.ResponseWriter, r *http.Request) {
 	list := a.meetService.ListEvents()
 
 	resp := MeetEventListResponse{
-		LoadedAt: toLoadedAtResponse(list.LoadedAt),
+		LoadedAt: optionalTime(list.LoadedAt),
 		Events:   make([]EventResponse, 0, len(list.Events)),
 	}
 	for _, event := range list.Events {
@@ -159,7 +159,7 @@ func (a *API) meetEventGetHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	a.writeJSON(w, r, http.StatusOK, MeetEventResponse{
-		LoadedAt: toLoadedAtResponse(event.LoadedAt),
+		LoadedAt: optionalTime(event.LoadedAt),
 		Event:    toEventResponse(event.Event),
 	}, nil)
 }
@@ -201,7 +201,7 @@ func (a *API) meetHeatGetHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resp := MeetHeatResponse{
-		LoadedAt:     toLoadedAtResponse(heat.LoadedAt),
+		LoadedAt:     optionalTime(heat.LoadedAt),
 		Event:        toEventResponse(heat.Event),
 		Heat:         heatNumber,
 		StartEntries: make([]HeatStartEntryResponse, 0, len(heat.StartEntries)),
@@ -248,7 +248,7 @@ func (a *API) meetCompetitorListHandler(w http.ResponseWriter, r *http.Request) 
 	list := a.meetService.ListCompetitors()
 
 	resp := MeetCompetitorListResponse{
-		LoadedAt:    toLoadedAtResponse(list.LoadedAt),
+		LoadedAt:    optionalTime(list.LoadedAt),
 		Competitors: make([]CompetitorResponse, 0, len(list.Competitors)),
 	}
 	for _, competitor := range list.Competitors {
@@ -276,7 +276,7 @@ func (a *API) meetStartEntryListHandler(w http.ResponseWriter, r *http.Request) 
 	list := a.meetService.ListStartEntries()
 
 	resp := MeetStartEntryListResponse{
-		LoadedAt:     toLoadedAtResponse(list.LoadedAt),
+		LoadedAt:     optionalTime(list.LoadedAt),
 		StartEntries: make([]StartEntryResponse, 0, len(list.StartEntries)),
 	}
 	for _, entry := range list.StartEntries {
@@ -292,10 +292,11 @@ type MeetStartEntryListResponse struct {
 	StartEntries []StartEntryResponse `json:"startEntries"`
 }
 
-// toMeetResponse maps the meet overview to its response.
-func toMeetResponse(overview service.MeetOverview) MeetResponse {
+// ToMeetResponse maps the meet overview to its response. The webhooks send it as the data of a meet reload,
+// so the wiring of the application uses it as well.
+func ToMeetResponse(overview service.MeetOverview) MeetResponse {
 	resp := MeetResponse{
-		LoadedAt:     toLoadedAtResponse(overview.LoadedAt),
+		LoadedAt:     optionalTime(overview.LoadedAt),
 		Events:       make([]EventResponse, 0, len(overview.Events)),
 		StartEntries: make([]StartEntryResponse, 0, len(overview.StartEntries)),
 		Competitors:  make([]CompetitorResponse, 0, len(overview.Competitors)),
@@ -313,12 +314,12 @@ func toMeetResponse(overview service.MeetOverview) MeetResponse {
 	return resp
 }
 
-// toLoadedAtResponse maps the time the meet data was loaded to its response, nil before the first load.
-func toLoadedAtResponse(loadedAt time.Time) *time.Time {
-	if loadedAt.IsZero() {
+// optionalTime returns a pointer to t for a response that leaves the time out until it is set, nil for the zero time.
+func optionalTime(t time.Time) *time.Time {
+	if t.IsZero() {
 		return nil
 	}
-	return &loadedAt
+	return &t
 }
 
 // toEventResponse maps an event to its response with its references resolved.

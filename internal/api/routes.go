@@ -101,6 +101,7 @@ func (a *API) apiRoutes(r chi.Router) {
 		a.recordingRoutes(r)
 		a.timingRoutes(r)
 		a.updateRoutes(r)
+		a.webhookRoutes(r)
 	})
 }
 
@@ -209,6 +210,24 @@ func (a *API) updateRoutes(r chi.Router) {
 		r.Get("/status", a.updateStatusGetHandler)
 		r.Get("/", a.updateCheckHandler)
 		r.Post("/", a.updateStartHandler)
+	})
+}
+
+// webhookRoutes registers the webhook routes under "/webhooks", which require an admin session.
+func (a *API) webhookRoutes(r chi.Router) {
+	r.Route("/webhooks", func(r chi.Router) {
+		r.Use(a.sm.LoadAndSave, a.requireAuthentication)
+
+		r.Get("/", a.webhookListHandler)
+		r.Get("/{id}", a.webhookGetHandler)
+		r.Post("/", a.webhookCreateHandler)
+		r.Put("/{id}", a.webhookUpdateHandler)
+		r.Delete("/{id}", a.webhookDeleteHandler)
+		r.With(a.rateLimitPerIP("webhook:test", webhookTestRateLimit, webhookTestRateLimitWindow)).Post("/{id}/test", a.webhookTestHandler)
+
+		r.Get("/{id}/deliveries", a.webhookDeliveryListHandler)
+
+		r.Get("/{id}/preview", a.webhookPreviewGetHandler)
 	})
 }
 

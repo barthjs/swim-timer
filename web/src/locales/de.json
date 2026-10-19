@@ -153,6 +153,8 @@
       "secret": "Admin-Passwort"
     },
     "comment": "Kommentar",
+    "enabled": "Aktiv",
+    "events": "Ereignisse",
     "file": "Datei",
     "files": "Dateien",
     "frameHeight": "Höhe",
@@ -170,6 +172,7 @@
     "name": "Name",
     "password": "Passwort",
     "reverseLanes": "Reihenfolge der Bahnen",
+    "secret": "Secret",
     "server": {
       "corsAllowCredentials": "CORS mit Cookies erlauben",
       "corsAllowedOrigins": "Erlaubte CORS-Origins",
@@ -180,6 +183,7 @@
       "sslKeyFile": "TLS-Schlüsselpfad",
       "trustedProxies": "Vertrauenswürdige Proxys"
     },
+    "skipTlsVerify": "Jedes Zertifikat akzeptieren",
     "storage": {
       "driver": "Speichertreiber",
       "path": "Speicherpfad",
@@ -210,6 +214,10 @@
       "replayPath": "Abgespielte Aufzeichnung",
       "serialPort": "Serielle Schnittstelle",
       "simulateEvent": "Simulierter Wettkampf"
+    },
+    "url": "URL",
+    "webhook": {
+      "allowedNetworks": "Erlaubte private Netze"
     }
   },
   "keys": {
@@ -277,7 +285,8 @@
         "server": "Server",
         "storage": "Speicher",
         "theme": "Design",
-        "timing": "Zeitmessung"
+        "timing": "Zeitmessung",
+        "webhook": "Webhooks"
       },
       "server": {
         "corsAllowCredentialsHint": "Lässt die erlaubten Domains Cookies mitsenden, zum Beispiel für eine Anmeldung. Erfordert konkrete Domains statt *.",
@@ -345,7 +354,92 @@
         "uploadRecording": "Hochladen"
       },
       "title": "Konfiguration",
-      "unsavedChanges": "Ungespeicherte Änderungen"
+      "unsavedChanges": "Ungespeicherte Änderungen",
+      "webhook": {
+        "allowedNetworksHint": "Private oder lokale Netze, an die Webhooks zugestellt werden dürfen, als kommagetrennte IP-Adressen oder Netze in CIDR-Schreibweise. Leer lassen, um nur an öffentliche Adressen zuzustellen.",
+        "copySecret": "Secret kopieren",
+        "createdDescription": "Trage dieses Secret beim Empfänger ein, damit er die Signatur der Nachrichten prüfen kann. Es ist auch beim Bearbeiten des Webhooks zu sehen.",
+        "createdTitle": "Webhook {name} angelegt",
+        "deleteDescription": "{name} erhält danach keine Live-Daten mehr.",
+        "deleteTitle": "Webhook löschen?",
+        "deleted": "Webhook {name} gelöscht",
+        "deliveries": {
+          "description": "Die letzten 25 Zustellungen seit dem Start, die neueste zuerst.",
+          "duration": "Dauer",
+          "empty": "Seit dem Start keine Zustellungen.",
+          "event": "Ereignis",
+          "loadError": "Die Zustellungen konnten nicht geladen werden",
+          "milliseconds": "{value} ms",
+          "outcome": "Ergebnis",
+          "response": "Antwort",
+          "search": "Ereignis, Status oder Antwort suchen",
+          "status": "Status",
+          "time": "Zeit",
+          "title": "Zustellungen an {name}"
+        },
+        "deliveriesAction": "Zustellungen",
+        "edit": "Webhook bearbeiten",
+        "editAction": "Bearbeiten",
+        "empty": "Noch keine Webhooks. Ein Webhook sendet die Live-Daten an eine URL, zum Beispiel an eine Website.",
+        "errors": {
+          "blocked_address": "Die Adresse liegt in einem privaten oder lokalen Netz, das nicht erlaubt ist.",
+          "invalid_secret": "Das Secret ist ungültig.",
+          "invalid_url": "Die URL ist ungültig.",
+          "status": "Der Empfänger hat mit Status {status} geantwortet.",
+          "timeout": "Der Empfänger hat nicht rechtzeitig geantwortet.",
+          "unreachable": "Der Empfänger war nicht erreichbar.",
+          "untrusted_certificate": "Das Zertifikat des Empfängers konnte nicht geprüft werden. Schalte für ein selbstsigniertes Zertifikat „Jedes Zertifikat akzeptieren“ ein."
+        },
+        "events": {
+          "heatUpdated": "Aktueller Lauf",
+          "heatUpdatedHint": "Jede Änderung des aktuellen Laufs",
+          "meetReloaded": "Veranstaltungsdaten",
+          "meetReloadedHint": "Die ganze Veranstaltung nach jedem Neuladen",
+          "test": "Testnachricht"
+        },
+        "failingSince": "{error}, {count} fehlgeschlagene Zustellungen in Folge, zuletzt um {time}",
+        "generateSecret": "Secret erzeugen",
+        "health": {
+          "disabled": "Aus",
+          "failing": "Fehler",
+          "ok": "OK",
+          "waiting": "Wartet"
+        },
+        "lastDelivered": "Zuletzt zugestellt um {time}",
+        "loadError": "Die Webhooks konnten nicht geladen werden",
+        "new": "Neuer Webhook",
+        "noDelivery": "Seit dem Start keine Zustellung",
+        "outcomes": {
+          "deferred": "Verschoben",
+          "delivered": "Zugestellt",
+          "gone": "Entfernt",
+          "rejected": "Abgelehnt",
+          "retry": "Wird wiederholt"
+        },
+        "preview": {
+          "body": "Inhalt",
+          "copied": "Inhalt kopiert",
+          "copy": "Inhalt kopieren",
+          "description": "Eine Nachricht mit den aktuellen Daten des Ereignisses, wie sie jetzt gesendet würde, signiert mit dem Secret des Webhooks. Es wird nichts gesendet.",
+          "event": "Ereignis",
+          "headers": "Header",
+          "loadError": "Das Beispiel konnte nicht erstellt werden",
+          "request": "Anfrage",
+          "title": "Beispielnachricht an {name}"
+        },
+        "previewAction": "Beispiel anzeigen",
+        "saved": "Webhook gespeichert",
+        "search": "Name oder URL suchen",
+        "secretCopied": "Secret kopiert",
+        "secretHint": "Signiert jede Nachricht, damit der Empfänger prüfen kann, dass sie von dieser Anwendung stammt. Mehrere Webhooks können dasselbe Secret verwenden. Leer lassen, um eines zu erzeugen.",
+        "secretPlaceholder": "Wird beim Speichern erzeugt",
+        "skipTlsVerifyHint": "Sendet an eine https-Adresse, ohne ihr Zertifikat zu prüfen, zum Beispiel ein selbstsigniertes im lokalen Netz. Der Empfänger kann die Nachrichten weiterhin über die Signatur prüfen, andere im Netz könnten sie aber mitlesen.",
+        "status": "Status",
+        "testAction": "Test senden",
+        "testDelivered": "Testnachricht zugestellt",
+        "testFailed": "Testnachricht nicht zugestellt",
+        "urlHint": "Adresse, an die die Nachrichten gesendet werden, mit http oder https."
+      }
     },
     "dashboard": {
       "arOverlays": "AR-Overlays",
@@ -624,7 +718,8 @@
     "rangeEmpty": "Keine Einträge",
     "selectAll": "Alle auswählen",
     "selectRow": "Zeile auswählen",
-    "filterAll": "Alle"
+    "filterAll": "Alle",
+    "rowActions": "Aktionen"
   },
   "update": {
     "available": "Version {version} ist verfügbar.",
@@ -649,6 +744,7 @@
     }
   },
   "validation": {
+    "blocked_address": "{field} zeigt in ein privates oder lokales Netz, das nicht erlaubt ist.",
     "explicit_origins": "{field} erfordert konkrete Domains statt *.",
     "hexcolor": "{field} muss ein Hex-Farbwert sein.",
     "invalid": "{field} ist ungültig.",
@@ -668,6 +764,8 @@
     "required_unless": "{field} wird benötigt.",
     "required_with": "{field} wird benötigt.",
     "too_large": "{field} ist zu groß.",
-    "unsupported_type": "{field} hat einen nicht unterstützten Dateityp."
+    "unsupported_type": "{field} hat einen nicht unterstützten Dateityp.",
+    "url": "{field} muss eine http- oder https-URL sein.",
+    "webhook_secret": "{field} muss aus whsec_ und 24 bis 64 Bytes in Base64 bestehen."
   }
 }

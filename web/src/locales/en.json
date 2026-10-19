@@ -153,6 +153,8 @@
       "secret": "Admin password"
     },
     "comment": "Comment",
+    "enabled": "Enabled",
+    "events": "Events",
     "file": "File",
     "files": "Files",
     "frameHeight": "Height",
@@ -170,6 +172,7 @@
     "name": "Name",
     "password": "Password",
     "reverseLanes": "Lane order",
+    "secret": "Secret",
     "server": {
       "corsAllowCredentials": "Allow CORS with cookies",
       "corsAllowedOrigins": "Allowed CORS origins",
@@ -180,6 +183,7 @@
       "sslKeyFile": "TLS private key path",
       "trustedProxies": "Trusted proxies"
     },
+    "skipTlsVerify": "Accept any certificate",
     "storage": {
       "driver": "Storage driver",
       "path": "Storage path",
@@ -210,6 +214,10 @@
       "replayPath": "Replayed recording",
       "serialPort": "Serial port",
       "simulateEvent": "Simulated event"
+    },
+    "url": "URL",
+    "webhook": {
+      "allowedNetworks": "Allowed private networks"
     }
   },
   "keys": {
@@ -277,7 +285,8 @@
         "server": "Server",
         "storage": "Storage",
         "theme": "Theme",
-        "timing": "Timing"
+        "timing": "Timing",
+        "webhook": "Webhooks"
       },
       "server": {
         "corsAllowCredentialsHint": "Lets the allowed domains send cookies, for example for a login. Requires explicit domains instead of *.",
@@ -345,7 +354,92 @@
         "uploadRecording": "Upload"
       },
       "title": "Config",
-      "unsavedChanges": "Unsaved changes"
+      "unsavedChanges": "Unsaved changes",
+      "webhook": {
+        "allowedNetworksHint": "Private or local networks webhooks may be delivered to, as comma-separated IP addresses or CIDR ranges. Leave empty to deliver to public addresses only.",
+        "copySecret": "Copy secret",
+        "createdDescription": "Enter this secret at the receiver, so it can check the signature of the messages. It also shows when the webhook is edited.",
+        "createdTitle": "Webhook {name} created",
+        "deleteDescription": "{name} no longer receives the live data.",
+        "deleteTitle": "Delete webhook?",
+        "deleted": "Webhook {name} deleted",
+        "deliveries": {
+          "description": "The last 25 deliveries since the start, the most recent first.",
+          "duration": "Duration",
+          "empty": "No deliveries since the start.",
+          "event": "Event",
+          "loadError": "Failed to load the deliveries",
+          "milliseconds": "{value} ms",
+          "outcome": "Outcome",
+          "response": "Response",
+          "search": "Search event, status, or response",
+          "status": "Status",
+          "time": "Time",
+          "title": "Deliveries to {name}"
+        },
+        "deliveriesAction": "Deliveries",
+        "edit": "Edit webhook",
+        "editAction": "Edit",
+        "empty": "No webhooks yet. A webhook sends the live data to a URL, for example of a website.",
+        "errors": {
+          "blocked_address": "The address lies in a private or local network that is not allowed.",
+          "invalid_secret": "The secret is invalid.",
+          "invalid_url": "The URL is invalid.",
+          "status": "The receiver answered with status {status}.",
+          "timeout": "The receiver did not answer in time.",
+          "unreachable": "The receiver could not be reached.",
+          "untrusted_certificate": "The certificate of the receiver could not be verified. For a self-signed certificate, turn on \"Accept any certificate\"."
+        },
+        "events": {
+          "heatUpdated": "Live heat",
+          "heatUpdatedHint": "Every change of the live heat",
+          "meetReloaded": "Meet data",
+          "meetReloadedHint": "The whole meet after every reload",
+          "test": "Test message"
+        },
+        "failingSince": "{error}, {count} failed deliveries in a row, the last at {time}",
+        "generateSecret": "Generate secret",
+        "health": {
+          "disabled": "Off",
+          "failing": "Failing",
+          "ok": "OK",
+          "waiting": "Waiting"
+        },
+        "lastDelivered": "Last delivered at {time}",
+        "loadError": "Failed to load the webhooks",
+        "new": "New webhook",
+        "noDelivery": "No delivery since the start",
+        "outcomes": {
+          "deferred": "Deferred",
+          "delivered": "Delivered",
+          "gone": "Gone",
+          "rejected": "Rejected",
+          "retry": "Retried"
+        },
+        "preview": {
+          "body": "Body",
+          "copied": "Body copied",
+          "copy": "Copy body",
+          "description": "A message with the current data of the event as it would be sent now, signed with the secret of the webhook. Nothing is sent.",
+          "event": "Event",
+          "headers": "Headers",
+          "loadError": "The example could not be built",
+          "request": "Request",
+          "title": "Example message to {name}"
+        },
+        "previewAction": "Show example",
+        "saved": "Webhook saved",
+        "search": "Search name or URL",
+        "secretCopied": "Secret copied",
+        "secretHint": "Signs every message, so the receiver can check that it comes from this application. Several webhooks may share a secret. Leave empty to generate one.",
+        "secretPlaceholder": "Generated on save",
+        "skipTlsVerifyHint": "Sends to an https address without checking its certificate, for example a self-signed one in the local network. The signature still lets the receiver check the messages, but others in the network could read them.",
+        "status": "Status",
+        "testAction": "Send test",
+        "testDelivered": "Test message delivered",
+        "testFailed": "Test message not delivered",
+        "urlHint": "The address the messages are sent to, with http or https."
+      }
     },
     "dashboard": {
       "arOverlays": "AR overlays",
@@ -624,7 +718,8 @@
     "rangeEmpty": "No entries",
     "selectAll": "Select all",
     "selectRow": "Select row",
-    "filterAll": "All"
+    "filterAll": "All",
+    "rowActions": "Actions"
   },
   "update": {
     "available": "Version {version} is available.",
@@ -649,6 +744,7 @@
     }
   },
   "validation": {
+    "blocked_address": "{field} points to a private or local network that is not allowed.",
     "explicit_origins": "{field} requires explicit origins instead of *.",
     "hexcolor": "{field} must be a hex color.",
     "invalid": "{field} is invalid.",
@@ -668,6 +764,8 @@
     "required_unless": "{field} is required.",
     "required_with": "{field} is required.",
     "too_large": "{field} is too large.",
-    "unsupported_type": "{field} has an unsupported file type."
+    "unsupported_type": "{field} has an unsupported file type.",
+    "url": "{field} must be an http or https URL.",
+    "webhook_secret": "{field} must be whsec_ followed by 24 to 64 bytes in base64."
   }
 }

@@ -68,6 +68,11 @@ export type TimingSettings = {
   recording: boolean;
 };
 
+export type WebhookSettings = {
+  // Comma-separated CIDRs or IPs of private or local networks webhooks may be delivered to.
+  allowedNetworks: string;
+};
+
 /**
  * ConfigFile is the config file a save writes to. path is empty if none was found at startup,
  * a save then creates one. exists is false until the file at path is created.
@@ -94,6 +99,7 @@ export type ConfigSettings = {
   storage: StorageSettings;
   theme: ThemeSettings;
   timing: TimingSettings;
+  webhook: WebhookSettings;
 };
 
 /**
@@ -417,4 +423,110 @@ export type UpdateStatusResponse = {
   state: 'idle' | 'running' | 'failed' | 'applied';
   version?: string;
   error?: string;
+};
+
+/** WebhookEvent names what a webhook message announces. */
+export const WebhookEvent = {
+  HeatUpdated: 'heat.updated',
+  MeetReloaded: 'meet.reloaded',
+} as const;
+export type WebhookEvent = (typeof WebhookEvent)[keyof typeof WebhookEvent];
+
+/**
+ * WebhookStatusResponse is the state of the deliveries to a webhook since the start of the application.
+ * The times are missing before the first delivery of their kind. lastStatusCode and lastErrorCode describe
+ * the last failed delivery by the status of its response or by the reason it got none.
+ */
+export type WebhookStatusResponse = {
+  lastDeliveredAt?: string;
+  lastFailedAt?: string;
+  lastStatusCode?: number;
+  lastErrorCode?: WebhookDeliveryErrorCode;
+  consecutiveFailures: number;
+};
+
+/** WebhookCreateRequest is a new webhook. An empty secret is generated. */
+export type WebhookCreateRequest = {
+  name: string;
+  url: string;
+  events: WebhookEvent[];
+  enabled: boolean;
+  secret: string;
+  // Accepts any certificate of the endpoint, such as a self-signed one.
+  skipTlsVerify: boolean;
+};
+
+/** WebhookUpdateRequest replaces the settings of a webhook. An empty secret is generated anew. */
+export type WebhookUpdateRequest = {
+  name: string;
+  url: string;
+  events: WebhookEvent[];
+  enabled: boolean;
+  secret: string;
+  // Accepts any certificate of the endpoint, such as a self-signed one.
+  skipTlsVerify: boolean;
+};
+
+export type WebhookResponse = {
+  id: string;
+  name: string;
+  url: string;
+  events: WebhookEvent[];
+  enabled: boolean;
+  secret: string;
+  // Accepts any certificate of the endpoint, such as a self-signed one.
+  skipTlsVerify: boolean;
+  status: WebhookStatusResponse;
+};
+
+/** WebhookDeliveryOutcome is how a delivery to a webhook ended. */
+export const WebhookDeliveryOutcome = {
+  Delivered: 'delivered',
+  Retry: 'retry',
+  Deferred: 'deferred',
+  Gone: 'gone',
+  Rejected: 'rejected',
+} as const;
+export type WebhookDeliveryOutcome =
+  (typeof WebhookDeliveryOutcome)[keyof typeof WebhookDeliveryOutcome];
+
+/** WebhookDeliveryErrorCode names why a delivery to a webhook got no response. */
+export const WebhookDeliveryErrorCode = {
+  BlockedAddress: 'blocked_address',
+  InvalidUrl: 'invalid_url',
+  InvalidSecret: 'invalid_secret',
+  UntrustedCertificate: 'untrusted_certificate',
+  Timeout: 'timeout',
+  Unreachable: 'unreachable',
+} as const;
+export type WebhookDeliveryErrorCode =
+  (typeof WebhookDeliveryErrorCode)[keyof typeof WebhookDeliveryErrorCode];
+
+export type WebhookDeliveryResponse = {
+  messageId: string;
+  event: string;
+  attemptedAt: string;
+  outcome: WebhookDeliveryOutcome;
+  // The status of the response, 0 if none was received.
+  statusCode: number;
+  durationMs: number;
+  // The start of the response body.
+  responseBody: string;
+  // Why a delivery got no response, with the technical details in error. Both are empty if the target answered.
+  errorCode: WebhookDeliveryErrorCode | '';
+  error: string;
+};
+
+export type WebhookHeaderResponse = {
+  // The name of the header in lowercase.
+  name: string;
+  value: string;
+};
+
+/** WebhookPreviewResponse is a message to a webhook as it would be sent now. The headers are sorted by name. */
+export type WebhookPreviewResponse = {
+  method: string;
+  url: string;
+  headers: WebhookHeaderResponse[];
+  body: string;
 };

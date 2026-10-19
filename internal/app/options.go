@@ -8,6 +8,7 @@ import (
 	"github.com/barthjs/swim-timer/internal/media"
 	"github.com/barthjs/swim-timer/internal/recording"
 	"github.com/barthjs/swim-timer/internal/service"
+	"github.com/barthjs/swim-timer/internal/webhook"
 )
 
 // StorageOptions maps the storage settings onto the options of the media package.
@@ -112,5 +113,13 @@ func apiOptions(cfg config.Config) api.Options {
 		CORSAllowedOrigins:   cfg.Server.CORSAllowedOrigins,
 		CORSAllowCredentials: cfg.Server.CORSAllowCredentials,
 		Docs:                 true,
+	}
+}
+
+// webhookOptions maps the configuration and the version of the application onto the options of the webhook client.
+func webhookOptions(cfg config.Config, version string) webhook.Options {
+	return webhook.Options{
+		UserAgent:       config.AppName + "/" + version,
+		AllowedNetworks: cfg.Webhook.AllowedNetworks,
 	}
 }

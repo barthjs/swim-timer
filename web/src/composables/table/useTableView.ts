@@ -1,4 +1,4 @@
-import { computed, toValue, watch, type MaybeRefOrGetter, type WatchSource } from 'vue';
+import { computed, reactive, toValue, watch, type MaybeRefOrGetter, type WatchSource } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 import {
@@ -22,6 +22,9 @@ export type TableViewOptions<T> = {
   value: (row: T, id: string) => unknown;
   // A change of these, for example the filters, returns to the first page.
   resetOn?: WatchSource;
+  // Whether the view is kept in the URL, true by default. A table in a dialog keeps it in memory,
+  // so it leaves the view of the table on the page below alone.
+  inUrl?: boolean;
 };
 
 /**
@@ -35,9 +38,20 @@ export function useTableView<T>(
 ) {
   const route = useRoute();
   const router = useRouter();
+  const inUrl = options.inUrl ?? true;
+  const memory = reactive<Record<string, string | undefined>>({});
 
-  /** setQuery replaces query parameters without adding a history entry. */
+  /** readQuery returns a parameter of the view from the URL, or from memory for a view outside the URL. */
+  function readQuery(key: string): unknown {
+    return inUrl ? route.query[key] : memory[key];
+  }
+
+  /** setQuery replaces parameters of the view, in the URL without adding a history entry. */
   function setQuery(values: Record<string, string | undefined>): void {
+    if (!inUrl) {
+      Object.assign(memory, values);
+      return;
+    }
     void router.replace({
       query: {
         ...route.query,
@@ -47,7 +61,7 @@ export function useTableView<T>(
   }
 
   const sort = computed<TableSort | null>({
-    get: () => parseSort(route.query.sort, options.sortable),
+    get: () => parseSort(readQuery('sort'), options.sortable),
     set: (value) =>
       setQuery({
         sort: formatSort(value),
@@ -64,7 +78,7 @@ export function useTableView<T>(
   });
 
   const pageSize = computed<number>({
-    get: () => parsePageSize(route.query.perPage),
+    get: () => parsePageSize(readQuery('perPage')),
     set: (value) =>
       setQuery({
         perPage: value === DEFAULT_PAGE_SIZE ? undefined : String(value),
@@ -77,7 +91,7 @@ export function useTableView<T>(
   const pages = computed(() => pageCount(total.value, pageSize.value));
 
   const page = computed<number>({
-    get: () => Math.min(parsePage(route.query.page), pages.value),
+    get: () => Math.min(parsePage(readQuery('page')), pages.value),
     set: (value) =>
       setQuery({
         page: value <= 1 ? undefined : String(value),

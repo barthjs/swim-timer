@@ -321,6 +321,14 @@ func TestConfigSaveHandler(t *testing.T) {
 				field: "server.corsAllowCredentials",
 				tag:   "explicit_origins",
 			},
+			{
+				name: "invalid allowed webhook network",
+				change: func(r *api.ConfigSaveRequest, f *gofakeit.Faker) {
+					r.Webhook.AllowedNetworks = "10.0.0.0/8," + f.Word()
+				},
+				field: "webhook.allowedNetworks",
+				tag:   "networks",
+			},
 		}
 
 		for _, tt := range tests {

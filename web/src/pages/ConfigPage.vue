@@ -14,6 +14,7 @@ import ConfigServerSection from '@/components/config/ConfigServerSection.vue';
 import ConfigStorageSection from '@/components/config/ConfigStorageSection.vue';
 import ConfigThemeSection from '@/components/config/ConfigThemeSection.vue';
 import ConfigTimingSection from '@/components/config/ConfigTimingSection.vue';
+import ConfigWebhookSection from '@/components/config/ConfigWebhookSection.vue';
 import { useApiError } from '@/composables/useApiError';
 import { provideConfigForm } from '@/composables/useConfigForm';
 import { useConfirm } from '@/composables/ui/useConfirm';
@@ -138,6 +139,12 @@ const tabs = computed(() => [
     value: 'server',
   },
   {
+    label: t('pages.config.sections.webhook'),
+    icon: 'i-lucide-webhook',
+    slot: 'webhook' as const,
+    value: 'webhook',
+  },
+  {
     label: t('pages.config.sections.storage'),
     icon: 'i-lucide-hard-drive',
     slot: 'storage' as const,
@@ -203,7 +210,8 @@ function showFirstError(event: FormErrorEvent): void {
 </script>
 
 <template>
-  <div class="flex flex-col gap-4">
+  <!-- From lg up the webhook tab fills the viewport, so its table reaches down to the footer. -->
+  <div class="flex flex-col gap-4 lg:min-h-0 lg:flex-1">
     <!--
       On small screens the badge of unsaved changes moves into a row of its own below the title
       and the reset button only shows its icon, so the title and the buttons keep one row.
@@ -249,7 +257,7 @@ function showFirstError(event: FormErrorEvent): void {
       </template>
     </div>
 
-    <ConfigFileInfo v-if="!loading && !loadFailed" />
+    <ConfigFileInfo v-if="!loading && !loadFailed" class="shrink-0" />
 
     <div v-if="loading" class="flex flex-col gap-4">
       <USkeleton class="h-10 w-full" />
@@ -271,7 +279,7 @@ function showFirstError(event: FormErrorEvent): void {
       ref="form"
       :state="config.state"
       :validate="config.validate"
-      class="space-y-4"
+      class="space-y-4 lg:flex lg:min-h-0 lg:flex-1 lg:flex-col"
       @submit="void save()"
       @error="showFirstError"
     >
@@ -280,7 +288,12 @@ function showFirstError(event: FormErrorEvent): void {
         <USelect v-model="activeTab" :items="tabs" class="w-full" />
       </div>
 
-      <UTabs v-model="activeTab" :items="tabs" class="w-full" :ui="{ list: 'hidden sm:flex' }">
+      <UTabs
+        v-model="activeTab"
+        :items="tabs"
+        class="w-full lg:min-h-0 lg:flex-1"
+        :ui="{ list: 'hidden sm:flex', content: 'lg:flex lg:min-h-0 lg:flex-1 lg:flex-col' }"
+      >
         <template #app>
           <ConfigAppSection />
         </template>
@@ -289,6 +302,9 @@ function showFirstError(event: FormErrorEvent): void {
         </template>
         <template #server>
           <ConfigServerSection />
+        </template>
+        <template #webhook>
+          <ConfigWebhookSection />
         </template>
         <template #storage>
           <ConfigStorageSection />

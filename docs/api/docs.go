@@ -1286,6 +1286,459 @@ const docTemplate = `{
                 }
             }
         },
+        "/webhooks": {
+            "get": {
+                "security": [
+                    {
+                        "SessionAuth": []
+                    }
+                ],
+                "description": "Returns all webhooks with the state of their deliveries since the start, sorted by name (Admin only).",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "webhooks"
+                ],
+                "summary": "List webhooks",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/WebhookResponse"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "SessionAuth": []
+                    }
+                ],
+                "description": "Creates a webhook under a generated id and starts its deliveries. An empty secret is generated. The URL may use http or https and must not point to a private or local network outside the allowed networks of the configuration (Admin only).",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "webhooks"
+                ],
+                "summary": "Create webhook",
+                "parameters": [
+                    {
+                        "description": "Webhook",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/WebhookCreateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/WebhookResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/ValidationErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/webhooks/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "SessionAuth": []
+                    }
+                ],
+                "description": "Returns the webhook with the given id and the state of its deliveries since the start (Admin only).",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "webhooks"
+                ],
+                "summary": "Get webhook",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Webhook id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/WebhookResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "SessionAuth": []
+                    }
+                ],
+                "description": "Replaces the settings of the webhook with the given id, which take effect with its next delivery. An empty secret is generated anew. The URL is checked as on create (Admin only).",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "webhooks"
+                ],
+                "summary": "Update webhook",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Webhook id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Webhook",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/WebhookUpdateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/WebhookResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/ValidationErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "SessionAuth": []
+                    }
+                ],
+                "description": "Deletes the webhook with the given id and ends its deliveries (Admin only).",
+                "tags": [
+                    "webhooks"
+                ],
+                "summary": "Delete webhook",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Webhook id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/webhooks/{id}/deliveries": {
+            "get": {
+                "security": [
+                    {
+                        "SessionAuth": []
+                    }
+                ],
+                "description": "Returns the last deliveries to the webhook with the given id since the start, the most recent first (Admin only).",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "webhooks"
+                ],
+                "summary": "List webhook deliveries",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Webhook id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/WebhookDeliveryResponse"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/webhooks/{id}/preview": {
+            "get": {
+                "security": [
+                    {
+                        "SessionAuth": []
+                    }
+                ],
+                "description": "Returns the request a message of the given event with its current data would make to the webhook with the given id, with the signature of its secret. Nothing is sent (Admin only).",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "webhooks"
+                ],
+                "summary": "Get webhook preview",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Webhook id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "enum": [
+                            "heat.updated",
+                            "meet.reloaded"
+                        ],
+                        "type": "string",
+                        "description": "Event",
+                        "name": "event",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/WebhookPreviewResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/webhooks/{id}/test": {
+            "post": {
+                "security": [
+                    {
+                        "SessionAuth": []
+                    }
+                ],
+                "description": "Sends a message of the type webhook.test to the webhook with the given id once, even if it is disabled, and returns the delivery. The delivery counts towards the state of the webhook (Admin only).",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "webhooks"
+                ],
+                "summary": "Test webhook",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Webhook id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/WebhookDeliveryResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/ws": {
             "get": {
                 "description": "Upgrades the request to a WebSocket that receives JSON messages with a type and optional data. A client receives the live heat on connect and every change of it afterward.",
@@ -1434,6 +1887,9 @@ const docTemplate = `{
                 },
                 "timing": {
                     "$ref": "#/definitions/TimingSettings"
+                },
+                "webhook": {
+                    "$ref": "#/definitions/WebhookSettings"
                 }
             }
         },
@@ -1465,6 +1921,9 @@ const docTemplate = `{
                 },
                 "timing": {
                     "$ref": "#/definitions/TimingSettings"
+                },
+                "webhook": {
+                    "$ref": "#/definitions/WebhookSettings"
                 }
             }
         },
@@ -1488,6 +1947,9 @@ const docTemplate = `{
                 },
                 "timing": {
                     "$ref": "#/definitions/TimingSettings"
+                },
+                "webhook": {
+                    "$ref": "#/definitions/WebhookSettings"
                 }
             }
         },
@@ -2353,6 +2815,246 @@ const docTemplate = `{
                 },
                 "requestId": {
                     "type": "string"
+                }
+            }
+        },
+        "WebhookCreateRequest": {
+            "type": "object",
+            "required": [
+                "events",
+                "name",
+                "url"
+            ],
+            "properties": {
+                "enabled": {
+                    "type": "boolean"
+                },
+                "events": {
+                    "type": "array",
+                    "maxItems": 2,
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "items": {
+                        "type": "string",
+                        "enum": [
+                            "heat.updated",
+                            "meet.reloaded"
+                        ]
+                    }
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 100
+                },
+                "secret": {
+                    "type": "string",
+                    "maxLength": 255
+                },
+                "skipTlsVerify": {
+                    "description": "SkipTLSVerify accepts any certificate of the endpoint, such as a self-signed one.",
+                    "type": "boolean"
+                },
+                "url": {
+                    "type": "string",
+                    "maxLength": 2048
+                }
+            }
+        },
+        "WebhookDeliveryResponse": {
+            "type": "object",
+            "properties": {
+                "attemptedAt": {
+                    "type": "string"
+                },
+                "durationMs": {
+                    "type": "integer"
+                },
+                "error": {
+                    "type": "string"
+                },
+                "errorCode": {
+                    "description": "ErrorCode names why a delivery got no response, and Error gives the technical details for the log.\nBoth are empty if the target answered.",
+                    "type": "string",
+                    "enum": [
+                        "blocked_address",
+                        "invalid_url",
+                        "invalid_secret",
+                        "untrusted_certificate",
+                        "timeout",
+                        "unreachable"
+                    ]
+                },
+                "event": {
+                    "type": "string"
+                },
+                "messageId": {
+                    "type": "string"
+                },
+                "outcome": {
+                    "type": "string",
+                    "enum": [
+                        "delivered",
+                        "retry",
+                        "deferred",
+                        "gone",
+                        "rejected"
+                    ]
+                },
+                "responseBody": {
+                    "description": "ResponseBody is the start of the response body.",
+                    "type": "string"
+                },
+                "statusCode": {
+                    "description": "StatusCode is the status of the response, 0 if none was received.",
+                    "type": "integer"
+                }
+            }
+        },
+        "WebhookHeaderResponse": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "value": {
+                    "type": "string"
+                }
+            }
+        },
+        "WebhookPreviewResponse": {
+            "type": "object",
+            "properties": {
+                "body": {
+                    "type": "string"
+                },
+                "headers": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/WebhookHeaderResponse"
+                    }
+                },
+                "method": {
+                    "type": "string"
+                },
+                "url": {
+                    "type": "string"
+                }
+            }
+        },
+        "WebhookResponse": {
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "type": "boolean"
+                },
+                "events": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "enum": [
+                            "heat.updated",
+                            "meet.reloaded"
+                        ]
+                    }
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "secret": {
+                    "type": "string"
+                },
+                "skipTlsVerify": {
+                    "description": "SkipTLSVerify accepts any certificate of the endpoint, such as a self-signed one.",
+                    "type": "boolean"
+                },
+                "status": {
+                    "$ref": "#/definitions/WebhookStatusResponse"
+                },
+                "url": {
+                    "type": "string"
+                }
+            }
+        },
+        "WebhookSettings": {
+            "type": "object",
+            "properties": {
+                "allowedNetworks": {
+                    "type": "string",
+                    "maxLength": 1024
+                }
+            }
+        },
+        "WebhookStatusResponse": {
+            "type": "object",
+            "properties": {
+                "consecutiveFailures": {
+                    "type": "integer"
+                },
+                "lastDeliveredAt": {
+                    "type": "string"
+                },
+                "lastErrorCode": {
+                    "type": "string",
+                    "enum": [
+                        "blocked_address",
+                        "invalid_url",
+                        "invalid_secret",
+                        "untrusted_certificate",
+                        "timeout",
+                        "unreachable"
+                    ]
+                },
+                "lastFailedAt": {
+                    "type": "string"
+                },
+                "lastStatusCode": {
+                    "description": "LastStatusCode and LastErrorCode describe the last failed delivery by the status of its response,\nor by the reason it got none. Both are left out before the first failure.",
+                    "type": "integer"
+                }
+            }
+        },
+        "WebhookUpdateRequest": {
+            "type": "object",
+            "required": [
+                "events",
+                "name",
+                "url"
+            ],
+            "properties": {
+                "enabled": {
+                    "type": "boolean"
+                },
+                "events": {
+                    "type": "array",
+                    "maxItems": 2,
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "items": {
+                        "type": "string",
+                        "enum": [
+                            "heat.updated",
+                            "meet.reloaded"
+                        ]
+                    }
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 100
+                },
+                "secret": {
+                    "type": "string",
+                    "maxLength": 255
+                },
+                "skipTlsVerify": {
+                    "description": "SkipTLSVerify accepts any certificate of the endpoint, such as a self-signed one.",
+                    "type": "boolean"
+                },
+                "url": {
+                    "type": "string",
+                    "maxLength": 2048
                 }
             }
         }

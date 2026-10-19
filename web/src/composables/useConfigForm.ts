@@ -17,6 +17,7 @@ export const CONFIG_LIMITS = {
   storagePath: 1024,
   timingReplayPath: 1024,
   timingSerialPort: 255,
+  webhookAllowedNetworks: 1024,
 } as const;
 
 /** emptyConfig is the state shown until the configuration is loaded. */
@@ -75,6 +76,9 @@ function emptyConfig(): ConfigSettings {
       simulateEvent: 0,
       replayPath: '',
       recording: true,
+    },
+    webhook: {
+      allowedNetworks: '',
     },
   };
 }
@@ -201,6 +205,9 @@ function createConfigForm() {
       },
       'timing.replayPath': {
         max: CONFIG_LIMITS.timingReplayPath,
+      },
+      'webhook.allowedNetworks': {
+        max: CONFIG_LIMITS.webhookAllowedNetworks,
       },
     };
   });

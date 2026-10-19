@@ -84,6 +84,8 @@ type TimingService struct {
 	options     TimingOptions
 	// recorder records the received data, nil without recording.
 	recorder *recording.Writer
+	// onPublish receives every published live heat, nil if nothing has to follow a change.
+	onPublish func(heat *domain.LiveHeat)
 
 	// Only the frame handling goroutine accesses the fields up to started. current is the heat on display,
 	// and recent holds the last heats with their times, the current one last.
@@ -106,6 +108,7 @@ type TimingService struct {
 }
 
 // NewTimingService creates a TimingService. With a recorder, it also records the received data. It may be nil.
+// onPublish receives every published live heat after the overlays and must not change it. It may be nil.
 func NewTimingService(
 	logger zerolog.Logger,
 	options TimingOptions,
@@ -113,6 +116,7 @@ func NewTimingService(
 	device TimingDevice,
 	recorder *recording.Writer,
 	store *store.MeetStore,
+	onPublish func(heat *domain.LiveHeat),
 ) *TimingService {
 	return &TimingService{
 		logger:      logger,
@@ -121,6 +125,7 @@ func NewTimingService(
 		device:      device,
 		options:     options,
 		recorder:    recorder,
+		onPublish:   onPublish,
 		clock:       newStartClock(logger, fixedZone(time.Now())),
 		heat: &domain.LiveHeat{
 			// Before the first heat there are no lanes to map, so the usual numbering is assumed
@@ -482,8 +487,8 @@ func (s *TimingService) applyStart(state *heatState, lapCount int, start startCo
 	}
 }
 
-// publish stores a new live heat and broadcasts it. The message is encoded under the lock, so the stored
-// and the broadcast state match, but sent after releasing it, so a slow broadcast never blocks readers.
+// publish stores a new live heat, broadcasts it, and hands it to onPublish. The message is encoded under the lock,
+// so the stored and the broadcast state match, but sent after releasing it, so a slow broadcast never blocks readers.
 func (s *TimingService) publish(state *domain.LiveHeat) {
 	s.mu.Lock()
 	message, err := json.Marshal(domain.NewMessage(domain.MessageUpdate, state))
@@ -496,6 +501,9 @@ func (s *TimingService) publish(state *domain.LiveHeat) {
 	s.mu.Unlock()
 
 	s.broadcaster.Broadcast(message)
+	if s.onPublish != nil {
+		s.onPublish(state)
+	}
 }
 
 // getPoolLength returns the pool length of an event in meters: the configured one, or else the distance

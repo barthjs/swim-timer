@@ -19,6 +19,7 @@ type Stores struct {
 	Meet      *store.MeetStore
 	Preset    *store.PresetStore
 	Recording *store.RecordingStore
+	Webhook   *store.WebhookStore
 }
 
 // NewStores builds the stores on storage and loads the meet data. Meet data that fails to load
@@ -32,6 +33,7 @@ func NewStores(ctx context.Context, logger zerolog.Logger, storage media.Storage
 		Meet:      meetStore,
 		Preset:    store.NewPresetStore(storage),
 		Recording: store.NewRecordingStore(storage),
+		Webhook:   store.NewWebhookStore(storage),
 	}
 }
 

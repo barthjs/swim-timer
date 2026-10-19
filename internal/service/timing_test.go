@@ -65,7 +65,7 @@ func TestNewTimingService(t *testing.T) {
 
 		svc := NewTimingService(zerolog.Nop(), TimingOptions{
 			PoolLength: 50,
-		}, &fakeBroadcaster{}, fakeDevice{}, recorder, newTestTimingService(t, 50).store)
+		}, &fakeBroadcaster{}, fakeDevice{}, recorder, newTestTimingService(t, 50).store, nil)
 
 		assert.Same(t, recorder, svc.recorder)
 	})
@@ -137,7 +137,7 @@ func TestTimingService_GetStatus(t *testing.T) {
 			}
 			svc := NewTimingService(zerolog.Nop(), options, &fakeBroadcaster{}, fakeDevice{
 				port: tt.port,
-			}, nil, nil)
+			}, nil, nil, nil)
 
 			status := svc.GetStatus()
 
@@ -164,7 +164,7 @@ func TestTimingService_Run(t *testing.T) {
 			PoolLength: 50,
 		}, &fakeBroadcaster{}, streamDevice{
 			stream: stream,
-		}, newTestRecorder(dir), newTestTimingService(t, 50).store)
+		}, newTestRecorder(dir), newTestTimingService(t, 50).store, nil)
 
 		svc.Run(t.Context())
 
@@ -252,7 +252,7 @@ func TestTimingService_RecordMeet(t *testing.T) {
 		meetStore := newTestTimingService(t, 50).store
 		svc := NewTimingService(zerolog.Nop(), TimingOptions{
 			PoolLength: 50,
-		}, &fakeBroadcaster{}, fakeDevice{}, newTestRecorder(dir), meetStore)
+		}, &fakeBroadcaster{}, fakeDevice{}, newTestRecorder(dir), meetStore, nil)
 		svc.recorder.Start()
 
 		svc.RecordMeet()
@@ -507,7 +507,7 @@ func TestTimingService_handleFrame(t *testing.T) {
 		files["LSTSTART.TXT"] = "event;round;heat;lane;relais;idBib\n7;2;0;0;0;1;\n7;2;0;9;0;10;\n"
 		svc := NewTimingService(zerolog.Nop(), TimingOptions{
 			PoolLength: 50,
-		}, &fakeBroadcaster{}, fakeDevice{}, nil, newTestMeetStore(t, files))
+		}, &fakeBroadcaster{}, fakeDevice{}, nil, newTestMeetStore(t, files), nil)
 		svc.handleFrame(frame(t, '2', 'S', 2, 7, 1, 0, 1, 0, "10:00:00.00"))
 
 		svc.handleFrame(frame(t, '2', 'A', 2, 7, 1, 1, 10, 2, "    1:01.50"))
@@ -565,7 +565,7 @@ func TestTimingService_handleFrame(t *testing.T) {
 		meetStore, root := newTestMeetStoreWithRoot(t, files)
 		svc := NewTimingService(zerolog.Nop(), TimingOptions{
 			PoolLength: 50,
-		}, &fakeBroadcaster{}, fakeDevice{}, nil, meetStore)
+		}, &fakeBroadcaster{}, fakeDevice{}, nil, meetStore, nil)
 		svc.handleFrame(frame(t, '0', ' ', 2, 7, 1, 0, 0, 0, ""))
 		require.Empty(t, svc.GetLiveHeat().Lanes, "precondition: the start list is not loaded yet")
 		writeMeetFiles(t, root, map[string]string{
@@ -650,7 +650,7 @@ func TestTimingService_handleFrame(t *testing.T) {
 		broadcaster := &fakeBroadcaster{}
 		svc := NewTimingService(zerolog.Nop(), TimingOptions{
 			PoolLength: 50,
-		}, broadcaster, fakeDevice{}, nil, newTestTimingService(t, 50).store)
+		}, broadcaster, fakeDevice{}, nil, newTestTimingService(t, 50).store, nil)
 		before := time.Now()
 
 		svc.handleFrame(frame(t, '0', ' ', 4, 101, 1, 0, 0, 0, ""))
@@ -668,13 +668,29 @@ func TestTimingService_handleFrame(t *testing.T) {
 		assert.WithinRange(t, message.ServerTime, before.Add(-time.Second), time.Now().Add(time.Second), "the time the message was built")
 	})
 
+	t.Run("hands the published live heat to the callback", func(t *testing.T) {
+		t.Parallel()
+
+		var published []*domain.LiveHeat
+		svc := NewTimingService(zerolog.Nop(), TimingOptions{
+			PoolLength: 50,
+		}, &fakeBroadcaster{}, fakeDevice{}, nil, newTestTimingService(t, 50).store, func(heat *domain.LiveHeat) {
+			published = append(published, heat)
+		})
+
+		svc.handleFrame(frame(t, '0', ' ', 4, 101, 1, 0, 0, 0, ""))
+
+		require.Len(t, published, 1)
+		assert.Equal(t, svc.GetLiveHeat(), published[0])
+	})
+
 	t.Run("ignores reaction times and unknown frame types", func(t *testing.T) {
 		t.Parallel()
 
 		broadcaster := &fakeBroadcaster{}
 		svc := NewTimingService(zerolog.Nop(), TimingOptions{
 			PoolLength: 50,
-		}, broadcaster, fakeDevice{}, nil, newTestTimingService(t, 50).store)
+		}, broadcaster, fakeDevice{}, nil, newTestTimingService(t, 50).store, nil)
 		svc.handleFrame(frame(t, '2', 'S', 4, 101, 1, 0, 0, 0, " 9:00:00.00"))
 
 		handleFrames(svc, frame(t, '2', 'R', 4, 101, 1, 0, 4, 0, "     + 0.65"), frame(t, '5', 'B', 4, 101, 1, 0, 4, 1, "      35.12"))
@@ -737,7 +753,7 @@ func TestTimingService_handleFrame(t *testing.T) {
 				broadcaster := &fakeBroadcaster{}
 				svc := NewTimingService(zerolog.Nop(), TimingOptions{
 					PoolLength: 50,
-				}, broadcaster, fakeDevice{}, nil, newTestTimingService(t, 50).store)
+				}, broadcaster, fakeDevice{}, nil, newTestTimingService(t, 50).store, nil)
 
 				handleFrames(
 					svc,
@@ -813,7 +829,7 @@ func TestTimingService_handleFrame(t *testing.T) {
 				broadcaster := &fakeBroadcaster{}
 				svc := NewTimingService(zerolog.Nop(), TimingOptions{
 					PoolLength: 50,
-				}, broadcaster, fakeDevice{}, nil, newTestTimingService(t, 50).store)
+				}, broadcaster, fakeDevice{}, nil, newTestTimingService(t, 50).store, nil)
 				svc.handleFrame(frame(t, '2', 'S', 4, 101, 1, 0, 1, 0, " 9:00:00.00"))
 
 				handleFrames(
@@ -839,7 +855,7 @@ func TestTimingService_handleFrame(t *testing.T) {
 		broadcaster := &fakeBroadcaster{}
 		svc := NewTimingService(zerolog.Nop(), TimingOptions{
 			PoolLength: 50,
-		}, broadcaster, fakeDevice{}, nil, newTestMeetStore(t, files))
+		}, broadcaster, fakeDevice{}, nil, newTestMeetStore(t, files), nil)
 
 		handleFrames(
 			svc,
@@ -1511,7 +1527,7 @@ func TestTimingService_handleFrame(t *testing.T) {
 		broadcaster := &fakeBroadcaster{}
 		svc := NewTimingService(zerolog.Nop(), TimingOptions{
 			PoolLength: 50,
-		}, broadcaster, fakeDevice{}, nil, newTestTimingService(t, 50).store)
+		}, broadcaster, fakeDevice{}, nil, newTestTimingService(t, 50).store, nil)
 		frames := lateOfficialFrames(t)
 		handleFrames(svc, frames[:4]...)
 		published := broadcaster.count()
@@ -1815,7 +1831,7 @@ func TestTimingService_getPoolLength(t *testing.T) {
 	}
 	svc := NewTimingService(zerolog.Nop(), TimingOptions{
 		PoolLength: 0,
-	}, &fakeBroadcaster{}, fakeDevice{}, nil, newTestMeetStore(t, files))
+	}, &fakeBroadcaster{}, fakeDevice{}, nil, newTestMeetStore(t, files), nil)
 
 	tests := []struct {
 		name     string
@@ -2171,7 +2187,7 @@ func newTenLaneTimingService(t *testing.T) *TimingService {
 
 	return NewTimingService(zerolog.Nop(), TimingOptions{
 		PoolLength: 50,
-	}, &fakeBroadcaster{}, fakeDevice{}, nil, newTestMeetStore(t, tenLaneFiles))
+	}, &fakeBroadcaster{}, fakeDevice{}, nil, newTestMeetStore(t, tenLaneFiles), nil)
 }
 
 // buttonFrame builds a button frame of button 1 for a lane and lap of heat 1 of event 101 and decodes it.
@@ -2240,7 +2256,7 @@ func newTestTimingServiceFor(t *testing.T, poolLength int, competitor domain.Com
 
 	return NewTimingService(zerolog.Nop(), TimingOptions{
 		PoolLength: poolLength,
-	}, &fakeBroadcaster{}, fakeDevice{}, nil, meetStore)
+	}, &fakeBroadcaster{}, fakeDevice{}, nil, meetStore, nil)
 }
 
 // newTestCompetitor returns a competitor with fake personal data.

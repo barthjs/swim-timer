@@ -29,6 +29,9 @@ func TestNewStores(t *testing.T) {
 		require.NoError(t, err)
 		assert.Empty(t, presets, "a fresh storage holds no presets")
 		assert.Empty(t, stores.Meet.Snapshot().Events, "missing meet files leave the meet data empty")
+		webhooks, err := stores.Webhook.List(t.Context())
+		require.NoError(t, err)
+		assert.Empty(t, webhooks, "a fresh storage holds no webhooks")
 	})
 }
 

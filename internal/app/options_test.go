@@ -12,6 +12,7 @@ import (
 	"github.com/barthjs/swim-timer/internal/media"
 	"github.com/barthjs/swim-timer/internal/recording"
 	"github.com/barthjs/swim-timer/internal/service"
+	"github.com/barthjs/swim-timer/internal/webhook"
 )
 
 func TestStorageOptions(t *testing.T) {
@@ -235,4 +236,25 @@ func TestAPIOptions(t *testing.T) {
 		}, got)
 	})
 
+}
+
+func TestWebhookOptions(t *testing.T) {
+	t.Parallel()
+
+	t.Run("maps the settings the webhook client reads", func(t *testing.T) {
+		t.Parallel()
+
+		version := apitest.Faker(t).AppVersion()
+		cfg, err := config.Defaults()
+		require.NoError(t, err)
+		cfg.Webhook.RawAllowedNetworks = "192.168.1.0/24"
+		require.NoError(t, config.Validate(&cfg))
+
+		got := webhookOptions(cfg, version)
+
+		assert.Equal(t, webhook.Options{
+			UserAgent:       config.AppName + "/" + version,
+			AllowedNetworks: cfg.Webhook.AllowedNetworks,
+		}, got)
+	})
 }

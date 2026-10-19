@@ -44,6 +44,7 @@ type ConfigSettings struct {
 	Storage StorageSettings `json:"storage"`
 	Theme   ThemeSettings   `json:"theme"`
 	Timing  TimingSettings  `json:"timing"`
+	Webhook WebhookSettings `json:"webhook"`
 }
 
 // ConfigSource is where the value of a setting comes from. A flag or an environment variable
@@ -182,6 +183,11 @@ type TimingSettings struct {
 	Recording     bool   `json:"recording"`
 }
 
+// WebhookSettings is the webhook section of the configuration.
+type WebhookSettings struct {
+	AllowedNetworks string `json:"allowedNetworks" validate:"max=1024,networks"`
+}
+
 // ConfigSaveRequest is the configuration to save. Its sections are the same as in ConfigResponse.
 type ConfigSaveRequest struct {
 	App     AppSettings     `json:"app"`
@@ -190,6 +196,7 @@ type ConfigSaveRequest struct {
 	Storage StorageSettings `json:"storage"`
 	Theme   ThemeSettings   `json:"theme"`
 	Timing  TimingSettings  `json:"timing"`
+	Webhook WebhookSettings `json:"webhook"`
 	// ClearSecrets lists the JSON paths of secrets to remove. A secret sent empty otherwise keeps its value.
 	ClearSecrets []string `json:"clearSecrets" validate:"max=50,dive,max=255"`
 }
@@ -306,6 +313,9 @@ func toConfigSettings(cfg config.Config) ConfigSettings {
 			ReplayPath:    cfg.Timing.ReplayPath,
 			Recording:     cfg.Timing.Recording,
 		},
+		Webhook: WebhookSettings{
+			AllowedNetworks: cfg.Webhook.RawAllowedNetworks,
+		},
 	}
 }
 
@@ -367,6 +377,9 @@ func (r ConfigSaveRequest) toConfig() config.Config {
 			SimulateEvent: r.Timing.SimulateEvent,
 			ReplayPath:    r.Timing.ReplayPath,
 			Recording:     r.Timing.Recording,
+		},
+		Webhook: config.WebhookConfig{
+			RawAllowedNetworks: r.Webhook.AllowedNetworks,
 		},
 	}
 }

@@ -2,6 +2,7 @@ package api_test
 
 import (
 	"bytes"
+	"encoding/json/v2"
 	"io"
 	"net/http"
 	"strconv"
@@ -809,6 +810,33 @@ func TestMeetReloadHandler(t *testing.T) {
 			AssertJSONCount("startEntries", 2*meetLaneCount).
 			AssertJSONPath("events.0.number", meet.event.Number).
 			AssertJSONPath("events.0.name", meet.displayName())
+	})
+
+	t.Run("sends the new meet to the webhooks", func(t *testing.T) {
+		t.Parallel()
+		h := newHarness(t, withWebhookReceivers())
+		admin := h.asAdmin()
+		receiver := newWebhookReceiver(t)
+		request := newWebhookCreateRequest(h.Faker, receiver.URL())
+		request.Events = []string{
+			"meet.reloaded",
+		}
+		admin.POST("/api/webhooks", request).AssertCreated()
+		meet := newMeetFixture(h.Faker, 2)
+		admin.POST("/api/meet/files", apitest.Multipart{
+			Files: meet.files(t),
+		}).AssertOK()
+
+		response := admin.POST("/api/meet/reload", nil)
+
+		response.AssertNoContent()
+		message := receiver.next(t)
+		assert.Equal(t, "meet.reloaded", message.Type)
+		var sent api.MeetResponse
+		require.NoError(t, json.Unmarshal(message.Data, &sent))
+		require.Len(t, sent.Events, 1)
+		assert.Equal(t, meet.event.Number, sent.Events[0].Number)
+		assert.Len(t, sent.StartEntries, 2*meetLaneCount, "the meet as the overview shows it")
 	})
 
 	t.Run("rejects an invalid meet file", func(t *testing.T) {

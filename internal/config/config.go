@@ -36,6 +36,7 @@ type Config struct {
 	Storage StorageConfig `mapstructure:"storage" json:"storage"`
 	Theme   ThemeConfig   `mapstructure:"theme" json:"theme"`
 	Timing  TimingConfig  `mapstructure:"timing" json:"timing"`
+	Webhook WebhookConfig `mapstructure:"webhook" json:"webhook"`
 }
 
 // Load resolves the configuration from command-line flags, environment variables, a config file,
@@ -78,6 +79,7 @@ func Validate(cfg *Config) error {
 	p.Add(validateStorage(&cfg.Storage))
 	p.Add(validateTheme(&cfg.Theme))
 	p.Add(validateTiming(&cfg.Timing))
+	p.Add(validateWebhook(&cfg.Webhook))
 	p.Add(structconf.CheckValues(cfg))
 
 	return p.Err()
