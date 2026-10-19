@@ -62,6 +62,11 @@ export default defineConfig({
         target: 'http://127.0.0.1:8080',
         changeOrigin: true,
       },
+      // The backend serves the documentation from the last build in docs/dist
+      '/docs': {
+        target: 'http://127.0.0.1:8080',
+        changeOrigin: true,
+      },
     },
   },
 });

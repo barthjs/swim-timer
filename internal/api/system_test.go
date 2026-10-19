@@ -93,12 +93,21 @@ func TestAPI_Routes(t *testing.T) {
 			cfg.App.Env = config.EnvProduction
 		}))
 
-		h.Client.GET("/api/docs").AssertStatus(http.StatusMovedPermanently).AssertHeader("Location", "/api/docs/")
-		h.Client.GET("/api/docs/").AssertOK()
+		h.Client.GET("/docs").AssertStatus(http.StatusMovedPermanently).AssertHeader("Location", "/docs/")
+		h.Client.GET("/docs/").AssertOK()
+		h.Client.GET("/docs/api/").AssertOK()
 
-		spec := h.Client.GET("/api/docs/doc.json").AssertOK()
+		spec := h.Client.GET("/docs/api.json").AssertOK()
 		assert.Contains(t, string(spec.Body), `"swagger"`)
 		assert.NotContains(t, string(spec.Body), "internal_", "the schemas carry their type names without the package path")
+	})
+
+	t.Run("redirects a docs path without a page to the start page", func(t *testing.T) {
+		t.Parallel()
+		h := newHarness(t)
+
+		h.Client.GET("/docs/"+h.Faker.LetterN(12)+"/").AssertStatus(http.StatusFound).AssertHeader("Location", "/docs/")
+		h.Client.GET("/docs/_astro/").AssertStatus(http.StatusFound).AssertHeader("Location", "/docs/")
 	})
 
 	t.Run("returns not found for an unknown route", func(t *testing.T) {

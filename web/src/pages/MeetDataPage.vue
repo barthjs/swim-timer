@@ -9,6 +9,7 @@ import { meetFileRepository } from '@/api/repositories/meetFile';
 import { type MeetFile, type MeetFileResponse, type MeetFileUploadResponse } from '@/api/types';
 import { ApiError } from '@/api/errors';
 import HelpHint from '@/components/form/HelpHint.vue';
+import DocsLink from '@/components/system/DocsLink.vue';
 import { useApiError } from '@/composables/useApiError';
 import { useMutation } from '@/composables/form/useMutation';
 
@@ -153,7 +154,10 @@ function onFilesRejected(contents: File[]): void {
 <template>
   <div class="flex flex-col gap-4">
     <div class="flex flex-wrap items-center justify-between gap-3">
-      <h1 class="text-highlighted text-xl font-semibold">{{ t('pages.meetData.title') }}</h1>
+      <div class="flex items-center gap-1">
+        <h1 class="text-highlighted text-xl font-semibold">{{ t('pages.meetData.title') }}</h1>
+        <DocsLink page="meetData" />
+      </div>
 
       <div class="flex items-center gap-1.5">
         <UButton

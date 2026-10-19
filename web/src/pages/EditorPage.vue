@@ -11,6 +11,7 @@ import PresetCanvas from '@/components/preset-editor/PresetCanvas.vue';
 import PresetHelpModal from '@/components/preset-editor/PresetHelpModal.vue';
 import PresetPicker from '@/components/preset-editor/PresetPicker.vue';
 import PresetSettings from '@/components/preset-editor/PresetSettings.vue';
+import DocsLink from '@/components/system/DocsLink.vue';
 import { useEditorShortcuts } from '@/composables/editor/useEditorShortcuts';
 import { useEditorWorkspace } from '@/composables/editor/useEditorWorkspace';
 import { useFormValidation } from '@/composables/form/useFormValidation';
@@ -146,7 +147,10 @@ onBeforeRouteLeave(() => presetForm.confirmDiscard());
     <input ref="imageInput" type="file" accept="image/*" class="hidden" @change="onImageChange" />
 
     <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
-      <PresetPicker />
+      <div class="flex items-center gap-1">
+        <PresetPicker />
+        <DocsLink page="editor" />
+      </div>
       <div class="ml-auto flex items-center gap-2">
         <UButton
           v-if="presetForm.isDirty.value"

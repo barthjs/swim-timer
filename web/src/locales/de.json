@@ -1,5 +1,6 @@
 {
   "admin": {
+    "docs": "Dokumentation",
     "login": "Anmelden",
     "logout": "Abmelden",
     "nav": {
@@ -9,7 +10,8 @@
       "meet": "Veranstaltung",
       "meetData": "Veranstaltungsdaten"
     },
-    "openScoreboard": "Anzeigetafel öffnen"
+    "openScoreboard": "Anzeigetafel öffnen",
+    "pageDocs": "Dokumentation zu dieser Seite öffnen"
   },
   "common": {
     "back": "Zurück",
@@ -447,7 +449,7 @@
       "help": {
         "arOverlays": "Ein AR-Overlay pro Preset aus dem Editor. Es blendet Platz, Name und Zeit auf den Bahnen im Kamerabild ein und passt zu einer Browserquelle mit dem Seitenverhältnis seines Presets.",
         "lanes": "Ein Overlay pro Bahn des aktuellen Laufs mit Name und Verein. Die Liste ändert sich mit jedem geladenen Lauf.",
-        "overlays": "Füge die URL als Browserquelle in der Streaming-Software ein, zum Beispiel in OBS oder vMix. Die Overlays sind für 1920 x 1080 mit transparentem Hintergrund ausgelegt und aktualisieren sich live."
+        "overlays": "Füge die URL als Browserquelle in der Streaming-Software ein, zum Beispiel in OBS oder vMix. Die Overlays haben einen transparenten Hintergrund und aktualisieren sich live."
       },
       "lanes": "Bahnen",
       "loadError": "Die Übersicht konnte nicht geladen werden.",

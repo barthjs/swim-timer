@@ -40,7 +40,7 @@ jobs:
           node-version: 24
           cache: npm
           cache-dependency-path: |
-            docs/api/package-lock.json
+            docs/package-lock.json
             web/package-lock.json
 
       - name: Set up QEMU
@@ -72,3 +72,11 @@ jobs:
           DOWNLOADS=$(scripts/release-notes-table.sh "$GITHUB_REF_NAME" "${{ github.repository }}" dist/artifacts.json)
           CHANGELOG=$(gh release view "$GITHUB_REF_NAME" --json body -q .body)
           printf '%s\n\n%s\n' "$CHANGELOG" "$DOWNLOADS" | gh release edit "$GITHUB_REF_NAME" --notes-file - --draft=false
+
+  docs:
+    needs: release
+    uses: ./.github/workflows/docs.yaml
+    permissions:
+      contents: read
+      pages: write
+      id-token: write

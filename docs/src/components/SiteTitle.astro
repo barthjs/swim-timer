@@ -1,0 +1,59 @@
+---
+import Default from '@astrojs/starlight/components/SiteTitle.astro';
+
+// The release sets the version of the build, which the title shows on every page
+const version = process.env.DOCS_VERSION ?? 'dev';
+---
+
+<div class="site-title-version">
+  <Default />
+  <span
+    class="docs-version"
+    data-docs-version={version}
+    data-label-development={Astro.locals.t('versionSelect.development')}
+    data-label-latest={Astro.locals.t('versionSelect.latest')}
+  >
+    <span class="docs-version-name">{version}</span>
+    <select
+      class="docs-version-select"
+      aria-label={Astro.locals.t('versionSelect.label')}
+      hidden
+    ></select>
+  </span>
+</div>
+
+<script>
+  import { mountVersionSelect } from '../lib/versionSelect.ts';
+
+  // The dev server may leave out the trailing slash of the base
+  const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
+  void mountVersionSelect(new URL(base, window.location.href));
+</script>
+
+<style>
+  .site-title-version {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-width: 0;
+  }
+
+  .docs-version {
+    flex-shrink: 0;
+    font-size: var(--sl-text-sm);
+    color: var(--sl-color-gray-2);
+  }
+
+  .docs-version-select {
+    font: inherit;
+    color: inherit;
+    background-color: var(--sl-color-bg-nav);
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: 0.25rem;
+    padding: 0.125rem 0.25rem;
+  }
+
+  .docs-version:has(.docs-version-select:not([hidden])) .docs-version-name {
+    display: none;
+  }
+</style>

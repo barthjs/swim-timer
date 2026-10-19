@@ -15,6 +15,7 @@ import ConfigStorageSection from '@/components/config/ConfigStorageSection.vue';
 import ConfigThemeSection from '@/components/config/ConfigThemeSection.vue';
 import ConfigTimingSection from '@/components/config/ConfigTimingSection.vue';
 import ConfigWebhookSection from '@/components/config/ConfigWebhookSection.vue';
+import DocsLink from '@/components/system/DocsLink.vue';
 import { useApiError } from '@/composables/useApiError';
 import { provideConfigForm } from '@/composables/useConfigForm';
 import { useConfirm } from '@/composables/ui/useConfirm';
@@ -125,36 +126,42 @@ const tabs = computed(() => [
     icon: 'i-lucide-info',
     slot: 'app' as const,
     value: 'app',
+    docsPage: 'configApp' as const,
   },
   {
     label: t('pages.config.sections.timing'),
     icon: 'i-lucide-timer',
     slot: 'timing' as const,
     value: 'timing',
+    docsPage: 'configTiming' as const,
   },
   {
     label: t('pages.config.sections.server'),
     icon: 'i-lucide-network',
     slot: 'server' as const,
     value: 'server',
+    docsPage: 'configServer' as const,
   },
   {
     label: t('pages.config.sections.webhook'),
     icon: 'i-lucide-webhook',
     slot: 'webhook' as const,
     value: 'webhook',
+    docsPage: 'configWebhook' as const,
   },
   {
     label: t('pages.config.sections.storage'),
     icon: 'i-lucide-hard-drive',
     slot: 'storage' as const,
     value: 'storage',
+    docsPage: 'configStorage' as const,
   },
   {
     label: t('pages.config.sections.theme'),
     icon: 'i-lucide-palette',
     slot: 'theme' as const,
     value: 'theme',
+    docsPage: 'configTheme' as const,
   },
 ]);
 
@@ -178,6 +185,9 @@ const activeSections = computed(() =>
 );
 const activeLabel = computed(
   () => tabs.value.find((tab) => tab.value === activeTab.value)?.label ?? '',
+);
+const docsPage = computed(
+  () => tabs.value.find((tab) => tab.value === activeTab.value)?.docsPage ?? 'configApp',
 );
 
 watch(activeTab, (tab) => {
@@ -217,7 +227,10 @@ function showFirstError(event: FormErrorEvent): void {
       and the reset button only shows its icon, so the title and the buttons keep one row.
     -->
     <div class="flex flex-wrap items-center gap-2">
-      <h1 class="text-highlighted mr-auto text-xl font-semibold">{{ t('pages.config.title') }}</h1>
+      <div class="mr-auto flex items-center gap-1">
+        <h1 class="text-highlighted text-xl font-semibold">{{ t('pages.config.title') }}</h1>
+        <DocsLink :page="docsPage" />
+      </div>
 
       <template v-if="!loading && !loadFailed">
         <div v-if="config.isDirty.value" class="order-last basis-full sm:order-none sm:basis-auto">

@@ -14,11 +14,11 @@
     "lint": "run-s \"lint:*\"",
     "lint:oxlint": "oxlint . --fix",
     "lint:eslint": "eslint . --fix --cache",
-    "format": "prettier --write src/",
+    "format": "prettier --write .",
     "test:lint": "run-s \"test:lint:*\"",
     "test:lint:oxlint": "oxlint .",
     "test:lint:eslint": "eslint .",
-    "test:format": "prettier --check src/",
+    "test:format": "prettier --check .",
     "test:unit": "vitest run",
     "test": "run-s test:lint test:format test:unit"
   },

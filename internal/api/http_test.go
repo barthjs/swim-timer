@@ -123,14 +123,18 @@ func TestSecurityHeaders(t *testing.T) {
 		assertSecurityHeaders(t, response)
 	})
 
-	t.Run("serves the api docs without inline scripts", func(t *testing.T) {
+	t.Run("serves the docs without inline scripts and with webassembly for the search", func(t *testing.T) {
 		t.Parallel()
 		h := newHarness(t)
 
-		response := h.Client.GET("/api/docs/").AssertOK()
+		for _, path := range []string{"/docs/", "/docs/api/"} {
+			response := h.Client.GET(path).AssertOK().AssertHeader("X-Frame-Options", "DENY")
 
-		assertSecurityHeaders(t, response)
-		assert.NotContains(t, string(response.Body), "<script>", "the policy blocks inline scripts")
+			policy := response.Header.Get("Content-Security-Policy")
+			assert.Contains(t, policy, "script-src 'self' 'wasm-unsafe-eval';", path)
+			assert.Contains(t, policy, "frame-ancestors 'none'", path)
+			assert.NotRegexp(t, `<script[^>]*>[^<]`, string(response.Body), "the policy blocks inline scripts on %s", path)
+		}
 	})
 }
 

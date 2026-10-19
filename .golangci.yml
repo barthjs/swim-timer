@@ -35,8 +35,7 @@ linters:
   exclusions:
     generated: lax
     paths:
-      - docs/api/docs.go
-      - docs/api/node_modules
+      - docs/node_modules
       - web/node_modules
 
 formatters:
@@ -52,6 +51,5 @@ formatters:
   exclusions:
     generated: lax
     paths:
-      - docs/api/docs.go
-      - docs/api/node_modules
+      - docs/node_modules
       - web/node_modules

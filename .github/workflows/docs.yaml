@@ -1,0 +1,96 @@
+name: Docs
+
+# Publishes the documentation of main and of every release to GitHub Pages. A deployment replaces the whole site,
+# so every run builds main and unpacks the documentation that each release carries as an asset.
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'docs/**'
+      - 'web/src/lib/docs.ts'
+      - '.github/workflows/docs.yaml'
+
+  workflow_call:
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Deployments wait for each other, so a release never loses its version to a deployment that started earlier
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pages: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          ref: main
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: docs/package-lock.json
+
+      - name: Setup Pages
+        id: pages
+        uses: actions/configure-pages@v6
+
+      - name: Install NPM dependencies
+        run: npm ci --prefix docs
+
+      - name: Build main
+        env:
+          DOCS_VERSION: main
+        run: |
+          npm run build-only --prefix docs
+          mkdir -p site/main
+          cp -r docs/dist/. site/main/
+
+      - name: Unpack releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for tag in $(gh release list --exclude-drafts --limit 1000 --json tagName --jq '.[].tagName'); do
+            # Releases from before the documentation have no archive
+            if gh release download "$tag" --pattern swim-timer_docs.tar.gz --dir "$RUNNER_TEMP/$tag" 2>/dev/null; then
+              mkdir -p "site/$tag"
+              tar -xzf "$RUNNER_TEMP/$tag/swim-timer_docs.tar.gz" -C "site/$tag"
+            fi
+          done
+
+      - name: Write index
+        run: node docs/scripts/pages.ts site "${{ steps.pages.outputs.base_path }}"
+
+      - name: Upload site
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v5

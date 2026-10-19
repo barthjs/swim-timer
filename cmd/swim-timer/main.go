@@ -12,6 +12,7 @@ import (
 // Version is stamped into the binary at build time.
 var Version = "dev"
 
+// @title						Swim-Timer
 // @license.name				MIT
 // @BasePath					/api
 //

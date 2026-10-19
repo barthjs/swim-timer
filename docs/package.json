@@ -1,0 +1,52 @@
+{
+  "name": "docs",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "dev": "astro dev",
+    "build": "run-s \"build-only {@}\" type-check --",
+    "preview": "astro preview",
+    "build-only": "astro build && node scripts/postbuild.ts dist",
+    "type-check": "astro check",
+    "lint": "eslint . --fix --cache",
+    "format": "prettier --write .",
+    "test:lint": "eslint .",
+    "test:format": "prettier --check .",
+    "test:unit": "vitest run",
+    "test:app-links": "node scripts/check-app-links.ts dist",
+    "test": "run-s test:lint test:format test:unit test:app-links"
+  },
+  "dependencies": {
+    "@astrojs/markdown-remark": "^7.3.3",
+    "@astrojs/starlight": "^0.42.6",
+    "@scalar/api-reference": "^1.75.0",
+    "@types/node": "^26.6.5",
+    "astro": "^7.4.0",
+    "starlight-links-validator": "^0.27.0",
+    "unist-util-visit": "^5.1.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.10",
+    "@types/mdast": "^4.0.4",
+    "@vitest/eslint-plugin": "^1.6.27",
+    "eslint": "^10.13.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-astro": "^3.2.1",
+    "jiti": "^2.7.0",
+    "npm-check-updates": "^23.1.1",
+    "npm-run-all2": "^9.0.3",
+    "prettier": "^3.9.10",
+    "prettier-plugin-astro": "^1.1.1",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.71.2",
+    "vfile": "^6.0.3",
+    "vitest": "^5.0.5"
+  },
+  "allowScripts": {
+    "vue-demi": true
+  }
+}

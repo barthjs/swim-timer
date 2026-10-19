@@ -1,6 +1,6 @@
 [Desktop Entry]
 Name=Swim-Timer
-Comment=Swimming competition overlays
+Comment=Live results of an Omega timing system as overlays for streaming software
 Type=Application
 Exec=/usr/bin/swim-timer
 Terminal=false

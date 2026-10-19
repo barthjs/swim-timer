@@ -1,3 +1,0 @@
-dist/*
-!dist/README
-node_modules

@@ -1,0 +1,47 @@
+---
+title: Swim-Timer
+description: Live results of an Omega timing system from Swiss Timing as overlays for streaming software.
+tableOfContents: false
+next: false
+hero:
+  tagline: Live results of an Omega timing system from Swiss Timing as overlays for OBS, vMix, and other streaming software.
+  actions:
+    - text: Quick start
+      link: installation/quick-start/
+      icon: right-arrow
+    - text: Guides
+      link: guides/timing-device/
+      variant: minimal
+sidebar:
+  label: Introduction
+---
+
+import { CardGrid, LinkCard } from '@astrojs/starlight/components';
+
+<CardGrid>
+  <LinkCard
+    title="Installation"
+    description="Linux, Windows, Debian package, and container."
+    href="installation/"
+  />
+  <LinkCard
+    title="Guides"
+    description="Connect the timing system, load the meet data, and add the overlays."
+    href="guides/timing-device/"
+  />
+  <LinkCard
+    title="How it works"
+    description="How the data of the timing system becomes the live heat."
+    href="concepts/live-heat/"
+  />
+  <LinkCard
+    title="Reference"
+    description="Settings, command line, file formats, and API."
+    href="reference/settings/"
+  />
+  <LinkCard
+    title="Development"
+    description="Build, test, and release Swim-Timer."
+    href="development/setup/"
+  />
+</CardGrid>

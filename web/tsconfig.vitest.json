@@ -1,6 +1,12 @@
 {
   "extends": "./tsconfig.app.json",
-  "include": ["env.d.ts", "auto-imports.d.ts", "components.d.ts", "src/**/*.test.ts", "src/test/**/*"],
+  "include": [
+    "env.d.ts",
+    "auto-imports.d.ts",
+    "components.d.ts",
+    "src/**/*.test.ts",
+    "src/test/**/*"
+  ],
   "exclude": [],
   "compilerOptions": {
     "types": ["node"],

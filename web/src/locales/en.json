@@ -1,5 +1,6 @@
 {
   "admin": {
+    "docs": "Documentation",
     "login": "Log in",
     "logout": "Log out",
     "nav": {
@@ -9,7 +10,8 @@
       "meet": "Meet",
       "meetData": "Meet data"
     },
-    "openScoreboard": "Open scoreboard"
+    "openScoreboard": "Open scoreboard",
+    "pageDocs": "Open the documentation of this page"
   },
   "common": {
     "back": "Back",
@@ -447,7 +449,7 @@
       "help": {
         "arOverlays": "One AR overlay per preset of the editor. It shows rank, name, and time on the lanes of the camera image and fits a browser source with the aspect ratio of its preset.",
         "lanes": "One overlay per lane of the live heat with the name and club of its competitor. The list changes with every loaded heat.",
-        "overlays": "Add the URL as a browser source in the streaming software, for example OBS or vMix. The overlays are laid out for 1920 x 1080 with a transparent background and update live."
+        "overlays": "Add the URL as a browser source in the streaming software, for example OBS or vMix. The overlays have a transparent background and update live."
       },
       "lanes": "Lanes",
       "loadError": "The overview could not be loaded.",

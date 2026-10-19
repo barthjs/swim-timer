@@ -1,0 +1,47 @@
+/*
+The colors of the web interface, with its primary color as accent and the same shades for text, borders,
+and backgrounds in both color modes.
+*/
+:root {
+  --sl-color-white: #ffffff;
+  --sl-color-gray-1: #f8fafc;
+  --sl-color-gray-2: #f1f5f9;
+  --sl-color-gray-3: #cbd5e1;
+  --sl-color-gray-4: #64748b;
+  --sl-color-gray-5: #334155;
+  --sl-color-gray-6: #1e293b;
+  --sl-color-black: #0f172a;
+
+  --sl-color-accent-low: #002538;
+  --sl-color-accent: #0088cc;
+  --sl-color-accent-high: #a3e0ff;
+
+  /* The content of the default 45rem leaves most of a wide screen empty between the sidebars */
+  --sl-content-width: 60rem;
+}
+
+/* Starlight sizes the theme select for the English labels, so it grows with the longest label of the language */
+starlight-theme-select select {
+  width: auto;
+}
+
+/* The content stands centered between the two sidebars instead of next to the table of contents */
+.main-pane {
+  --sl-content-margin-inline: auto;
+}
+
+:root[data-theme='light'] {
+  --sl-color-white: #020617;
+  --sl-color-gray-1: #0f172a;
+  --sl-color-gray-2: #1e293b;
+  --sl-color-gray-3: #475569;
+  --sl-color-gray-4: #94a3b8;
+  --sl-color-gray-5: #cbd5e1;
+  --sl-color-gray-6: #f1f5f9;
+  --sl-color-gray-7: #f8fafc;
+  --sl-color-black: #ffffff;
+
+  --sl-color-accent-low: #d1f0ff;
+  --sl-color-accent: #005c8a;
+  --sl-color-accent-high: #003a57;
+}

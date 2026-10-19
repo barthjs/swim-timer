@@ -6,6 +6,7 @@ import type { NavigationMenuItem } from '@nuxt/ui';
 
 import { useMutation } from '@/composables/form/useMutation';
 import AppVersion from '@/components/system/AppVersion.vue';
+import { docsUrl } from '@/lib/docs';
 import { useAuthStore } from '@/stores/auth';
 import { useMetaStore } from '@/stores/meta';
 
@@ -154,7 +155,13 @@ const { mutate: logout, pending: loggingOut } = useMutation(() => authStore.logo
     </UMain>
 
     <UFooter :ui="{ container: 'py-1 lg:py-1', center: 'mt-0' }">
-      <AppVersion class="text-muted" />
+      <div class="text-muted flex items-center justify-center gap-4">
+        <AppVersion />
+        <a :href="docsUrl()" target="_blank" class="flex items-center gap-1.5 text-xs">
+          <UIcon name="i-lucide-book-open" :size="12" />
+          {{ t('admin.docs') }}
+        </a>
+      </div>
     </UFooter>
   </div>
 </template>

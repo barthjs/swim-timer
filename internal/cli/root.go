@@ -33,8 +33,8 @@ func newRoot(build cmdline.Build) *cobra.Command {
 		build: build,
 	}
 
-	root := cmdline.NewRoot(build, "Overlays for swimming competitions from Swiss Timing devices")
-	root.Long = "Overlays for swimming competitions from Swiss Timing devices.\n" +
+	root := cmdline.NewRoot(build, "Live results of an Omega timing system as overlays for streaming software")
+	root.Long = "Live results of an Omega timing system as overlays for streaming software.\n" +
 		"Without a command, it starts the application. Every setting can also be passed as a flag."
 	root.Example = fmt.Sprintf("  %[1]s\n  %[1]s --server-port 9000\n  %[1]s config show --origin", cmdline.BinaryName())
 	root.Args = cobra.NoArgs

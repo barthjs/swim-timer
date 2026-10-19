@@ -33,7 +33,7 @@ jobs:
           node-version: 24
           cache: npm
           cache-dependency-path: |
-            docs/api/package-lock.json
+            docs/package-lock.json
             web/package-lock.json
 
       - name: Setup golangci-lint
@@ -44,19 +44,47 @@ jobs:
 
       - name: Install NPM dependencies
         run: |
-          npm ci --prefix docs/api
+          npm ci --prefix docs
           npm ci --prefix web
-
-      - name: Check types
-        run: npm run type-check --prefix docs/api
 
       - name: Build assets
         run: |
-          npm run build --prefix docs/api
+          npm run build-only --prefix docs
           npm run build-only --prefix web
 
       - name: Run tests
         run: make test
+
+  docs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    defaults:
+      run:
+        working-directory: docs
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: docs/package-lock.json
+
+      - name: Install NPM dependencies
+        run: npm ci
+
+      - name: Build assets
+        run: npm run build-only
+
+      - name: Check types
+        run: npm run type-check
+
+      - name: Run tests
+        run: npm run test
 
   frontend:
     runs-on: ubuntu-latest

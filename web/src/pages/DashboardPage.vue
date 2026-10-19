@@ -7,6 +7,7 @@ import { presetRepository } from '@/api/repositories/preset';
 import { useApiError } from '@/composables/useApiError';
 import { useHeatLabel } from '@/composables/useHeatLabel';
 import OverlayLinks, { type OverlayLink } from '@/components/overlay/OverlayLinks.vue';
+import DocsLink from '@/components/system/DocsLink.vue';
 import TimingStatusBadge from '@/components/timing/TimingStatusBadge.vue';
 import { useLiveStore } from '@/stores/live';
 import { useTimingStore } from '@/stores/timing';
@@ -109,7 +110,10 @@ const laneLinks = computed<OverlayLink[]>(() => {
   <div class="flex flex-col gap-4">
     <div class="flex flex-col gap-1">
       <div class="flex flex-wrap items-center justify-between gap-3">
-        <h1 class="text-highlighted text-xl font-semibold">{{ t('pages.dashboard.title') }}</h1>
+        <div class="flex items-center gap-1">
+          <h1 class="text-highlighted text-xl font-semibold">{{ t('pages.dashboard.title') }}</h1>
+          <DocsLink page="dashboard" />
+        </div>
         <TimingStatusBadge />
       </div>
 

@@ -12,7 +12,7 @@ REPO="barthjs/swim-timer"
 APP_NAME="swim-timer"
 # APP_TITLE and APP_COMMENT name the app in the service and the launcher
 APP_TITLE="Swim-Timer"
-APP_COMMENT="Swimming competition overlays"
+APP_COMMENT="Live results of an Omega timing system as overlays for streaming software"
 INSTALL_MODE="" # "user" or "system"
 
 print_info() {

@@ -13,6 +13,7 @@ import MeetEventsTable, { type EventRow } from '@/components/meet/MeetEventsTabl
 import MeetFilterBar from '@/components/meet/MeetFilterBar.vue';
 import MeetLiveCard from '@/components/meet/MeetLiveCard.vue';
 import MeetStartEntriesTable from '@/components/meet/MeetStartEntriesTable.vue';
+import DocsLink from '@/components/system/DocsLink.vue';
 import TableColumnMenu from '@/components/table/TableColumnMenu.vue';
 import { useMeetFilters } from '@/composables/useMeetFilters';
 import {
@@ -219,7 +220,10 @@ function selectClub(name: string): void {
       and the time of the meet data takes its own row below. From sm up, the time stands next to the buttons.
     -->
     <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
-      <h1 class="text-highlighted text-xl font-semibold">{{ t('pages.meet.title') }}</h1>
+      <div class="flex items-center gap-1">
+        <h1 class="text-highlighted text-xl font-semibold">{{ t('pages.meet.title') }}</h1>
+        <DocsLink page="meet" />
+      </div>
       <span
         v-if="loadedAt"
         class="text-muted order-last flex w-full items-center gap-1 text-sm sm:order-none sm:ml-auto sm:w-auto"

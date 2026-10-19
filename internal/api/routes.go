@@ -8,7 +8,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	gorillaHandlers "github.com/gorilla/handlers"
 
-	apidocs "github.com/barthjs/swim-timer/docs/api"
+	"github.com/barthjs/swim-timer/docs"
 	"github.com/barthjs/swim-timer/internal/domain"
 	"github.com/barthjs/swim-timer/internal/server"
 	"github.com/barthjs/swim-timer/web"
@@ -20,6 +20,12 @@ import (
 const contentSecurityPolicy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; " +
 	"img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; " +
 	"form-action 'self'; frame-ancestors 'none'"
+
+// docsContentSecurityPolicy is the policy of the documentation, which only loads its own resources
+// and compiles WebAssembly for its search in the browser.
+const docsContentSecurityPolicy = "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; " +
+	"style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; " +
+	"object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
 
 // permissionsPolicy denies the browser features the application does not use.
 const permissionsPolicy = "accelerometer=(), camera=(), display-capture=(), geolocation=(), gyroscope=(), hid=(), " +
@@ -54,6 +60,7 @@ func (a *API) Routes() http.Handler {
 
 	a.realtimeRoutes(r)
 	a.apiRoutes(r)
+	a.docsRoutes(r)
 	a.staticRoutes(r)
 
 	return r
@@ -83,11 +90,6 @@ func (a *API) apiRoutes(r chi.Router) {
 		r.Group(func(r chi.Router) {
 			r.NotFound(a.notFoundResponse)
 			r.MethodNotAllowed(a.methodNotAllowedResponse)
-
-			if a.options.Docs {
-				r.Get("/docs", http.RedirectHandler("/api/docs/", http.StatusMovedPermanently).ServeHTTP)
-				r.Handle("/docs/*", http.StripPrefix("/api/docs", apidocs.Handler(a.options.Name, a.health.Version())))
-			}
 
 			r.Get("/meta", a.metaGetHandler)
 			r.Get("/ping", a.pingGetHandler)
@@ -229,6 +231,27 @@ func (a *API) webhookRoutes(r chi.Router) {
 
 		r.Get("/{id}/preview", a.webhookPreviewGetHandler)
 	})
+}
+
+// docsRoutes serves the embedded documentation with the API reference under "/docs". Its bundles carry a hash
+// in their names, so they are cached like the assets of the SPA.
+func (a *API) docsRoutes(r chi.Router) {
+	if !a.options.Docs {
+		return
+	}
+
+	handler := http.StripPrefix("/docs", docs.Handler("/docs/"))
+	secured := r.With(
+		server.SecurityHeaders(server.SecurityHeadersOptions{
+			ContentSecurityPolicy: docsContentSecurityPolicy,
+			PermissionsPolicy:     permissionsPolicy,
+		}),
+		gorillaHandlers.CompressHandler,
+	)
+
+	r.Get("/docs", http.RedirectHandler("/docs/", http.StatusMovedPermanently).ServeHTTP)
+	secured.With(a.cacheHeaderMiddleware).Handle("/docs/_astro/*", handler)
+	secured.Handle("/docs/*", handler)
 }
 
 // staticRoutes serves the embedded SPA.

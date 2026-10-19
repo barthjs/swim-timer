@@ -6,8 +6,10 @@ before:
   hooks:
     - sh -c "cd web && npm ci --omit=dev"
     - sh -c "cd web && VITE_APP_VERSION={{ .Tag }} npm run build-only"
-    - sh -c "cd docs/api && npm ci --omit=dev"
-    - sh -c "cd docs/api && npm run build"
+    - sh -c "cd docs && npm ci --omit=dev"
+    - sh -c "cd docs && DOCS_VERSION={{ .Tag }} npm run build-only"
+    # The same build is embedded into the binary and attached to the release for the public documentation
+    - sh -c "mkdir -p bin && tar -czf bin/swim-timer_docs.tar.gz -C docs/dist ."
     # The man pages and completions come from running this binary, so it is built for the host,
     # also when a single-target build sets GOOS and GOARCH for another platform.
     - sh -c "env -u GOOS -u GOARCH -u GOARM go build -o bin/swim-timer ./cmd/swim-timer"
@@ -54,7 +56,7 @@ nfpms:
   - vendor: barthjs
     homepage: https://github.com/barthjs/swim-timer
     maintainer: "Jonas Barth <143815039+barthjs@users.noreply.github.com>"
-    description: Overlays for swimming competitions from Swiss Timing devices
+    description: Live results of an Omega timing system as overlays for streaming software
     license: MIT
     formats:
       - deb
@@ -98,7 +100,7 @@ dockers_v2:
       - scripts/entrypoint.sh
     labels:
       org.opencontainers.image.title: "{{ .ProjectName }}"
-      org.opencontainers.image.description: Overlays for swimming competitions from Swiss Timing devices
+      org.opencontainers.image.description: Live results of an Omega timing system as overlays for streaming software
       org.opencontainers.image.source: https://github.com/barthjs/swim-timer
       org.opencontainers.image.url: https://github.com/barthjs/swim-timer
       org.opencontainers.image.version: "{{ .Version }}"
@@ -107,7 +109,7 @@ dockers_v2:
       org.opencontainers.image.licenses: MIT
     # Registries read the description of a multi-platform image from the annotations of its index, not from the labels.
     annotations:
-      org.opencontainers.image.description: Overlays for swimming competitions from Swiss Timing devices
+      org.opencontainers.image.description: Live results of an Omega timing system as overlays for streaming software
       org.opencontainers.image.source: https://github.com/barthjs/swim-timer
       org.opencontainers.image.licenses: MIT
 
@@ -133,5 +135,7 @@ changelog:
 
 release:
   draft: true
+  extra_files:
+    - glob: bin/swim-timer_docs.tar.gz
   footer: >-
     {{ if .PreviousTag }}**Full Changelog**: https://github.com/{{ .Env.GITHUB_REPOSITORY }}/compare/{{ .PreviousTag }}...{{ .Tag }}{{ end }}

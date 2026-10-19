@@ -10,14 +10,17 @@ RUN npm ci --omit=dev
 COPY web/ ./
 RUN npm run build-only
 
-FROM --platform=$BUILDPLATFORM node:24-alpine AS apidocs-builder
-WORKDIR /build/docs/api
+FROM --platform=$BUILDPLATFORM node:24-alpine AS docs-builder
+WORKDIR /build/docs
 
-COPY docs/api/package*.json ./
+ARG VERSION=dev
+ENV DOCS_VERSION=${VERSION}
+
+COPY docs/package*.json ./
 RUN npm ci --omit=dev
 
-COPY docs/api/ ./
-RUN npm run build
+COPY docs/ ./
+RUN npm run build-only
 
 FROM --platform=$BUILDPLATFORM golang:1.27-alpine AS api-builder
 WORKDIR /build
@@ -31,7 +34,7 @@ RUN go mod download
 
 COPY . .
 COPY --from=web-builder /build/web/dist ./web/dist
-COPY --from=apidocs-builder /build/docs/api/dist ./docs/api/dist
+COPY --from=docs-builder /build/docs/dist ./docs/dist
 RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -ldflags="-s -w -X 'main.Version=${VERSION}'" -o ./bin/swim-timer ./cmd/swim-timer/
 
 FROM alpine:latest AS runtime

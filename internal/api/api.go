@@ -54,7 +54,7 @@ type Options struct {
 	CORSAllowedOrigins []string
 	// CORSAllowCredentials lets the allowed origins send cookies.
 	CORSAllowCredentials bool
-	// Docs serves the API documentation under /api/docs.
+	// Docs serves the documentation with the API reference under /docs.
 	Docs bool
 }
 

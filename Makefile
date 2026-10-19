@@ -113,12 +113,13 @@ update:
 # DOCUMENTATION
 # ==================================================================================== #
 
-## docs: generate API documentation
-.PHONY: docs
-docs: fmt
-	swag init -g cmd/$(APP_NAME)/main.go --parseInternal --parseDependency --useStructName --outputTypes go --output docs/api
+## docs-api: generate the OpenAPI document of the API reference
+.PHONY: docs-api
+docs-api: fmt
+	swag init -g cmd/$(APP_NAME)/main.go --parseInternal --parseDependency --useStructName --outputTypes json --output docs/public
 	@# swag names generic types after the package path of their type arguments, even with --useStructName
-	sed -i 's/-internal_api_/-/g' docs/api/docs.go
+	sed 's/-internal_api_/-/g' docs/public/swagger.json > docs/public/api.json
+	rm docs/public/swagger.json
 
 # ==================================================================================== #
 # BUILD

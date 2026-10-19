@@ -1,0 +1,24 @@
+---
+import Default from '@astrojs/starlight/components/LanguageSelect.astro';
+---
+
+<Default />
+
+<script>
+  // Starlight assigns the option to the pathname, which resolves the relative paths of the build against the root
+  // of the domain, so the change is handled here first and the path is resolved against the current page
+  for (const select of document.querySelectorAll<HTMLSelectElement>(
+    'starlight-lang-select select',
+  )) {
+    select.addEventListener(
+      'change',
+      (event) => {
+        event.stopImmediatePropagation();
+        window.location.assign(new URL(select.value, window.location.href));
+      },
+      {
+        capture: true,
+      },
+    );
+  }
+</script>
