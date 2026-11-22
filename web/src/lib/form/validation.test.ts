@@ -9,7 +9,7 @@ type State = {
   tags: string[];
 };
 
-/** state returns a valid state with the given fields replaced. */
+/** Returns a valid state with the given fields replaced. */
 function state(overrides: Partial<State> = {}): State {
   return {
     name: 'Name',
@@ -23,10 +23,10 @@ function state(overrides: Partial<State> = {}): State {
 }
 
 describe('FORM_VALIDATE_ON', () => {
-  it('leaves out the blur, so focusing and leaving a field shows no error', () => {
+  it('checks no field before a submit', () => {
     const events = FORM_VALIDATE_ON;
 
-    expect(events).toEqual(['input', 'change']);
+    expect(events).toEqual([]);
   });
 });
 

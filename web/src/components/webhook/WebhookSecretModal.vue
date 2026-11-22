@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n';
 
-import type { WebhookResponse } from '@/api/types';
+import type { WebhookResponse } from '@/api/types/webhook';
 import WebhookSecretField from '@/components/webhook/WebhookSecretField.vue';
 
 // Shows the secret of a webhook right after it was created, so it can be entered at the receiver.
+// The secret is never shown again, so only the button closes the dialog.
 defineProps<{
   webhook: WebhookResponse | null;
 }>();
@@ -19,13 +20,14 @@ const { t } = useI18n();
 <template>
   <UModal
     v-model:open="open"
-    :title="t('pages.config.webhook.createdTitle', { name: webhook?.name ?? '' })"
-    :description="t('pages.config.webhook.createdDescription')"
+    :dismissible="false"
+    :title="t('webhook.createdTitle', { name: webhook?.name ?? '' })"
+    :description="t('webhook.createdDescription')"
     :ui="{ content: 'sm:max-w-2xl' }"
   >
     <template #body>
       <UFormField v-if="webhook" :label="t('fields.secret')">
-        <WebhookSecretField :model-value="webhook.secret" readonly />
+        <WebhookSecretField :model-value="webhook.secret ?? ''" readonly />
       </UFormField>
     </template>
     <template #footer>

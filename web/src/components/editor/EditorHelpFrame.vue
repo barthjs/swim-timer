@@ -2,10 +2,11 @@
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import { useShortcutLabels, type ShortcutKey } from '@/composables/useShortcutLabels';
-import { EDITOR_SHORTCUTS, shortcutKeys, type EditorShortcut } from '@/lib/editor/shortcuts';
+import { useShortcutLabels, type ShortcutKey } from '@/composables/ui/useShortcutLabels';
+import { EDITOR_SHORTCUTS, shortcutKeys } from '@/lib/editor/shortcuts';
+import { objectKeys } from '@/lib/types/guards';
 
-/** HelpShortcut is a row of the shortcut tab: the keys or mouse actions and what they do. */
+/** A row of the shortcut tab: the keys or mouse actions and what they do. */
 export type HelpShortcut = {
   keys: ShortcutKey[];
   label: string;
@@ -15,7 +16,7 @@ export type HelpShortcut = {
 // and mouse actions in another. The tab lists the shortcuts every editor offers, then those of the editor,
 // then the mouse actions of the canvas. Each shortcut lists its keys, written for the platform and the language.
 const props = defineProps<{
-  // The shortcuts and mouse actions of the editor itself.
+  // The shortcuts and mouse actions of the editor itself
   shortcuts: HelpShortcut[];
 }>();
 
@@ -26,8 +27,8 @@ const open = defineModel<boolean>('open', {
 const { t } = useI18n();
 const { keyLabel } = useShortcutLabels();
 
-// The mouse actions and held keys of the canvas, which every editor shares.
-const CANVAS_ACTIONS: Array<{ keys: ShortcutKey[]; label: string }> = [
+// The mouse actions and held keys of the canvas, which every editor shares
+const CANVAS_ACTIONS: { keys: ShortcutKey[]; label: string }[] = [
   {
     keys: ['meta'],
     label: 'noSnapping',
@@ -59,7 +60,7 @@ const CANVAS_ACTIONS: Array<{ keys: ShortcutKey[]; label: string }> = [
 ];
 
 const rows = computed<HelpShortcut[]>(() => [
-  ...(Object.keys(EDITOR_SHORTCUTS) as EditorShortcut[]).map((shortcut) => ({
+  ...objectKeys(EDITOR_SHORTCUTS).map((shortcut) => ({
     keys: shortcutKeys(EDITOR_SHORTCUTS[shortcut]),
     label: t(`editor.shortcuts.${shortcut}`),
   })),
@@ -95,7 +96,7 @@ const tabs = computed(() => [
         </template>
 
         <template #shortcuts>
-          <dl class="text-default grid grid-cols-[auto_1fr] items-center gap-x-4 gap-y-2 text-sm">
+          <dl class="text-default grid-cols-label grid items-center gap-x-4 gap-y-2 text-sm">
             <template v-for="shortcut in rows" :key="shortcut.label">
               <dt class="flex gap-1">
                 <UKbd v-for="key in shortcut.keys" :key="key">{{ keyLabel(key) }}</UKbd>

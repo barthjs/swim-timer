@@ -9,7 +9,7 @@ const { state, settle } = useConfirm();
 const confirmButton = useTemplateRef<ComponentPublicInstance>('confirmButton');
 const cancelButton = useTemplateRef<ComponentPublicInstance>('cancelButton');
 
-// Dismissing the modal with Escape, a click outside, or the close button counts as cancel.
+// Dismissing the modal with Escape, a click outside, or the close button counts as cancel
 const open = computed({
   get: () => state.value.open,
   set: (value: boolean) => {
@@ -18,7 +18,7 @@ const open = computed({
 });
 
 /**
- * focusDefault focuses the button Enter should press when the dialog opens: the confirm button,
+ * Focuses the button Enter should press when the dialog opens: the confirm button,
  * or the cancel button for a destructive action shown in the error color, so Enter never deletes.
  * Escape cancels in both cases.
  */
@@ -38,7 +38,7 @@ function focusDefault(event: Event): void {
     :content="{
       onOpenAutoFocus: focusDefault,
     }"
-    :ui="{ overlay: 'z-[100]', content: 'z-[100]' }"
+    :ui="{ overlay: 'z-confirm', content: 'z-confirm' }"
   >
     <template #body>
       <p v-if="state.description" class="text-muted text-sm">

@@ -5,19 +5,19 @@ import type { ViewTransform } from '@/composables/editor/useCanvasViewport';
 import type { Size } from '@/lib/editor/geometry';
 import type { SnapFeedback } from '@/lib/editor/snap';
 
-// The diameter of the ring around the point a dragged item snapped onto.
-const RING_SIZE = 16;
-
-// Shows what a dragged item snapped to: the lines it aligned with across the whole content, a ring around the point
-// it snapped onto, and its distances to the neighbors with their length. It lies in the area above the content,
-// so lines, ring, and labels keep their size at every zoom.
+// Shows what a dragged item snapped to: the lines it aligned with across the whole content,
+// a ring around the point it snapped onto, and its distances to the neighbors with their length.
+// It lies in the area above the content, so lines, ring, and labels keep their size at every zoom.
 const props = defineProps<{
   feedback: SnapFeedback;
   content: Size;
   view: ViewTransform;
-  // The unit the distances are labeled in, such as "px" or "mm".
+  // The unit the distances are labeled in, such as "px" or "mm"
   unit: string;
 }>();
+
+// The diameter of the ring around the point a dragged item snapped onto
+const RING_SIZE = 16;
 
 const lines = computed(() =>
   props.feedback.lines.map((line) => {
@@ -92,7 +92,7 @@ const ring = computed(() => {
     :style="gap.line"
   >
     <span
-      class="bg-warning text-inverted absolute top-1/2 left-1/2 -translate-1/2 rounded px-1 text-[10px] whitespace-nowrap tabular-nums"
+      class="bg-warning text-inverted text-2xs absolute top-1/2 left-1/2 -translate-1/2 rounded px-1 whitespace-nowrap tabular-nums"
     >
       {{ gap.label }}
     </span>

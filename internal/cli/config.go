@@ -189,10 +189,8 @@ func flatten(nested map[string]any, prefix string) map[string]any {
 	return flat
 }
 
-// newConfigValidateCommand checks the configuration and reports every problem. Without a file,
-// it checks the configuration the application would start with. A file is checked on its own,
-// without the environment and the flags, for example before it is deployed. It runs without the setup,
-// since the setup itself fails on an invalid configuration.
+// newConfigValidateCommand creates the command that reports every problem of the starting configuration or of a file,
+// and runs without the setup, which fails on an invalid configuration.
 func newConfigValidateCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "validate [file]",
@@ -229,8 +227,7 @@ func validateFile(cmd *cobra.Command, path string) error {
 	return err
 }
 
-// configSource describes where the configuration came from: the config file if one was read,
-// otherwise only the defaults, the environment, and the flags.
+// configSource describes where the configuration came from for a person.
 func configSource(cmd *cobra.Command) string {
 	path := structconf.FindFile(config.AppName, cmd.Flags())
 	if path == "" {

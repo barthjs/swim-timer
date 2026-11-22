@@ -13,17 +13,7 @@ import (
 func TestLiveHeat_Copy(t *testing.T) {
 	t.Parallel()
 
-	t.Run("returns an equal live heat", func(t *testing.T) {
-		t.Parallel()
-
-		original := newLiveHeat(t)
-
-		copied := original.Copy()
-
-		assert.Equal(t, original, copied)
-	})
-
-	t.Run("keeps the original when the copy changes", func(t *testing.T) {
+	t.Run("returns an equal live heat that changes apart from the original", func(t *testing.T) {
 		t.Parallel()
 
 		original := newLiveHeat(t)
@@ -31,6 +21,7 @@ func TestLiveHeat_Copy(t *testing.T) {
 
 		copied := original.Copy()
 
+		assert.Equal(t, original, copied)
 		copied.Lanes[3].Time = 2000
 		*copied.StartTime = start.Add(time.Hour)
 		copied.Lanes[4] = &Lane{

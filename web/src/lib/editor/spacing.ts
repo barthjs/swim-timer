@@ -1,7 +1,7 @@
 import type { Bounds, Size } from '@/lib/editor/geometry';
 
 /**
- * Gap is a distance between two edges along an axis, drawn at a position across it:
+ * A distance between two edges along an axis, drawn at a position across it:
  * along x from `from` to `to` at height `at`, or along y at width `at`.
  */
 export type Gap = {
@@ -12,8 +12,8 @@ export type Gap = {
 };
 
 /**
- * measureGaps returns the distance from moved bounds to the nearest other bounds on each side, among those
- * that face it across the axis, or to the border of the content where nothing faces it.
+ * Returns the distance from moved bounds to the nearest other bounds on each side,
+ * among those that face it across the axis, or to the border of the content where nothing faces it.
  */
 export function measureGaps(moved: Bounds, others: readonly Bounds[], content: Size): Gap[] {
   const facingX = others.filter((other) =>
@@ -72,8 +72,8 @@ export function measureGaps(moved: Bounds, others: readonly Bounds[], content: S
 }
 
 /**
- * spacingTargets returns where moved bounds start when their gaps to the neighbors are even: centered between
- * the nearest neighbors on both sides, or next to a neighbor at a gap two other items already have.
+ * Returns where moved bounds start when their gaps to the neighbors are even:
+ * centered between the nearest neighbors on both sides, or next to a neighbor at a gap two other items already have.
  * The values are positions of the left edge for x and of the top edge for y.
  */
 export function spacingTargets(
@@ -98,8 +98,8 @@ export function spacingTargets(
   };
 }
 
-/** axisSpacing collects the even starts of an extent among the extents that face it along one axis. */
-function axisSpacing(start: number, end: number, extents: Array<[number, number]>): number[] {
+/** Collects the even starts of an extent among the extents that face it along one axis. */
+function axisSpacing(start: number, end: number, extents: [number, number][]): number[] {
   const size = end - start;
   const before = extents.filter(([, otherEnd]) => otherEnd <= start + size / 2);
   const after = extents.filter(([otherStart]) => otherStart >= end - size / 2);
@@ -121,7 +121,7 @@ function axisSpacing(start: number, end: number, extents: Array<[number, number]
   return targets;
 }
 
-/** overlaps reports whether two ranges share a part. */
+/** Reports whether two ranges share a part. */
 function overlaps(startA: number, endA: number, startB: number, endB: number): boolean {
   return startA < endB && endA > startB;
 }

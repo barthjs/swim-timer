@@ -117,10 +117,8 @@ func (r *Response) AssertJSON(expected any) *Response {
 	return r
 }
 
-// AssertJSONPath checks the value at a dot-separated path into the body, such as "errors.0.field".
-// Numbers in the path index arrays. A key that contains a dot is written with the dot escaped,
-// such as `errors.server\.port` for the key "server.port". The value is compared after a JSON round trip,
-// so an int matches the float64 the decoder produces.
+// AssertJSONPath compares the value at a dotted path of the body after a JSON round trip, so an int matches a float64.
+// Numbers in the path index arrays, and a dot inside a key is escaped, as in `errors.server\.port`.
 func (r *Response) AssertJSONPath(path string, expected any) *Response {
 	r.t.Helper()
 
@@ -172,7 +170,7 @@ func (r *Response) describe() string {
 	return fmt.Sprintf("%s %s answered %d: %s", r.method, r.path, r.Status, r.Body)
 }
 
-// Decode decodes the body into a new value of type T, for example response.Decode[UserResponse]().
+// Decode decodes the body into a new value of type T.
 func (r *Response) Decode[T any]() T {
 	r.t.Helper()
 

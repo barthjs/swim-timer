@@ -4,17 +4,18 @@ import { computed } from 'vue';
 import { RULER_THICKNESS, rulerTicks } from '@/lib/editor/ruler';
 
 // A ruler along the top or left edge of the canvas area, in the units of the content,
-// such as pixels or millimeters. It follows the zoom and the pan of the canvas. A press on it places a guide
-// across it at the pressed value, a vertical guide on the horizontal ruler and a horizontal one on the vertical ruler.
+// such as pixels or millimeters. It follows the zoom and the pan of the canvas.
+// A press on it places a guide across it at the pressed value,
+// a vertical guide on the horizontal ruler and a horizontal one on the vertical ruler.
 const props = defineProps<{
   orientation: 'horizontal' | 'vertical';
-  // The length of the ruler on the screen.
+  // The length of the ruler on the screen
   length: number;
-  // Where the value 0 lies along the ruler, in pixels of the screen.
+  // Where the value 0 lies along the ruler, in pixels of the screen
   offset: number;
-  // The screen pixels per unit of the content.
+  // The screen pixels per unit of the content
   scale: number;
-  // The position of the pointer along the ruler on the screen, marked while dragging, or null.
+  // The position of the pointer along the ruler on the screen, marked while dragging, or null
   pointer: number | null;
 }>();
 
@@ -29,7 +30,7 @@ const horizontal = computed(() => props.orientation === 'horizontal');
 
 <template>
   <div
-    class="bg-default/80 border-default text-muted absolute z-[5] touch-none overflow-hidden"
+    class="bg-default/80 border-default text-muted absolute z-5 touch-none overflow-hidden"
     :class="
       horizontal
         ? 'inset-x-0 top-0 h-5 cursor-col-resize border-b'
@@ -59,7 +60,7 @@ const horizontal = computed(() => props.orientation === 'horizontal');
           v-if="tick.label && horizontal"
           :x="tick.position + 3"
           y="9"
-          class="fill-current font-mono text-[9px]"
+          class="text-3xs fill-current font-mono"
         >
           {{ tick.label }}
         </text>
@@ -67,7 +68,7 @@ const horizontal = computed(() => props.orientation === 'horizontal');
           v-else-if="tick.label"
           x="2"
           :y="tick.position + 3"
-          class="fill-current font-mono text-[9px]"
+          class="text-3xs fill-current font-mono"
           :transform="`rotate(90 2 ${tick.position + 3})`"
         >
           {{ tick.label }}

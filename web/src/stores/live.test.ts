@@ -1,42 +1,43 @@
 import { createPinia, setActivePinia } from 'pinia';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { Lane, LiveMessage, LiveHeat } from '@/api/types';
+import type { Lane, LiveMessage, LiveHeat } from '@/api/types/live';
 import { useLiveStore } from '@/stores/live';
 import { configureRealtime } from '@/stores/realtime';
 
-/** FakeWebSocket records every opened websocket and lets a test drive its events. */
-class FakeWebSocket {
+/** Records every opened websocket and lets a test drive its events. */
+class FakeWebSocket extends EventTarget {
   static instances: FakeWebSocket[] = [];
 
-  onopen: (() => void) | null = null;
-  onmessage: ((event: { data: string }) => void) | null = null;
-  onclose: (() => void) | null = null;
-  onerror: ((event: unknown) => void) | null = null;
+  readonly url: string;
 
-  constructor(readonly url: string) {
+  constructor(url: string) {
+    super();
+    this.url = url;
     FakeWebSocket.instances.push(this);
   }
 
-  /** open signals that the connection is established. */
+  /** Signals that the connection is established. */
   open(): void {
-    this.onopen?.();
+    this.dispatchEvent(new Event('open'));
   }
 
-  /** receive delivers a message, serializing it unless it is raw text. */
+  /** Delivers a message, serializing it unless it is raw text. */
   receive(message: LiveMessage | string): void {
-    this.onmessage?.({
-      data: typeof message === 'string' ? message : JSON.stringify(message),
-    });
+    this.dispatchEvent(
+      new MessageEvent('message', {
+        data: typeof message === 'string' ? message : JSON.stringify(message),
+      }),
+    );
   }
 
-  /** close signals that the connection was closed. */
+  /** Signals that the connection was closed. */
   close(): void {
-    this.onclose?.();
+    this.dispatchEvent(new Event('close'));
   }
 }
 
-/** lane builds a lane without a start list entry and with the given time. */
+/** Builds a lane without a start list entry and with the given time. */
 function lane(number: number, time: number): Lane {
   return {
     number,
@@ -52,7 +53,7 @@ function lane(number: number, time: number): Lane {
   };
 }
 
-/** liveHeat builds a live heat with the given overrides. */
+/** Builds a live heat with the given overrides. */
 function liveHeat(overrides: Partial<LiveHeat> = {}): LiveHeat {
   return {
     event: 1,
@@ -69,7 +70,7 @@ function liveHeat(overrides: Partial<LiveHeat> = {}): LiveHeat {
   };
 }
 
-/** latestSocket returns the most recently opened websocket. */
+/** Returns the most recently opened websocket. */
 function latestSocket(): FakeWebSocket {
   const socket = FakeWebSocket.instances.at(-1);
   if (!socket) throw new Error('no websocket opened');

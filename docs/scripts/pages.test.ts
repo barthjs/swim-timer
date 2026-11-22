@@ -70,7 +70,7 @@ describe('writeSiteIndex', () => {
     });
   });
 
-  /** addVersions creates a folder per version, as the workflow unpacks the documentation of each release. */
+  /** Creates a folder per version, as the workflow unpacks the documentation of each release. */
   async function addVersions(...versions: string[]): Promise<void> {
     for (const version of versions) {
       await mkdir(path.join(site, version));
@@ -83,7 +83,7 @@ describe('writeSiteIndex', () => {
 
     await writeSiteIndex(site, '/docs');
 
-    const versions = JSON.parse(await readFile(path.join(site, 'versions.json'), 'utf8'));
+    const versions: unknown = JSON.parse(await readFile(path.join(site, 'versions.json'), 'utf8'));
     expect(versions).toEqual({
       latest: 'v1.1.0',
       versions: ['main', 'v1.1.0', 'v1.0.0'],

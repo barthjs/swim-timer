@@ -1,0 +1,17 @@
+---
+// The 404 page of Starlight looks up a content entry first, which warns on every build without one,
+// and an entry of that name would also render as a regular page. This page renders the same content without either.
+import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
+---
+
+<StarlightPage
+  frontmatter={{
+    title: '404',
+    template: 'splash',
+    editUrl: false,
+    pagefind: false,
+    hero: {
+      tagline: Astro.locals.t('404.text'),
+    },
+  }}
+/>

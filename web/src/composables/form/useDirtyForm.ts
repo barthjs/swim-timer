@@ -1,36 +1,27 @@
-import { computed, ref, toRaw } from 'vue';
+import { computed, shallowRef, toRaw } from 'vue';
 
 import { getAtPath, type Paths } from '@/lib/form/path';
+import { objectKeys } from '@/lib/types/guards';
 
 /**
- * useDirtyForm tracks which fields of a reactive state object have changed since the last capture(),
+ * Tracks which fields of a reactive state object have changed since the last capture(),
  * so a form can highlight edited fields and offer a reset to the captured baseline.
  * Fields are addressed by the same dot-separated path used as a UFormField's name.
  */
 export function useDirtyForm<T extends Record<string, unknown>>(state: T) {
-  const snapshot = ref<Partial<T>>({});
+  const snapshot = shallowRef<Partial<T>>({});
 
-  /** cloneValue copies a value, so the baseline does not change with the state. */
-  function cloneValue<V>(value: V): V {
-    return value !== null && typeof value === 'object'
-      ? (JSON.parse(JSON.stringify(value)) as V)
-      : value;
-  }
-
-  /**
-   * capture records the current state as the baseline fields are compared against.
-   * Call it once the state holds a value worth returning to, for example after a successful load or save.
-   */
+  /** Records the current state as the baseline fields are compared against, after a load or a save. */
   function capture(): void {
     const raw = toRaw(state);
-    const copy = {} as Partial<T>;
-    for (const key of Object.keys(raw) as (keyof T)[]) {
+    const copy: Partial<T> = {};
+    for (const key of objectKeys(raw)) {
       copy[key] = cloneValue(raw[key]);
     }
     snapshot.value = copy;
   }
 
-  /** isFieldDirty reports whether a field differs from the baseline. */
+  /** Reports whether a field differs from the baseline. */
   function isFieldDirty(path: Paths<T>): boolean {
     return (
       JSON.stringify(getAtPath(state, path)) !== JSON.stringify(getAtPath(snapshot.value, path))
@@ -40,14 +31,16 @@ export function useDirtyForm<T extends Record<string, unknown>>(state: T) {
   // Read through the reactive state so this recomputes as fields change
   const isDirty = computed(() => JSON.stringify(state) !== JSON.stringify(snapshot.value));
 
-  /** reset restores every top-level field of state to its captured baseline value. */
+  /** Restores every top-level field of state to its captured baseline value. */
   function reset(): void {
-    for (const key of Object.keys(snapshot.value) as (keyof T)[]) {
-      state[key] = cloneValue(snapshot.value[key] as T[keyof T]);
+    for (const key of objectKeys(snapshot.value)) {
+      const field: keyof T = key;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- capture copies every top-level field of the state
+      state[field] = cloneValue(snapshot.value[field] as T[keyof T]);
     }
   }
 
-  /** fieldProps spreads onto a Nuxt UI input to ring-highlight it in warning color while dirty. */
+  /** Spreads onto a Nuxt UI input to ring-highlight it in warning color while dirty. */
   function fieldProps(path: Paths<T>): { color: 'warning' | undefined; highlight: boolean } {
     const dirty = isFieldDirty(path);
     return {
@@ -63,4 +56,12 @@ export function useDirtyForm<T extends Record<string, unknown>>(state: T) {
     capture,
     reset,
   };
+}
+
+/** Copies a value, so the baseline does not change with the state. */
+function cloneValue<V>(value: V): V {
+  return value !== null && typeof value === 'object'
+    ? // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- a JSON copy keeps the shape of plain data
+      (JSON.parse(JSON.stringify(value)) as V)
+    : value;
 }

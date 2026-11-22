@@ -76,8 +76,8 @@ func normalizeHost(host string) string {
 	}
 }
 
-// normalizeTrustedProxies converts a comma-separated list of CIDRs or plain IPs into the networks
-// the server middleware compares the client addresses with, see ParseNetworks.
+// normalizeTrustedProxies converts a comma-separated list of CIDRs or plain IPs
+// into the networks the server middleware compares the client addresses with, see ParseNetworks.
 func normalizeTrustedProxies(raw string) ([]*net.IPNet, error) {
 	prefixes, err := ParseNetworks(raw)
 	if err != nil {
@@ -94,8 +94,8 @@ func normalizeTrustedProxies(raw string) ([]*net.IPNet, error) {
 	return networks, nil
 }
 
-// ParseNetworks converts a comma-separated list of CIDRs or plain IPs into networks, so every setting of networks
-// is read the same way. Plain IPs are treated as single-host networks.
+// ParseNetworks converts a comma-separated list of CIDRs or plain IPs into networks,
+// so every setting of networks is read the same way. Plain IPs are treated as single-host networks.
 func ParseNetworks(raw string) ([]netip.Prefix, error) {
 	var networks []netip.Prefix
 	for entry := range strings.SplitSeq(raw, ",") {
@@ -131,8 +131,8 @@ func normalizeOrigins(values []string) ([]string, error) {
 	return origins, nil
 }
 
-// ParseOriginList reads allowed CORS origins separated by commas, trims each and its trailing slash, and drops
-// empty ones. Every origin must be "*" or scheme://host[:port], so the API checks an entry as the configuration reads it.
+// ParseOriginList reads allowed CORS origins separated by commas, trims each and its trailing slash, and drops empty ones.
+// Every origin must be "*" or scheme://host[:port], so the API checks an entry as the configuration reads it.
 func ParseOriginList(value string) ([]string, error) {
 	var origins []string
 	for part := range strings.SplitSeq(value, ",") {

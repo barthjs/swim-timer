@@ -2,21 +2,16 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import { HeatStatus, type CompetitorResponse } from '@/api/types';
+import { HeatStatus } from '@/api/types/live';
+import type { CompetitorResponse } from '@/api/types/meet';
 import CollapsibleCard from '@/components/ui/CollapsibleCard.vue';
-import HelpHint from '@/components/form/HelpHint.vue';
 import HeatTimer from '@/components/timing/HeatTimer.vue';
 import MeetHeatTable from '@/components/meet/MeetHeatTable.vue';
-import { useHeatLabel } from '@/composables/useHeatLabel';
-import { eventName, nextHeats, scheduleDelta, type MeetIndex } from '@/lib/meet';
+import { useHeatLabel } from '@/composables/live/useHeatLabel';
+import { eventName, nextHeats, scheduleDelta, type MeetIndex } from '@/lib/meet/meet';
 import { useLiveStore } from '@/stores/live';
 
-// How many heats are listed, the live heat and the ones following it.
-const LISTED_HEAT_COUNT = 4;
-// A delay below this is shown as on schedule.
-const ON_SCHEDULE_MS = 60_000;
-
-// Where the meet stands against its schedule, with the live heat and the heats that follow.
+// Where the meet stands against its schedule, with the live heat and the heats that follow
 const props = defineProps<{
   index: MeetIndex;
   currentIndex: number;
@@ -28,11 +23,16 @@ const emit = defineEmits<{
   selectClub: [club: string];
 }>();
 
+// How many heats are listed, the live heat and the ones following it
+const LISTED_HEAT_COUNT = 4;
+// A delay below this is shown as on schedule
+const ON_SCHEDULE_MS = 60_000;
+
 const { t } = useI18n();
 const liveStore = useLiveStore();
 const { heatLabel } = useHeatLabel();
 
-// The delay only changes slowly, so it is recomputed every few seconds instead of on every frame.
+// The delay only changes slowly, so it is recomputed every few seconds instead of on every frame
 const now = ref(new Date());
 let timer: ReturnType<typeof setInterval> | null = null;
 onMounted(() => {
@@ -120,8 +120,9 @@ const delay = computed(() => {
             {{ t('pages.meet.live.progress', { current: progress, total: index.heats.length }) }}
           </span>
           <span v-if="delay" class="flex items-center gap-1">
-            <UBadge :label="delay.label" :color="delay.color" variant="solid" size="sm" />
-            <HelpHint :text="t('pages.meet.live.delayHint')" />
+            <UTooltip :text="t('pages.meet.live.delayHint')">
+              <UBadge :label="delay.label" :color="delay.color" variant="solid" size="sm" />
+            </UTooltip>
           </span>
         </div>
         <UProgress :model-value="progress" :max="index.heats.length" size="sm" />

@@ -3,21 +3,21 @@ import { computed, h, resolveComponent } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { TableColumn } from '@nuxt/ui';
 
-import type { CompetitorResponse } from '@/api/types';
+import type { CompetitorResponse } from '@/api/types/meet';
 import MeetHeatTable from '@/components/meet/MeetHeatTable.vue';
 import DataTable from '@/components/table/DataTable.vue';
 import TableEmpty from '@/components/table/TableEmpty.vue';
 import type { TableColumnState, TableSorting } from '@/lib/table/columns';
-import { EventState, formatDay, type MeetIndex } from '@/lib/meet';
+import { EventState, formatDay, type MeetIndex } from '@/lib/meet/meet';
 
 export type EventRow = {
   number: number;
-  // The position of the event in the program, so sorting by it follows the schedule, see eventPositions.
+  // The position of the event in the program, so sorting by it follows the schedule, see eventPositions
   schedule: number;
   date: string;
-  // Empty for an event without a scheduled time.
+  // Empty for an event without a scheduled time
   time: string;
-  // The name together with the phase, see eventName.
+  // The name together with the phase, see eventName
   name: string;
   heatCount: number;
   startCount: number;
@@ -42,12 +42,15 @@ const columnState = defineModel<TableColumnState>('columnState', {
 const sorting = defineModel<TableSorting>('sorting', {
   required: true,
 });
+
 const page = defineModel<number>('page', {
   required: true,
 });
+
 const pageSize = defineModel<number>('pageSize', {
   required: true,
 });
+
 const expanded = defineModel<Record<string, boolean>>('expanded', {
   required: true,
 });
@@ -72,7 +75,6 @@ const stateColors = {
 const columns = computed<TableColumn<EventRow>[]>(() => [
   {
     id: 'expand',
-    size: 64,
     cell: ({ row }) =>
       h(UButton, {
         icon: row.getIsExpanded() ? 'i-lucide-chevron-down' : 'i-lucide-chevron-right',
@@ -87,7 +89,6 @@ const columns = computed<TableColumn<EventRow>[]>(() => [
     accessorKey: 'number',
     header: t('pages.meet.events.number'),
     enableSorting: true,
-    size: 90,
     cell: ({ row }) =>
       h(
         'span',
@@ -102,31 +103,36 @@ const columns = computed<TableColumn<EventRow>[]>(() => [
     accessorKey: 'schedule',
     header: t('pages.meet.events.schedule'),
     enableSorting: true,
-    size: 170,
     cell: ({ row }) =>
       [formatDay(row.original.date, locale.value), row.original.time].filter(Boolean).join(' '),
   },
   {
     accessorKey: 'name',
+    meta: {
+      grow: true,
+    },
     header: t('pages.meet.events.name'),
     enableSorting: true,
   },
   {
     accessorKey: 'heatCount',
+    meta: {
+      numeric: true,
+    },
     header: t('pages.meet.events.heats'),
     enableSorting: true,
-    size: 100,
   },
   {
     accessorKey: 'startCount',
+    meta: {
+      numeric: true,
+    },
     header: t('pages.meet.events.starts'),
     enableSorting: true,
-    size: 100,
   },
   {
     accessorKey: 'state',
     header: t('pages.meet.events.state'),
-    size: 140,
     cell: ({ row }) => {
       const state = row.original.state;
       if (!state) return '';

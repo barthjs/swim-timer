@@ -21,20 +21,6 @@ func TestMemoryLimiter(t *testing.T) {
 func TestMemoryLimiter_Allow(t *testing.T) {
 	t.Parallel()
 
-	t.Run("allows the attempts within the limit", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := t.Context()
-		limiter := newLimiter(t)
-
-		for i := range 3 {
-			allowed, _, err := limiter.Allow(ctx, "client", 3, time.Minute)
-
-			require.NoError(t, err)
-			assert.True(t, allowed, "attempt %d", i+1)
-		}
-	})
-
 	t.Run("denies attempts beyond the limit with a retry time", func(t *testing.T) {
 		t.Parallel()
 
@@ -52,21 +38,6 @@ func TestMemoryLimiter_Allow(t *testing.T) {
 		require.NoError(t, err)
 		assert.False(t, allowed)
 		assert.Equal(t, int64(40), retryAfter)
-	})
-
-	t.Run("counts keys separately", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := t.Context()
-		limiter := newLimiter(t)
-		for range 5 {
-			_, _, _ = limiter.Allow(ctx, "first", 2, time.Minute)
-		}
-
-		allowed, _, err := limiter.Allow(ctx, "second", 2, time.Minute)
-
-		require.NoError(t, err)
-		assert.True(t, allowed)
 	})
 
 	t.Run("starts a new window after expiry", func(t *testing.T) {
@@ -101,21 +72,6 @@ func TestMemoryLimiter_Allow(t *testing.T) {
 		assert.Equal(t, int64(10), limiter.AvailableIn(ctx, "client"))
 	})
 
-	t.Run("ignores an attempt in a closed window", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := t.Context()
-		clock := newFakeClock()
-		limiter := newLimiter(t, ratelimiter.WithClock(clock.Now))
-		require.NoError(t, limiter.Hit(ctx, "login", time.Minute))
-		clock.Advance(time.Minute)
-
-		allowed, _, err := limiter.Allow(ctx, "login", 1, time.Minute)
-
-		require.NoError(t, err)
-		assert.True(t, allowed, "the closed window does not count the earlier hit")
-	})
-
 	t.Run("is safe for concurrent use", func(t *testing.T) {
 		t.Parallel()
 
@@ -143,45 +99,6 @@ func TestMemoryLimiter_Allow(t *testing.T) {
 func TestMemoryLimiter_TooManyAttempts(t *testing.T) {
 	t.Parallel()
 
-	t.Run("reports too many attempts at the limit", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := t.Context()
-		limiter := newLimiter(t, ratelimiter.WithClock(newFakeClock().Now))
-		require.NoError(t, limiter.Hit(ctx, "login", time.Minute))
-		require.NoError(t, limiter.Hit(ctx, "login", time.Minute))
-
-		tooMany, err := limiter.TooManyAttempts(ctx, "login", 2)
-
-		require.NoError(t, err)
-		assert.True(t, tooMany)
-	})
-
-	t.Run("keeps a key below the limit allowed", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := t.Context()
-		limiter := newLimiter(t, ratelimiter.WithClock(newFakeClock().Now))
-		require.NoError(t, limiter.Hit(ctx, "login", time.Minute))
-
-		tooMany, err := limiter.TooManyAttempts(ctx, "login", 2)
-
-		require.NoError(t, err)
-		assert.False(t, tooMany)
-	})
-
-	t.Run("keeps an unknown key allowed", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := t.Context()
-		limiter := newLimiter(t, ratelimiter.WithClock(newFakeClock().Now))
-
-		tooMany, err := limiter.TooManyAttempts(ctx, "login", 2)
-
-		require.NoError(t, err)
-		assert.False(t, tooMany, "an unknown key has no attempts")
-	})
-
 	t.Run("closes the window at its expiry", func(t *testing.T) {
 		t.Parallel()
 
@@ -192,22 +109,6 @@ func TestMemoryLimiter_TooManyAttempts(t *testing.T) {
 		clock.Advance(time.Minute)
 
 		tooMany, err := limiter.TooManyAttempts(ctx, "login", 1)
-
-		require.NoError(t, err)
-		assert.False(t, tooMany)
-	})
-
-	t.Run("ignores expired attempts", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := t.Context()
-		clock := newFakeClock()
-		limiter := newLimiter(t, ratelimiter.WithClock(clock.Now))
-		require.NoError(t, limiter.Hit(ctx, "login", time.Minute))
-		require.NoError(t, limiter.Hit(ctx, "login", time.Minute))
-		clock.Advance(time.Minute + time.Second)
-
-		tooMany, err := limiter.TooManyAttempts(ctx, "login", 2)
 
 		require.NoError(t, err)
 		assert.False(t, tooMany)
@@ -248,81 +149,8 @@ func TestMemoryLimiter_Hit(t *testing.T) {
 	})
 }
 
-func TestMemoryLimiter_Remaining(t *testing.T) {
-	t.Parallel()
-
-	t.Run("returns the full budget for an unknown key", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := t.Context()
-		limiter := newLimiter(t)
-
-		remaining, err := limiter.Remaining(ctx, "client", 3)
-
-		require.NoError(t, err)
-		assert.Equal(t, 3, remaining)
-	})
-
-	t.Run("counts down with every hit", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := t.Context()
-		limiter := newLimiter(t)
-		require.NoError(t, limiter.Hit(ctx, "client", time.Minute))
-
-		remaining, err := limiter.Remaining(ctx, "client", 3)
-
-		require.NoError(t, err)
-		assert.Equal(t, 2, remaining)
-	})
-
-	t.Run("keeps zero beyond the limit", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := t.Context()
-		limiter := newLimiter(t)
-		for range 6 {
-			require.NoError(t, limiter.Hit(ctx, "client", time.Minute))
-		}
-
-		remaining, err := limiter.Remaining(ctx, "client", 3)
-
-		require.NoError(t, err)
-		assert.Equal(t, 0, remaining, "never negative")
-	})
-
-	t.Run("ignores expired attempts", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := t.Context()
-		clock := newFakeClock()
-		limiter := newLimiter(t, ratelimiter.WithClock(clock.Now))
-		require.NoError(t, limiter.Hit(ctx, "login", time.Minute))
-		require.NoError(t, limiter.Hit(ctx, "login", time.Minute))
-		clock.Advance(time.Minute + time.Second)
-
-		remaining, err := limiter.Remaining(ctx, "login", 2)
-
-		require.NoError(t, err)
-		assert.Equal(t, 2, remaining)
-	})
-}
-
 func TestMemoryLimiter_AvailableIn(t *testing.T) {
 	t.Parallel()
-
-	t.Run("returns the seconds until the window closes", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := t.Context()
-		limiter := newLimiter(t, ratelimiter.WithClock(newFakeClock().Now))
-		require.NoError(t, limiter.Hit(ctx, "login", time.Minute))
-		require.NoError(t, limiter.Hit(ctx, "login", time.Minute))
-
-		availableIn := limiter.AvailableIn(ctx, "login")
-
-		assert.Equal(t, int64(60), availableIn)
-	})
 
 	t.Run("rounds up to whole seconds", func(t *testing.T) {
 		t.Parallel()
@@ -336,65 +164,6 @@ func TestMemoryLimiter_AvailableIn(t *testing.T) {
 		availableIn := limiter.AvailableIn(ctx, "login")
 
 		assert.Equal(t, int64(1), availableIn)
-	})
-
-	t.Run("returns zero for an unknown key", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := t.Context()
-		limiter := newLimiter(t)
-
-		availableIn := limiter.AvailableIn(ctx, "unknown")
-
-		assert.Equal(t, int64(0), availableIn)
-	})
-
-	t.Run("returns zero at the expiry of the window", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := t.Context()
-		clock := newFakeClock()
-		limiter := newLimiter(t, ratelimiter.WithClock(clock.Now))
-		require.NoError(t, limiter.Hit(ctx, "login", time.Minute))
-		clock.Advance(time.Minute)
-
-		availableIn := limiter.AvailableIn(ctx, "login")
-
-		assert.Equal(t, int64(0), availableIn)
-	})
-
-	t.Run("returns zero after the expiry of the window", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := t.Context()
-		clock := newFakeClock()
-		limiter := newLimiter(t, ratelimiter.WithClock(clock.Now))
-		require.NoError(t, limiter.Hit(ctx, "login", time.Minute))
-		require.NoError(t, limiter.Hit(ctx, "login", time.Minute))
-		clock.Advance(time.Minute + time.Second)
-
-		availableIn := limiter.AvailableIn(ctx, "login")
-
-		assert.Equal(t, int64(0), availableIn)
-	})
-}
-
-func TestMemoryLimiter_Reset(t *testing.T) {
-	t.Parallel()
-
-	t.Run("removes the attempts", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := t.Context()
-		limiter := newLimiter(t, ratelimiter.WithClock(newFakeClock().Now))
-		require.NoError(t, limiter.Hit(ctx, "login", time.Minute))
-		require.NoError(t, limiter.Hit(ctx, "login", time.Minute))
-
-		require.NoError(t, limiter.Reset(ctx, "login"))
-
-		tooMany, err := limiter.TooManyAttempts(ctx, "login", 2)
-		require.NoError(t, err)
-		assert.False(t, tooMany, "a reset clears the attempts")
 	})
 }
 

@@ -7,36 +7,36 @@ import type { EditorSelection } from '@/composables/editor/useEditorSelection';
 import { useMarqueeSelection } from '@/composables/editor/useMarqueeSelection';
 import type { Bounds } from '@/lib/editor/geometry';
 
-/** EDITOR_SURFACE_ATTRIBUTE marks the element the content is drawn on, where a press starts a marquee. */
+/** Marks the element the content is drawn on, where a press starts a marquee. */
 export const EDITOR_SURFACE_ATTRIBUTE = 'data-editor-surface';
 
 export type EditorCanvasOptions<K> = {
-  // The guides of the document, which the rulers add and the canvas draws.
+  // The guides of the document, which the rulers add and the canvas draws
   guides: EditorGuides;
-  // The size of the content in its own units, such as pixels or millimeters.
+  // The size of the content in its own units, such as pixels or millimeters
   contentWidth: MaybeRefOrGetter<number>;
   contentHeight: MaybeRefOrGetter<number>;
-  // The free space around the fitted content, which keeps it clear of the rulers.
+  // The free space around the fitted content, which keeps it clear of the rulers
   padding: number;
-  // The screen pixels one content unit spans at 100 percent, such as 1 for pixels or about 3.78 for millimeters.
+  // The screen pixels one content unit spans at 100 percent, such as 1 for pixels or about 3.78 for millimeters
   actualScale: number;
   minZoom?: number;
   maxZoom?: number;
   selection: EditorSelection<K>;
-  // The items the marquee can select, with their bounds in content units.
+  // The items the marquee can select, with their bounds in content units
   items: () => Iterable<[K, Bounds]>;
-  // Whether a gesture on an item runs, such as a drag, which the rulers and the guides follow.
+  // Whether a gesture on an item runs, such as a drag, which the rulers and the guides follow
   gesture: () => boolean;
-  // The view mode blocks editing, so a press starts no marquee.
+  // The view mode blocks editing, so a press starts no marquee
   viewMode: MaybeRefOrGetter<boolean>;
 };
 
 export type EditorCanvas = ReturnType<typeof useEditorCanvas>;
 
 /**
- * useEditorCanvas holds the state of the canvas of an editor: the area with zoom and pan, the position of the pointer,
- * the dragging of guides, and the marquee selection. EditorCanvasFrame draws it, and the editor draws its content
- * inside.
+ * Holds the state of the canvas of an editor: the area with zoom and pan,
+ * the position of the pointer, the dragging of guides, and the marquee selection.
+ * EditorCanvasFrame draws it, and the editor draws its content inside.
  */
 export function useEditorCanvas<K>(options: EditorCanvasOptions<K>) {
   const area = shallowRef<HTMLElement | null>(null);
@@ -74,7 +74,7 @@ export function useEditorCanvas<K>(options: EditorCanvasOptions<K>) {
     () => options.gesture() || !!marquee.value || guides.dragged.value !== null,
   );
 
-  /** onAreaPointerDown starts a marquee selection on the empty content or the area around it. */
+  /** Starts a marquee selection on the empty content or the area around it. */
   function onAreaPointerDown(event: PointerEvent): void {
     if (toValue(options.viewMode)) return;
     const target = event.target;
@@ -87,7 +87,7 @@ export function useEditorCanvas<K>(options: EditorCanvasOptions<K>) {
     startMarquee(event);
   }
 
-  /** guideView returns what dragging a guide needs from the canvas. */
+  /** Returns what dragging a guide needs from the canvas. */
   function guideView(): GuideView {
     return {
       content: {
@@ -99,17 +99,17 @@ export function useEditorCanvas<K>(options: EditorCanvasOptions<K>) {
     };
   }
 
-  /** startGuideFromRuler adds a guide at the pointer on a ruler and lets it follow the pointer. */
+  /** Adds a guide at the pointer on a ruler and lets it follow the pointer. */
   function startGuideFromRuler(event: PointerEvent, ruler: 'horizontal' | 'vertical'): void {
     guides.startFromRuler(event, ruler, guideView());
   }
 
-  /** startGuideMove lets a guide follow the pointer. */
+  /** Lets a guide follow the pointer. */
   function startGuideMove(event: PointerEvent, index: number): void {
     guides.startMove(event, index, guideView());
   }
 
-  /** setArea takes the element of the area, which the frame hands over once it is mounted. */
+  /** Takes the element of the area, which the frame hands over once it is mounted. */
   function setArea(element: unknown): void {
     area.value = element instanceof HTMLElement ? element : null;
   }
@@ -117,12 +117,12 @@ export function useEditorCanvas<K>(options: EditorCanvasOptions<K>) {
   // The zoom relative to the actual size of the content, which the toolbar shows in percent
   const actualZoom = computed(() => viewport.scale.value / options.actualScale);
 
-  /** zoomToActual zooms to a share of the actual size, such as 1 for 100 percent. */
+  /** Zooms to a share of the actual size, where 1 is 100 percent. */
   function zoomToActual(factor: number): void {
     viewport.zoomToScale(options.actualScale * factor);
   }
 
-  /** zoomToBounds fills the area with a part of the content, if there is one. */
+  /** Fills the area with a part of the content, if there is one. */
   function zoomToBounds(bounds: Bounds | null): void {
     if (bounds) viewport.zoomToBounds(bounds);
   }

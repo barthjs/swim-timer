@@ -39,9 +39,8 @@ type Config struct {
 	Webhook WebhookConfig `mapstructure:"webhook" json:"webhook"`
 }
 
-// Load resolves the configuration from command-line flags, environment variables, a config file,
-// and the defaults (see structconf.Load), and validates it. A .env file in the working directory,
-// if present, fills the environment first. The flags may be nil for a command that registers none.
+// Load resolves and validates the configuration like structconf.Load,
+// with an optional .env file in the working directory filling the environment first.
 func Load(flags *pflag.FlagSet) (Config, error) {
 	// The .env file is optional, so an error reading it is ignored
 	_ = godotenv.Load()
@@ -58,8 +57,8 @@ func Load(flags *pflag.FlagSet) (Config, error) {
 	return cfg, nil
 }
 
-// Defaults returns the configuration built from the struct-tag defaults alone. It is not validated yet,
-// since settings without a default, such as secrets, may be required. Tests set what they need and then call Validate.
+// Defaults returns the configuration of the struct-tag defaults without validating it,
+// since settings without a default may be required.
 func Defaults() (Config, error) {
 	var cfg Config
 	if err := structconf.Defaults(&cfg); err != nil {
@@ -85,8 +84,8 @@ func Validate(cfg *Config) error {
 	return p.Err()
 }
 
-// ResolveDataPath returns path, or if it is empty, subdir below the application's data directory
-// (see appdirs.DataDir), so a default location does not depend on the working directory.
+// ResolveDataPath returns path, or if it is empty, subdir below the application's data directory (see appdirs.DataDir),
+// so a default location does not depend on the working directory.
 func ResolveDataPath(path, subdir string) (string, error) {
 	if path != "" {
 		return path, nil

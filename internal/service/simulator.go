@@ -23,13 +23,13 @@ const (
 	// simulatedPoolLength is the pool length the simulator assumes with an automatic pool length,
 	// which the timing service derives back from the distance and the transmitted lap count.
 	simulatedPoolLength = 50
-	// replayPassPause is the pause before every pass of a recording, so the timing service has handled the frames
-	// of the previous pass before the device clock jumps back.
+	// replayPassPause is the pause before every pass of a recording,
+	// so the timing service has handled the frames of the previous pass before the device clock jumps back.
 	replayPassPause = 10 * time.Second
 )
 
-// SimulatorService replaces the timing device. It generates the frames of one event of the loaded start list
-// with random times, or it replays the data of a recording as it arrived, all of it or the heats of one event.
+// SimulatorService replaces the timing device. It generates the frames of one event of the loaded start list with random times,
+// or it replays the data of a recording as it arrived, all of it or the heats of one event.
 type SimulatorService struct {
 	logger     zerolog.Logger
 	options    SimulatorOptions
@@ -40,7 +40,7 @@ type SimulatorService struct {
 
 	// clock is the time source of the replay.
 	clock omega.Clock
-	// generatorOptions configure the frame generator, for example a clock that advances instantly in tests.
+	// generatorOptions configure the frame generator.
 	generatorOptions []omega.Option
 
 	// started guards Run, since two loops would interleave their frames on the same writer.
@@ -62,8 +62,7 @@ type SimulatorOptions struct {
 // SimulatorOption configures a SimulatorService.
 type SimulatorOption func(*SimulatorService)
 
-// WithSimulatorClock replaces the system time of the generator and the replay,
-// for example with a clock that advances instantly in tests. A nil clock is ignored.
+// WithSimulatorClock replaces the system time of the generator and the replay, unless clock is nil.
 func WithSimulatorClock(clock omega.Clock) SimulatorOption {
 	return func(s *SimulatorService) {
 		if clock == nil {
@@ -81,8 +80,8 @@ func WithSimulatorRandSeed(seed int64) SimulatorOption {
 	}
 }
 
-// NewSimulatorService creates a SimulatorService. onClockJump runs where a replayed recording makes the device clock
-// jump, at the start of every pass and every recorded session. It may be nil.
+// NewSimulatorService creates a SimulatorService whose optional onClockJump runs where a replayed recording
+// makes the device clock jump, at the start of every pass and every recorded session.
 func NewSimulatorService(
 	logger zerolog.Logger,
 	options SimulatorOptions,
@@ -105,9 +104,7 @@ func NewSimulatorService(
 	return s
 }
 
-// Run writes the frames of the event's heats, or the data of the replayed recording, to w in a loop until ctx is
-// canceled. Generating frames needs the loaded meet data, otherwise there is nothing to simulate.
-// It may only be called once per SimulatorService, a second call logs an error and returns.
+// Run writes generated frames of the loaded meet, or the replayed recording, to w until ctx is canceled, once per service.
 func (s *SimulatorService) Run(ctx context.Context, w io.Writer) {
 	if !s.started.CompareAndSwap(false, true) {
 		s.logger.Error().Msg("simulator is already running")
@@ -183,10 +180,8 @@ func (s *SimulatorService) lapCount(event *domain.Event, eventFound bool) int {
 	return max(1, event.Distance.Length/poolLength)
 }
 
-// replay writes the data of the recording at the replay path to w in a loop until ctx is canceled,
-// with the pauses between the reads as they were recorded. With an event, it writes only the time windows
-// of the heats of that event, see replayWindows. It stops with an error in the log if the recording
-// cannot be read or holds nothing to replay.
+// replay writes the recording at the replay path to w with its recorded pauses until ctx is canceled,
+// only the windows of the heats of an event if one is set, and logs a recording it cannot replay.
 func (s *SimulatorService) replay(ctx context.Context, w io.Writer) {
 	logger := s.logger.With().Str("recording", s.options.ReplayPath).Int("event", s.options.Event).Logger()
 	logger.Info().Msg("replaying the recording")
@@ -259,12 +254,12 @@ func replayAll(entries []recording.Entry) []bool {
 	return selected
 }
 
-// replayWindows selects the data lines of the heats of an event. A heat spans the reads from the one that
-// brought the first byte of its first frame to the one that brought the last byte of its last frame, including noise
-// and the frames of other events in between. Every load frame ends the heat, since the device then shows another one,
-// so a frame of the heat after it, such as a late correction, starts a short window of its own.
-// Every session is decoded on its own, like the timing service does.
+// replayWindows selects the data lines of the heats of an event.
 func replayWindows(entries []recording.Entry, event int) []bool {
+	// A heat spans the reads from the first byte of its first frame to the last byte of its last frame,
+	// including noise and the frames of other events in between. Every load frame ends the heat,
+	// since the device then shows another one, so a late frame of the heat starts a short window of its own.
+	// Every session is decoded on its own, like the timing service does.
 	selected := make([]bool, len(entries))
 	source := &windowSource{
 		entries: entries,
@@ -315,8 +310,8 @@ func replayWindows(entries []recording.Entry, event int) []bool {
 	return selected
 }
 
-// windowSource hands the data lines of one session to a decoder one byte per read, so the position
-// of the last byte of a frame is known when the decoder returns it, see replayWindows.
+// windowSource hands the data lines of one session to a decoder one byte per read,
+// so the position of the last byte of a frame is known when the decoder returns it, see replayWindows.
 type windowSource struct {
 	entries []recording.Entry
 	// next is the index of the next entry to read.
@@ -378,9 +373,7 @@ func (s *windowSource) lineAt(offset int) int {
 	return s.lines[max(position, 0)]
 }
 
-// replayPass replays the entries once, writing the selected data lines. The pauses between the entries are kept
-// as they were recorded from the first selected entry on, the entries before it run at once.
-// A clock set back between two entries counts as no pause.
+// replayPass replays the selected data lines once, with the recorded pauses from the first selected entry on.
 func (s *SimulatorService) replayPass(
 	ctx context.Context,
 	logger zerolog.Logger,
@@ -389,6 +382,7 @@ func (s *SimulatorService) replayPass(
 	selected []bool,
 	first int,
 ) error {
+	// A clock set back between two entries counts as no pause
 	start := s.clock.Now()
 	previous := entries[first].At
 	var due time.Duration
@@ -450,11 +444,10 @@ func (s *SimulatorService) wait(ctx context.Context, d time.Duration) bool {
 	}
 }
 
-// matchesMeet reports whether recorded meet files show the replayed data like the loaded ones. Without an event,
-// every file must be the same, compared by its hash. With an event, only what the overlays show of it counts:
-// the event with its distance, style, category, and phase, its start entries, and their competitors.
-// Recorded files that cannot be read do not match.
+// matchesMeet reports whether recorded meet files show the replayed data like the loaded ones.
 func (s *SimulatorService) matchesMeet(files []recording.MeetFile) bool {
+	// With an event, only what the overlays show of it counts: the event with its distance, style, category,
+	// and phase, its start entries, and their competitors. Recorded files that cannot be read do not match.
 	if s.options.Event <= 0 {
 		return s.matchesMeetFiles(files)
 	}

@@ -43,17 +43,7 @@ type FileOptions struct {
 	Errors io.Writer
 }
 
-// File is an io.WriteCloser that rotates once a day and when it grows too large.
-// It is safe for concurrent use. Rotated files are named after the time of the rotation,
-// optionally compressed, and removed once they are older than the retention period.
-//
-// The daily rotation happens on the first write after local midnight instead of on a timer,
-// so no goroutine runs and a quiet process keeps the last day's file until it logs again.
-// The size limit is a safety net for days with unusually many logs.
-//
-// A failed rotation, such as on a full disk, keeps the current file and is retried after rotateRetryInterval.
-// A line the file does not take goes to the fallback, so no line is lost. Each kind of failure is reported once
-// until the file works again, since a report per line would flood the error output.
+// File is an io.WriteCloser for concurrent use that rotates the log file once a day and when it grows too large.
 type File struct {
 	mu          sync.Mutex
 	writer      *lumberjack.Logger
@@ -68,8 +58,7 @@ type File struct {
 	writeFailed  bool
 }
 
-// OpenFile prepares the log file. The file itself is created on the first write.
-// An existing file from an earlier day is rotated before the first write of today.
+// OpenFile prepares the log file, which the first write creates or rotates if it is from an earlier day.
 func OpenFile(options FileOptions) (*File, error) {
 	if options.Filename == "" {
 		return nil, ErrNoFilename
@@ -124,12 +113,13 @@ func OpenFile(options FileOptions) (*File, error) {
 	}, nil
 }
 
-// Write appends p to the log file, rotating it first if a new day has begun since the last write.
-// If the file does not take p, Write passes it to the fallback instead.
+// Write appends p to the log file, or to the fallback while the file does not take it, so no line is lost.
 func (f *File) Write(p []byte) (int, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
+	// Rotating on the first write of a day instead of on a timer needs no goroutine,
+	// and a quiet process keeps the file of its last day until it logs again.
 	f.rotateIfDue(f.clock())
 
 	n, err := f.writer.Write(p)
@@ -138,6 +128,7 @@ func (f *File) Write(p []byte) (int, error) {
 		return n, nil
 	}
 
+	// Each kind of failure is reported once until the file works again, since a report per line floods the error output
 	if !f.writeFailed {
 		f.writeFailed = true
 		f.report("writing the log file failed, writing to the fallback until it works again", err)
@@ -160,6 +151,7 @@ func (f *File) rotateIfDue(now time.Time) {
 		return
 	}
 
+	// A failed rotation keeps writing to the current file until the retry
 	if err := f.writer.Rotate(); err != nil {
 		f.retryAt = now.Add(rotateRetryInterval)
 		if !f.rotateFailed {

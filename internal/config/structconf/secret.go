@@ -6,8 +6,7 @@ import (
 	"strings"
 )
 
-// secretTag marks a string setting whose value must never be shown, such as a password or a token,
-// with `secret:"true"`. Redacted and HideSecrets keep such values out of any output.
+// secretTag marks a string setting whose value must never be shown with `secret:"true"`.
 const secretTag = "secret"
 
 // redactedValue replaces a set secret in Redacted.
@@ -33,9 +32,8 @@ func Redacted[T any](cfg T) T {
 	return copied
 }
 
-// HideSecrets clears every secret of the configuration cfg points to and reports for each secret,
-// by its JSON path such as "storage.s3.secretKey", whether it was set. A configuration sent this way
-// tells the receiver which secrets exist without revealing them.
+// HideSecrets clears every secret of cfg and reports by JSON path whether it was set,
+// so a receiver learns which secrets exist without seeing them.
 func HideSecrets(cfg any) map[string]bool {
 	set := make(map[string]bool)
 	eachSecret(reflect.ValueOf(cfg).Elem(), "", func(f secretField) {
@@ -45,9 +43,8 @@ func HideSecrets(cfg any) map[string]bool {
 	return set
 }
 
-// KeepSecrets copies every secret that is empty in the configuration dst points to from the one current points to,
-// unless its JSON path is listed in clear. A form that never received the secrets sends them empty,
-// and this keeps them unchanged unless the user asked to remove them.
+// KeepSecrets fills the empty secrets of dst from current except those listed in clear by JSON path,
+// since a form that never received the secrets sends them empty.
 func KeepSecrets(dst, current any, clear []string) {
 	currentValues := make(map[string]string)
 	eachSecret(reflect.ValueOf(current).Elem(), "", func(f secretField) {

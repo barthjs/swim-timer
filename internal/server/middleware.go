@@ -23,8 +23,8 @@ const (
 type requestIDKey struct{}
 
 // RequestID takes the request ID from the X-Request-ID header, or creates one if the header is missing or invalid,
-// stores it in the request context, and returns it in the response header. A proxy in front of the application
-// can set the header, so its logs and the application's logs share the same ID.
+// stores it in the request context, and returns it in the response header.
+// A proxy in front of the application can set the header, so its logs and the application's logs share the same ID.
 func RequestID(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		id := r.Header.Get(RequestIDHeader)
@@ -75,10 +75,7 @@ func RealIP(trustedProxies []*net.IPNet) func(http.Handler) http.Handler {
 	}
 }
 
-// clientIP determines the originating client IP for a request. If the direct peer is not a trusted proxy,
-// its address is used as-is and any forwarding headers are ignored. Otherwise, the X-Forwarded-For chain is walked
-// from right to left, and the first untrusted address is returned as the client. Values that are no IP address
-// are ignored in both forwarding headers.
+// clientIP returns the address of the client, read from the forwarding headers only behind a trusted proxy.
 func clientIP(r *http.Request, trusted []*net.IPNet) string {
 	peer := r.RemoteAddr
 	if host, _, err := net.SplitHostPort(r.RemoteAddr); err == nil {
@@ -99,6 +96,8 @@ func clientIP(r *http.Request, trusted []*net.IPNet) string {
 		return realIP
 	}
 
+	// A client can prepend any address, so the chain is read from the proxies backward,
+	// and the first untrusted address is the client.
 	leftmost := ""
 	for _, part := range slices.Backward(strings.Split(forwarded, ",")) {
 		candidate := strings.TrimSpace(part)
@@ -135,14 +134,13 @@ type SecurityHeadersOptions struct {
 	ContentSecurityPolicy string
 	// PermissionsPolicy is the value of the Permissions-Policy header, empty leaves the header out.
 	PermissionsPolicy string
-	// WebSocketSources adds ws:// and wss:// of the request host to the connect-src directive of the policy.
-	// Older browsers do not match websockets with 'self', so a same-origin websocket needs its origin listed.
-	// A policy without connect-src stays as it is, since adding the directive would override default-src.
+	// WebSocketSources adds ws:// and wss:// of the request host to the connect-src directive of the policy,
+	// since older browsers do not match websockets with 'self'.
 	WebSocketSources bool
 }
 
-// SecurityHeaders sets response headers that keep browsers from sniffing content types, embedding the response
-// in frames, leaking full URLs to other origins, and sharing the browsing context or resources with other origins.
+// SecurityHeaders sets response headers that keep browsers from sniffing content types, embedding the response in frames,
+// leaking full URLs to other origins, and sharing the browsing context or resources with other origins.
 // The policies of the options are added when they are set.
 func SecurityHeaders(options SecurityHeadersOptions) func(http.Handler) http.Handler {
 	var directives []string
@@ -185,8 +183,8 @@ func SecurityHeaders(options SecurityHeadersOptions) func(http.Handler) http.Han
 	}
 }
 
-// validHost accepts a host name or IP address with an optional port, so a forged Host header
-// cannot add directives or sources to the policy.
+// validHost accepts a host name or IP address with an optional port,
+// so a forged Host header cannot add directives or sources to the policy.
 func validHost(host string) bool {
 	if host == "" {
 		return false
@@ -219,8 +217,7 @@ const defaultCORSMaxAge = 10 * time.Minute
 
 // CORSOptions holds the settings of the CORS middleware. Without allowed origins, CORS stays off.
 type CORSOptions struct {
-	// AllowedOrigins are exact origins such as "https://example.com", or "*" for any origin.
-	// "*" cannot be combined with AllowCredentials, browsers reject that.
+	// AllowedOrigins are exact origins, or "*" for any origin, which browsers reject together with AllowCredentials.
 	AllowedOrigins []string
 	// AllowCredentials lets browsers send cookies and authorization headers cross-origin.
 	AllowCredentials bool
@@ -299,16 +296,14 @@ func orDefault(values, fallback []string) []string {
 
 // CrossOriginOptions holds the settings of the CrossOrigin middleware.
 type CrossOriginOptions struct {
-	// TrustedOrigins may send state-changing requests from another origin, such as "https://example.com".
-	// "*" and malformed origins are never trusted, a wildcard only lets other origins read responses.
+	// TrustedOrigins may send state-changing requests from another origin, where "*" is never trusted.
 	TrustedOrigins []string
 	// Deny answers a rejected request and defaults to a plain 403 Forbidden.
 	Deny http.Handler
 }
 
-// CrossOrigin rejects state-changing requests that the browser marks as cross-origin in the Sec-Fetch-Site
-// or Origin header, unless they come from a trusted origin. GET, HEAD, and OPTIONS pass, as do requests without
-// these headers, such as those of command-line tools, which cannot carry the session of a browser.
+// CrossOrigin rejects the state-changing requests a browser marks as cross-origin, unless their origin is trusted,
+// and lets requests without these headers pass, since they cannot carry the session of a browser.
 func CrossOrigin(options CrossOriginOptions) func(http.Handler) http.Handler {
 	protection := http.NewCrossOriginProtection()
 	for _, origin := range options.TrustedOrigins {

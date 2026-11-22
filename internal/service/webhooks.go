@@ -1,10 +1,12 @@
 package service
 
 import (
+	"cmp"
 	"context"
 	"crypto/rand"
 	"errors"
 	"net"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -95,25 +97,23 @@ type WebhookCreateInput struct {
 	Events  []domain.WebhookEvent
 	Enabled bool
 	Secret  string
-	// SkipTLSVerify accepts any certificate of the endpoint, such as a self-signed one.
+	// SkipTLSVerify accepts any certificate of the endpoint.
 	SkipTLSVerify bool
 }
 
-// WebhookUpdateInput replaces the settings of a webhook. An empty secret is generated anew.
+// WebhookUpdateInput replaces the settings of a webhook. An empty secret keeps the stored one.
 type WebhookUpdateInput struct {
 	Name    string
 	URL     string
 	Events  []domain.WebhookEvent
 	Enabled bool
 	Secret  string
-	// SkipTLSVerify accepts any certificate of the endpoint, such as a self-signed one.
+	// SkipTLSVerify accepts any certificate of the endpoint.
 	SkipTLSVerify bool
 }
 
-// WebhookService manages the webhooks and delivers the published events to them. Every webhook has its own
-// delivery goroutine that keeps only the latest message per event, since a newer state of the live data replaces
-// an older one. A slow or unreachable target therefore receives fewer intermediate states but never delays
-// the overlays or the other targets.
+// WebhookService manages the webhooks and delivers the published events to them, each on its own,
+// so a slow or unreachable target never delays the overlays or the other targets.
 type WebhookService struct {
 	logger zerolog.Logger
 	client *webhook.Client
@@ -146,8 +146,8 @@ type webhookTarget struct {
 	deliveries []WebhookDelivery
 }
 
-// NewWebhookService creates a WebhookService. Run loads the webhooks and starts their deliveries.
-// sample returns the current data of an event, which Preview sends as the data of the message. It may be nil.
+// NewWebhookService creates a WebhookService that Run starts, with an optional sample of the current data
+// of an event for Preview.
 func NewWebhookService(
 	logger zerolog.Logger,
 	client *webhook.Client,
@@ -195,8 +195,8 @@ func (s *WebhookService) ListDeliveries(ctx context.Context, id string) ([]Webho
 	defer target.mu.Unlock()
 
 	deliveries := make([]WebhookDelivery, 0, len(target.deliveries))
-	for i := len(target.deliveries) - 1; i >= 0; i-- {
-		deliveries = append(deliveries, target.deliveries[i])
+	for _, delivery := range slices.Backward(target.deliveries) {
+		deliveries = append(deliveries, delivery)
 	}
 	return deliveries, nil
 }
@@ -239,12 +239,13 @@ func (s *WebhookService) Create(ctx context.Context, input WebhookCreateInput) (
 }
 
 // Update replaces the settings of the webhook with the given id, which take effect with its next delivery,
-// or returns apperr.ErrNotFound if it does not exist. It validates like Create.
+// or returns apperr.ErrNotFound if it does not exist. It validates like Create, and an empty secret keeps the stored one.
 func (s *WebhookService) Update(ctx context.Context, id string, input WebhookUpdateInput) (WebhookState, error) {
 	s.writeMu.Lock()
 	defer s.writeMu.Unlock()
 
-	if _, err := s.get(ctx, id); err != nil {
+	stored, err := s.get(ctx, id)
+	if err != nil {
 		return WebhookState{}, err
 	}
 
@@ -254,7 +255,7 @@ func (s *WebhookService) Update(ctx context.Context, id string, input WebhookUpd
 		URL:           input.URL,
 		Events:        input.Events,
 		Enabled:       input.Enabled,
-		Secret:        input.Secret,
+		Secret:        cmp.Or(input.Secret, stored.Secret),
 		SkipTLSVerify: input.SkipTLSVerify,
 	}
 	if err := s.save(ctx, &wh); err != nil {
@@ -291,8 +292,8 @@ func (s *WebhookService) Delete(ctx context.Context, id string) error {
 	return nil
 }
 
-// Test delivers a test message to the webhook with the given id once, even if it is disabled, and returns
-// the delivery, or apperr.ErrNotFound if the webhook does not exist. The delivery counts towards its state.
+// Test delivers a test message to a webhook once, even a disabled one, and returns the delivery,
+// which leaves the state of the webhook alone.
 func (s *WebhookService) Test(ctx context.Context, id string) (WebhookDelivery, error) {
 	wh, err := s.get(ctx, id)
 	if err != nil {
@@ -322,12 +323,12 @@ func (s *WebhookService) Test(ctx context.Context, id string) (WebhookDelivery, 
 	if err != nil {
 		return WebhookDelivery{}, err
 	}
-	s.ensureTarget(*current).record(delivery, result.Outcome)
+	s.ensureTarget(*current).log(delivery)
 	return delivery, nil
 }
 
-// Preview returns the message of an event with its current data as it would be sent to the webhook with the given id
-// now, signed with its secret, or apperr.ErrNotFound if the webhook does not exist. Nothing is sent.
+// Preview returns the message of an event with its current data as it would be sent to the webhook with the given id now,
+// signed with its secret, or apperr.ErrNotFound if the webhook does not exist. Nothing is sent.
 func (s *WebhookService) Preview(ctx context.Context, id string, event domain.WebhookEvent) (webhook.Request, error) {
 	wh, err := s.get(ctx, id)
 	if err != nil {
@@ -351,10 +352,9 @@ func (s *WebhookService) Preview(ctx context.Context, id string, event domain.We
 	}, payload)
 }
 
-// Publish hands an event to every enabled webhook that subscribes to it. data builds the data of the message only
-// if one does, and it is encoded once, right away, so the caller may change it afterwards. A webhook still delivering
-// keeps only the latest message of the event.
+// Publish hands an event to every enabled webhook that subscribes to it, with data encoded once right away.
 func (s *WebhookService) Publish(event domain.WebhookEvent, data func() any) {
+	// A webhook still delivering keeps every message of a queued event and only the latest message of any other
 	s.mu.Lock()
 	targets := make([]*webhookTarget, 0, len(s.targets))
 	for _, target := range s.targets {
@@ -403,8 +403,8 @@ func (s *WebhookService) Run(ctx context.Context) {
 	s.workers.Wait()
 }
 
-// listStored returns the stored webhooks. A file that cannot be read is logged and left out, so the others
-// stay available and can still be delivered to.
+// listStored returns the stored webhooks. A file that cannot be read is logged and left out,
+// so the others stay available and can still be delivered to.
 func (s *WebhookService) listStored(ctx context.Context) ([]domain.Webhook, error) {
 	webhooks, err := s.store.List(ctx)
 	if errors.Is(err, store.ErrUnreadableFile) {
@@ -500,10 +500,10 @@ func (s *WebhookService) startLocked(id string, target *webhookTarget) {
 	s.workers.Go(func() { s.deliverLoop(ctx, id, target) })
 }
 
-// deliverLoop delivers the pending messages of a target until ctx is canceled. Each round sends every pending event
-// once, so a message that keeps failing never holds back the other events. After a failed round it waits
-// with a backoff, or as long as the target asked for.
+// deliverLoop delivers the pending messages of a target until ctx is canceled.
 func (s *WebhookService) deliverLoop(ctx context.Context, id string, target *webhookTarget) {
+	// Each round sends every pending event once, so a message that keeps failing never holds back the other events.
+	// After a failed round it waits with a backoff, or as long as the target asked for.
 	backoff := webhookFirstBackoff
 	for {
 		if !target.hasPending() {
@@ -534,10 +534,11 @@ func (s *WebhookService) deliverLoop(ctx context.Context, id string, target *web
 	}
 }
 
-// deliverPending sends the pending message of every event once. A message that failed returns to the pending ones,
-// unless a newer one of its event arrived meanwhile. It reports whether one failed and the longest wait a target
-// asked for.
+// deliverPending sends the next pending message of every event once and reports whether one failed
+// and the longest wait a target asked for.
 func (s *WebhookService) deliverPending(ctx context.Context, id string, target *webhookTarget) (time.Duration, bool) {
+	// A failed message returns to the pending ones, ahead of the later ones of a queued event
+	// or unless a newer one of another event arrived.
 	var deferral time.Duration
 	failed := false
 	for _, event := range domain.WebhookEvents() {
@@ -580,8 +581,8 @@ func (s *WebhookService) deliverPending(ctx context.Context, id string, target *
 	return deferral, failed
 }
 
-// disable turns off a webhook whose target answered at url that it no longer exists. A webhook that was deleted
-// or got another URL meanwhile is left as it is, since the answer no longer applies to it.
+// disable turns off a webhook whose target answered at url that it no longer exists.
+// A webhook that was deleted or got another URL meanwhile is left as it is, since the answer no longer applies to it.
 func (s *WebhookService) disable(ctx context.Context, id string, target *webhookTarget, url string) {
 	s.writeMu.Lock()
 	defer s.writeMu.Unlock()
@@ -669,8 +670,8 @@ func (t *webhookTarget) requeue(event domain.WebhookEvent, payload webhook.Paylo
 	}
 }
 
-// record adds a delivery to the log of the target and updates its state by the outcome. A deferred delivery
-// is no failure, since the target only asked to wait.
+// record adds a delivery to the log of the target and updates its state by the outcome.
+// A deferred delivery is no failure, since the target only asked to wait.
 func (t *webhookTarget) record(delivery WebhookDelivery, outcome webhook.Outcome) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
@@ -688,6 +689,19 @@ func (t *webhookTarget) record(delivery WebhookDelivery, outcome webhook.Outcome
 		t.status.ConsecutiveFailures++
 	}
 
+	t.appendDelivery(delivery)
+}
+
+// log keeps a delivery in the log without changing the state of the webhook, as for a test message.
+func (t *webhookTarget) log(delivery WebhookDelivery) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	t.appendDelivery(delivery)
+}
+
+// appendDelivery adds a delivery to the log, which keeps the last webhookDeliveryLogSize. The caller holds mu.
+func (t *webhookTarget) appendDelivery(delivery WebhookDelivery) {
 	t.deliveries = append(t.deliveries, delivery)
 	if len(t.deliveries) > webhookDeliveryLogSize {
 		t.deliveries = t.deliveries[len(t.deliveries)-webhookDeliveryLogSize:]

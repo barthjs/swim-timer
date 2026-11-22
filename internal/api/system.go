@@ -22,7 +22,6 @@ func (a *API) metaGetHandler(w http.ResponseWriter, r *http.Request) {
 	}, nil)
 }
 
-// MetaResponse exposes public, non-sensitive configuration.
 type MetaResponse struct {
 	Name     string        `json:"name"`
 	Version  string        `json:"version"`

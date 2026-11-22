@@ -46,8 +46,7 @@ type Supervisor struct {
 // Option configures a Supervisor.
 type Option func(*Supervisor)
 
-// WithPortLister replaces the scan of the system's serial ports, for example with a fixed list in tests.
-// A nil function is ignored.
+// WithPortLister replaces the scan of the system's serial ports, unless list is nil.
 func WithPortLister(list func() ([]string, error)) Option {
 	return func(s *Supervisor) {
 		if list != nil {
@@ -96,8 +95,8 @@ func (s *Supervisor) Run(ctx context.Context, handle Handler) {
 
 	for {
 		if !s.connectAndHandle(ctx, ports, handle) && s.port == "" {
-			// None of the known ports could be opened, for example because a USB adapter was plugged
-			// into another socket and got a new name, so the system is scanned again.
+			// None of the known ports could be opened, for example because a USB adapter was plugged into another socket
+			// and got a new name, so the system is scanned again.
 			ports, ok = s.candidates(ctx)
 			if !ok {
 				return
@@ -131,9 +130,7 @@ func (s *Supervisor) Port() string {
 	return s.connected
 }
 
-// candidates returns the ports to try. A configured port is used exclusively. Otherwise, the system is scanned until
-// at least one port is found. Reconnects cycle through the same list until none of its ports can be opened anymore,
-// which triggers a new scan. It reports false if ctx was canceled first.
+// candidates returns the configured port or scans the system until it finds one, and false once ctx is canceled.
 func (s *Supervisor) candidates(ctx context.Context) ([]string, bool) {
 	if s.port != "" {
 		return []string{s.port}, true
@@ -157,10 +154,7 @@ func (s *Supervisor) candidates(ctx context.Context) ([]string, bool) {
 	}
 }
 
-// connectAndHandle opens the first of the ports that can be opened and hands it to handle.
-// The port is closed when handle returns or ctx is canceled, whichever comes first,
-// so a read that blocks on a silent device does not outlive a shutdown.
-// It reports whether a port could be opened.
+// connectAndHandle hands the first port that opens to handle and reports whether one opened.
 func (s *Supervisor) connectAndHandle(ctx context.Context, ports []string, handle Handler) bool {
 	var conn io.ReadCloser
 	var name string
@@ -190,6 +184,7 @@ func (s *Supervisor) connectAndHandle(ctx context.Context, ports []string, handl
 	s.setConnected(name)
 	defer s.setConnected("")
 
+	// Closing the port on cancel keeps a read that blocks on a silent device from outliving a shutdown
 	done := make(chan struct{})
 	defer close(done)
 

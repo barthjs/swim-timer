@@ -12,10 +12,10 @@ import (
 
 	"github.com/barthjs/swim-timer/internal/apitest"
 	"github.com/barthjs/swim-timer/internal/apperr"
+	"github.com/barthjs/swim-timer/internal/service"
 )
 
-// TestAPI_RespondError covers the mappings that the feature tests do not reach, such as a concurrent modification
-// that cannot be provoked reliably through a request.
+// TestAPI_RespondError checks the status and the code respondError answers an error with.
 func TestAPI_RespondError(t *testing.T) {
 	t.Parallel()
 
@@ -26,8 +26,40 @@ func TestAPI_RespondError(t *testing.T) {
 		code   string
 	}{
 		{
+			name: "answers invalid settings as a bad request",
+			err: &service.InvalidConfigError{
+				Err: errors.New("invalid"),
+			},
+			status: http.StatusBadRequest,
+			code:   codeBadRequest,
+		},
+		{
+			name:   "answers an invalid sort field with a bad request",
+			err:    apperr.ErrInvalidSort,
+			status: http.StatusBadRequest,
+			code:   codeBadRequest,
+		},
+		{
+			name:   "answers a missing sign-in as unauthenticated",
+			err:    apperr.ErrAuthenticationRequired,
+			status: http.StatusUnauthorized,
+			code:   codeAuthenticationRequired,
+		},
+		{
+			name:   "answers a denied action as forbidden",
+			err:    apperr.ErrForbidden,
+			status: http.StatusForbidden,
+			code:   codeForbidden,
+		},
+		{
 			name:   "answers a concurrent modification with a conflict",
 			err:    apperr.ErrVersionConflict,
+			status: http.StatusConflict,
+			code:   codeConflict,
+		},
+		{
+			name:   "answers a recording in use with a conflict",
+			err:    service.ErrRecordingInUse,
 			status: http.StatusConflict,
 			code:   codeConflict,
 		},

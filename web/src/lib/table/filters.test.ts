@@ -1,25 +1,39 @@
 import { describe, expect, it, vi } from 'vitest';
+import { faker } from '@faker-js/faker';
 
-import { tableDateRangeLabel, tableFilterPill, tableOptionLabel } from '@/lib/table/filters';
+import {
+  tableDateRangeLabel,
+  tableFilterPill,
+  tableOptionLabel,
+  withoutEmpty,
+} from '@/lib/table/filters';
 
 describe('tableFilterPill', () => {
   it('returns a pill for a set filter', () => {
+    const key = faker.lorem.word();
+    const label = faker.lorem.word();
+    const value = faker.lorem.word();
     const remove = vi.fn<() => void>();
 
-    const pills = tableFilterPill('status', 'Status', 'Active', remove);
+    const pills = tableFilterPill(key, label, value, remove);
 
     expect(pills).toEqual([
       {
-        key: 'status',
-        label: 'Status',
-        value: 'Active',
+        key,
+        label,
+        value,
         remove,
       },
     ]);
   });
 
   it.each([undefined, ''])('returns no pill for the empty value %j', (value) => {
-    const pills = tableFilterPill('status', 'Status', value, vi.fn<() => void>());
+    const pills = tableFilterPill(
+      faker.lorem.word(),
+      faker.lorem.word(),
+      value,
+      vi.fn<() => void>(),
+    );
 
     expect(pills).toEqual([]);
   });
@@ -28,11 +42,11 @@ describe('tableFilterPill', () => {
 describe('tableOptionLabel', () => {
   const items = [
     {
-      label: 'Active',
+      label: faker.lorem.word(),
       value: 1,
     },
     {
-      label: 'Pending',
+      label: faker.lorem.word(),
       value: 2,
     },
   ];
@@ -40,7 +54,7 @@ describe('tableOptionLabel', () => {
   it('returns the label of the matching option', () => {
     const label = tableOptionLabel(items, 2);
 
-    expect(label).toBe('Pending');
+    expect(label).toBe(items[1]?.label);
   });
 
   it.each([
@@ -60,13 +74,18 @@ describe('tableOptionLabel', () => {
 });
 
 describe('tableDateRangeLabel', () => {
-  const format = (value: string) => value.split('-').reverse().join('.');
+  const format = (value: string, withYear: boolean) =>
+    value
+      .split('-')
+      .reverse()
+      .slice(0, withYear ? 3 : 2)
+      .join('.');
   const labels = {
-    from: 'from',
-    to: 'until',
+    from: faker.lorem.word(),
+    to: faker.lorem.word(),
   };
 
-  it('joins both ends of a closed range', () => {
+  it('joins both ends of a range within one year and names the year once', () => {
     const range = {
       from: '2026-05-01',
       to: '2026-05-31',
@@ -74,7 +93,18 @@ describe('tableDateRangeLabel', () => {
 
     const label = tableDateRangeLabel(range, format, labels);
 
-    expect(label).toBe('01.05.2026 – 31.05.2026');
+    expect(label).toBe('01.05 – 31.05.2026');
+  });
+
+  it('names both years of a range across years', () => {
+    const range = {
+      from: '2025-12-01',
+      to: '2026-01-31',
+    };
+
+    const label = tableDateRangeLabel(range, format, labels);
+
+    expect(label).toBe('01.12.2025 – 31.01.2026');
   });
 
   it.each([
@@ -84,7 +114,7 @@ describe('tableDateRangeLabel', () => {
         from: '2026-05-01',
         to: '',
       },
-      expected: 'from 01.05.2026',
+      expected: `${labels.from} 01.05.2026`,
     },
     {
       name: 'end',
@@ -92,7 +122,7 @@ describe('tableDateRangeLabel', () => {
         from: '',
         to: '2026-05-31',
       },
-      expected: 'until 31.05.2026',
+      expected: `${labels.to} 31.05.2026`,
     },
   ])('names the $name of an open range', ({ range, expected }) => {
     const label = tableDateRangeLabel(range, format, labels);
@@ -109,5 +139,19 @@ describe('tableDateRangeLabel', () => {
     const label = tableDateRangeLabel(range, format, labels);
 
     expect(label).toBeUndefined();
+  });
+});
+
+describe('withoutEmpty', () => {
+  it('leaves out the filters without a value', () => {
+    expect(
+      withoutEmpty({
+        status: 'open',
+        user: undefined,
+        q: '',
+      }),
+    ).toEqual({
+      status: 'open',
+    });
   });
 });

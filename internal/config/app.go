@@ -6,7 +6,7 @@ import (
 	"github.com/barthjs/swim-timer/internal/config/structconf"
 )
 
-// Environment is the deployment environment of the application.
+// Environment names the kind of deployment the application runs in.
 type Environment string
 
 const (

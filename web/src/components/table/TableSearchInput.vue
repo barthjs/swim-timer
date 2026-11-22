@@ -21,18 +21,18 @@ const { t } = useI18n();
 
 const input = useTemplateRef<{ inputRef?: HTMLInputElement | null }>('input');
 
-/** focus moves the focus into the input. */
+/** Moves the focus into the input. */
 function focus() {
   input.value?.inputRef?.focus();
 }
 
-/** clear empties the input and keeps the focus in it. */
+/** Empties the input and keeps the focus in it. */
 function clear() {
   search.value = '';
   void nextTick(focus);
 }
 
-/** onEscape clears a filled input. An empty one lets the key through, for example to close a dialog. */
+/** Clears a filled input and lets the key through while it is empty. */
 function onEscape(event: KeyboardEvent) {
   if (search.value === '') return;
   event.stopPropagation();

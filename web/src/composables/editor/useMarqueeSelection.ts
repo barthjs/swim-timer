@@ -1,16 +1,16 @@
 import { ref } from 'vue';
 
-import { usePointerDrag } from '@/composables/usePointerDrag';
+import { usePointerDrag } from '@/composables/editor/usePointerDrag';
 import { isAdditiveSelect, type EditorSelection } from '@/composables/editor/useEditorSelection';
 import { boundsIntersect, type Bounds, type Point } from '@/lib/editor/geometry';
 
-// The value of PointerEvent.button for the primary button.
+// The value of PointerEvent.button for the primary button
 const BUTTON_PRIMARY = 0;
 
 export type MarqueeSelectionOptions<K> = {
-  // Converts a position in the browser window into content units.
+  // Converts a position in the browser window into content units
   toContent: (clientX: number, clientY: number) => Point;
-  // The items the marquee can select, with their bounds in content units.
+  // The items the marquee can select, with their bounds in content units
   items: () => Iterable<[K, Bounds]>;
   selection: EditorSelection<K>;
 };
@@ -20,7 +20,7 @@ export type Marquee = {
   current: Point;
 };
 
-/** marqueeBounds returns the area a marquee spans, independent of the direction it was drawn in. */
+/** Returns the area a marquee spans, independent of the direction it was drawn in. */
 export function marqueeBounds(marquee: Marquee): Bounds {
   return {
     minX: Math.min(marquee.start.x, marquee.current.x),
@@ -30,11 +30,7 @@ export function marqueeBounds(marquee: Marquee): Bounds {
   };
 }
 
-/**
- * useMarqueeSelection selects items by drawing a rectangle on the empty canvas, in content units.
- * Every item whose bounds the rectangle touches is selected. With Shift, Ctrl, or Cmd held at the start,
- * the previous selection is kept and extended.
- */
+/** Selects the items a rectangle drawn on the empty canvas touches, extending the selection with a modifier. */
 export function useMarqueeSelection<K>(options: MarqueeSelectionOptions<K>) {
   const marquee = ref<Marquee | null>(null);
   let base = new Set<K>();
@@ -50,7 +46,7 @@ export function useMarqueeSelection<K>(options: MarqueeSelectionOptions<K>) {
     },
   });
 
-  /** select selects the items inside the marquee in addition to the selection it started with. */
+  /** Selects the items inside the marquee in addition to the selection it started with. */
   function select(area: Marquee): void {
     const bounds = marqueeBounds(area);
     const next = new Set(base);
@@ -60,7 +56,7 @@ export function useMarqueeSelection<K>(options: MarqueeSelectionOptions<K>) {
     options.selection.set(next);
   }
 
-  /** startMarquee begins a marquee selection with the primary pointer button. */
+  /** Begins a marquee selection with the primary pointer button. */
   function startMarquee(event: PointerEvent): void {
     if (event.button !== BUTTON_PRIMARY) return;
 

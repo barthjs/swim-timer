@@ -1,21 +1,22 @@
 import { ref, toRaw, watch } from 'vue';
 
-import { usePointerDrag } from '@/composables/usePointerDrag';
+import { usePointerDrag } from '@/composables/editor/usePointerDrag';
 import type { Point, Size } from '@/lib/editor/geometry';
 import { RULER_THICKNESS } from '@/lib/editor/ruler';
 import type { AxisTargets, SnapLine } from '@/lib/editor/snap';
+import { isRecord } from '@/lib/types/guards';
 
 export type EditorGuidesOptions = {
-  // The prefix of the keys the browser keeps the guides under, such as "editor".
+  // The prefix of the keys the browser keeps the guides under, such as "editor"
   storageKey: string;
-  // The document the guides belong to, or null for one that is not saved yet and keeps them in memory.
+  // The document the guides belong to, or null for one that is not saved yet and keeps them in memory
   document: () => string | null;
 };
 
-/** GuideView is what dragging a guide needs from the canvas. */
+/** What dragging a guide needs from the canvas. */
 export type GuideView = {
   content: Size;
-  // Converts a position in the browser window into a position in the area and into content units.
+  // Converts a position in the browser window into a position in the area and into content units
   toArea: (clientX: number, clientY: number) => Point;
   toContent: (clientX: number, clientY: number) => Point;
 };
@@ -23,11 +24,8 @@ export type GuideView = {
 export type EditorGuides = ReturnType<typeof useEditorGuides>;
 
 /**
- * useEditorGuides holds the guides of a document, the lines a user places from the rulers for items to snap to.
- * A press on a ruler places a guide across it at the pressed value, which follows the pointer along the ruler
- * until it is released: the ruler at the top places vertical guides, the ruler on the left horizontal ones.
- * A guide dropped back onto its ruler or outside the content is removed. The browser keeps the guides
- * of a saved document under its name, they are an aid of the editor and not part of the document.
+ * Holds the guides a user drags from the rulers for items to snap to,
+ * kept in the browser under the name of a saved document.
  */
 export function useEditorGuides(options: EditorGuidesOptions) {
   const lines = ref<SnapLine[]>([]);
@@ -47,37 +45,37 @@ export function useEditorGuides(options: EditorGuidesOptions) {
     onEnd: (event) => drop(event),
   });
 
-  /** keyOf returns the key the guides of a document are kept under. */
+  /** Returns the key the guides of a document are kept under. */
   function keyOf(name: string): string {
     return `${options.storageKey}.guides.${name}`;
   }
 
-  /** load shows the guides kept for a document, or none for a document that is not saved yet. */
+  /** Shows the guides kept for a document, or none for a document that is not saved yet. */
   function load(name: string | null): void {
     lines.value = name === null ? [] : read(keyOf(name));
   }
 
-  /** save keeps the guides of a saved document. */
+  /** Keeps the guides of a saved document. */
   function save(name: string | null): void {
     if (name === null) return;
     write(keyOf(name), lines.value);
   }
 
   /**
-   * persist keeps the guides under the name a document was saved with. A document saved under a new name
-   * passes its earlier one, so no copy stays behind under it.
+   * Keeps the guides under the name a document was saved with.
+   * A document saved under a new name passes its earlier one, so no copy stays behind under it.
    */
   function persist(name: string, previous: string | null = null): void {
     write(keyOf(name), lines.value);
     if (previous !== null && previous !== name) forget(keyOf(previous));
   }
 
-  /** remove deletes the guides of a deleted document. */
+  /** Deletes the guides of a deleted document. */
   function remove(name: string): void {
     forget(keyOf(name));
   }
 
-  /** targets returns the guides as lines items snap to. */
+  /** Returns the guides as lines items snap to. */
   function targets(): AxisTargets {
     return {
       x: lines.value.filter((line) => line.axis === 'x').map((line) => line.value),
@@ -86,9 +84,9 @@ export function useEditorGuides(options: EditorGuidesOptions) {
   }
 
   /**
-   * startFromRuler adds a guide across a ruler at the pointer and lets it follow the pointer. The horizontal ruler
-   * at the top measures x, so its guides are vertical lines at a value of x, and the vertical ruler places
-   * horizontal lines at a value of y.
+   * Adds a guide across a ruler at the pointer and lets it follow the pointer.
+   * The horizontal ruler at the top measures x, so its guides are vertical lines at a value of x,
+   * and the vertical ruler places horizontal lines at a value of y.
    */
   function startFromRuler(
     event: PointerEvent,
@@ -110,12 +108,12 @@ export function useEditorGuides(options: EditorGuidesOptions) {
     start(event, lines.value.length - 1, canvas);
   }
 
-  /** startMove lets a guide follow the pointer. */
+  /** Lets a guide follow the pointer. */
   function startMove(event: PointerEvent, index: number, canvas: GuideView): void {
     start(event, index, canvas);
   }
 
-  /** start begins a gesture on a guide. */
+  /** Begins a gesture on a guide. */
   function start(event: PointerEvent, index: number, canvas: GuideView): void {
     event.preventDefault();
     dragged.value = index;
@@ -123,7 +121,7 @@ export function useEditorGuides(options: EditorGuidesOptions) {
     pointerDrag.start(event);
   }
 
-  /** moveTo puts the dragged guide at the pointer. */
+  /** Puts the dragged guide at the pointer. */
   function moveTo(event: PointerEvent): void {
     const line = dragged.value === null ? undefined : lines.value[dragged.value];
     if (!line || !view) return;
@@ -131,7 +129,7 @@ export function useEditorGuides(options: EditorGuidesOptions) {
     line.value = line.axis === 'x' ? position.x : position.y;
   }
 
-  /** drop ends the gesture and removes the guide if it lies on its ruler or outside the content. */
+  /** Ends the gesture and removes the guide if it lies on its ruler or outside the content. */
   function drop(event: PointerEvent): void {
     const index = dragged.value;
     const canvas = view;
@@ -148,12 +146,12 @@ export function useEditorGuides(options: EditorGuidesOptions) {
     if (onRuler || line.value < 0 || line.value > length) removeAt(index);
   }
 
-  /** removeAt removes a guide by its index. */
+  /** Removes a guide by its index. */
   function removeAt(index: number): void {
     lines.value = lines.value.filter((_, position) => position !== index);
   }
 
-  /** clear removes every guide of the document. */
+  /** Removes every guide of the document. */
   function clear(): void {
     lines.value = [];
   }
@@ -171,7 +169,7 @@ export function useEditorGuides(options: EditorGuidesOptions) {
   };
 }
 
-/** read returns the guides kept under a key, or none if nothing valid is kept there. */
+/** Returns the guides kept under a key, or none if nothing valid is kept there. */
 function read(key: string): SnapLine[] {
   try {
     const value: unknown = JSON.parse(localStorage.getItem(key) ?? '[]');
@@ -182,7 +180,7 @@ function read(key: string): SnapLine[] {
   }
 }
 
-/** write keeps guides under a key if the browser allows it, and deletes the key for none. */
+/** Keeps guides under a key if the browser allows it, and deletes the key for none. */
 function write(key: string, lines: readonly SnapLine[]): void {
   try {
     if (lines.length === 0) {
@@ -195,7 +193,7 @@ function write(key: string, lines: readonly SnapLine[]): void {
   }
 }
 
-/** forget deletes what is kept under a key if the browser allows it. */
+/** Deletes what is kept under a key if the browser allows it. */
 function forget(key: string): void {
   try {
     localStorage.removeItem(key);
@@ -204,9 +202,9 @@ function forget(key: string): void {
   }
 }
 
-/** isSnapLine reports whether a kept value is a guide. */
+/** Reports whether a kept value is a guide. */
 function isSnapLine(value: unknown): value is SnapLine {
-  if (typeof value !== 'object' || value === null) return false;
-  const line = value as Record<string, unknown>;
-  return (line.axis === 'x' || line.axis === 'y') && typeof line.value === 'number';
+  return (
+    isRecord(value) && (value.axis === 'x' || value.axis === 'y') && typeof value.value === 'number'
+  );
 }

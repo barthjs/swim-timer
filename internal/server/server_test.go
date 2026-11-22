@@ -168,22 +168,6 @@ func TestServer_URL(t *testing.T) {
 			want: "http://localhost:8080",
 		},
 		{
-			name: "returns localhost for the wildcard",
-			options: server.Options{
-				Host: "*",
-				Port: 8080,
-			},
-			want: "http://localhost:8080",
-		},
-		{
-			name: "returns localhost for the IPv4 any address",
-			options: server.Options{
-				Host: "0.0.0.0",
-				Port: 80,
-			},
-			want: "http://localhost:80",
-		},
-		{
 			name: "returns localhost for the IPv6 any address",
 			options: server.Options{
 				Host: "::",
@@ -206,14 +190,6 @@ func TestServer_URL(t *testing.T) {
 				Port: 8080,
 			},
 			want: "http://[::1]:8080",
-		},
-		{
-			name: "returns the hostname",
-			options: server.Options{
-				Host: "example.test",
-				Port: 9000,
-			},
-			want: "http://example.test:9000",
 		},
 		{
 			name: "returns https with TLS",

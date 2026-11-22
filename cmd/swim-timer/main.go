@@ -2,8 +2,7 @@ package main
 
 import (
 	"os"
-	// Embed the IANA time zone database into the binary so time zones resolve
-	// on minimal base images like alpine that ship without the tzdata package.
+	// The embedded IANA time zone database resolves time zones on minimal base images without tzdata.
 	_ "time/tzdata"
 
 	"github.com/barthjs/swim-timer/internal/cli"

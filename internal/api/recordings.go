@@ -5,8 +5,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/go-chi/chi/v5"
-
 	"github.com/barthjs/swim-timer/internal/domain"
 )
 
@@ -34,7 +32,7 @@ var (
 func (a *API) recordingListHandler(w http.ResponseWriter, r *http.Request) {
 	recordings, err := a.recordingService.List(r.Context())
 	if err != nil {
-		a.serverErrorResponse(w, r, err)
+		a.respondError(w, r, err)
 		return
 	}
 
@@ -46,7 +44,36 @@ func (a *API) recordingListHandler(w http.ResponseWriter, r *http.Request) {
 	a.writeJSON(w, r, http.StatusOK, response, nil)
 }
 
-// RecordingResponse is a stored recording of the timing data.
+// recordingGetHandler downloads a stored recording as it is stored.
+//
+//	@Summary		Get recording
+//	@Description	Downloads a stored recording of the timing data as JSON Lines (Admin only).
+//	@Tags			recordings
+//	@Produce		application/jsonl
+//	@Param			name	path	string	true	"Recording filename"
+//	@Success		200
+//	@Failure		401	{object}	ErrorResponse
+//	@Failure		404	{object}	ErrorResponse
+//	@Failure		500	{object}	ErrorResponse
+//	@Security		SessionAuth
+//	@Router			/recordings/{name} [get]
+func (a *API) recordingGetHandler(w http.ResponseWriter, r *http.Request) {
+	name := pathParam(r, "name")
+
+	reader, err := a.recordingService.Download(r.Context(), name)
+	if err != nil {
+		a.respondError(w, r, err)
+		return
+	}
+	defer func() { _ = reader.Close() }()
+
+	writeDownloadHeaders(w, "application/jsonl", name)
+	if _, err := io.Copy(w, reader); err != nil {
+		// The headers and part of the file may already be sent, so the client may only see a broken download
+		a.logger.Warn().Err(err).Str("recording", name).Msg("failed to send the recording")
+	}
+}
+
 type RecordingResponse struct {
 	Name string `json:"name"`
 	Path string `json:"path"`
@@ -108,7 +135,7 @@ func toRecordingResponse(recording domain.Recording) RecordingResponse {
 //	@Security		SessionAuth
 //	@Router			/recordings/{name} [delete]
 func (a *API) recordingDeleteHandler(w http.ResponseWriter, r *http.Request) {
-	name := chi.URLParam(r, "name")
+	name := pathParam(r, "name")
 
 	if err := a.recordingService.Delete(r.Context(), name); err != nil {
 		a.respondError(w, r, err)
@@ -116,36 +143,6 @@ func (a *API) recordingDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusNoContent)
-}
-
-// recordingDownloadHandler downloads a stored recording as it is stored.
-//
-//	@Summary		Download recording
-//	@Description	Downloads a stored recording of the timing data as JSON Lines (Admin only).
-//	@Tags			recordings
-//	@Produce		application/jsonl
-//	@Param			name	path	string	true	"Recording filename"
-//	@Success		200
-//	@Failure		401	{object}	ErrorResponse
-//	@Failure		404	{object}	ErrorResponse
-//	@Failure		500	{object}	ErrorResponse
-//	@Security		SessionAuth
-//	@Router			/recordings/{name} [get]
-func (a *API) recordingDownloadHandler(w http.ResponseWriter, r *http.Request) {
-	name := chi.URLParam(r, "name")
-
-	reader, err := a.recordingService.Download(r.Context(), name)
-	if err != nil {
-		a.respondError(w, r, err)
-		return
-	}
-	defer func() { _ = reader.Close() }()
-
-	writeDownloadHeaders(w, "application/jsonl", name)
-	if _, err := io.Copy(w, reader); err != nil {
-		// The headers and part of the file may already be sent, so the client may only see a broken download
-		a.logger.Warn().Err(err).Str("recording", name).Msg("failed to send the recording")
-	}
 }
 
 // recordingExportHandler downloads a stored recording as a CSV table with the decoded frames.
@@ -162,7 +159,7 @@ func (a *API) recordingDownloadHandler(w http.ResponseWriter, r *http.Request) {
 //	@Security		SessionAuth
 //	@Router			/recordings/{name}/csv [get]
 func (a *API) recordingExportHandler(w http.ResponseWriter, r *http.Request) {
-	name := chi.URLParam(r, "name")
+	name := pathParam(r, "name")
 
 	// The recording is opened before the headers, so an unknown recording still gets a proper 404
 	reader, err := a.recordingService.Download(r.Context(), name)
@@ -179,27 +176,10 @@ func (a *API) recordingExportHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := a.recordingService.ExportCSV(reader, download); err != nil {
 		if !download.started {
-			a.serverErrorResponse(w, r, err)
+			a.respondError(w, r, err)
 			return
 		}
 		// The headers and part of the table are already sent, so the client may only see a broken download
 		a.logger.Warn().Err(err).Str("recording", name).Msg("failed to export the recording")
 	}
-}
-
-// downloadWriter sets the download headers with the first write, so a failure before it still gets an error response.
-type downloadWriter struct {
-	writer      http.ResponseWriter
-	contentType string
-	filename    string
-	started     bool
-}
-
-// Write sets the download headers before the first bytes and writes p.
-func (d *downloadWriter) Write(p []byte) (int, error) {
-	if !d.started {
-		writeDownloadHeaders(d.writer, d.contentType, d.filename)
-		d.started = true
-	}
-	return d.writer.Write(p)
 }

@@ -111,9 +111,9 @@ func New(ctx context.Context, d Deps) *API {
 	}
 }
 
-// background runs fn in a separate goroutine with panic recovery and a context that ends after timeout
-// or with the application, whichever comes first. It adds a counter to the API.wg,
-// so the application waits for it before exiting.
+// background runs fn in a separate goroutine with panic recovery
+// and a context that ends after timeout or with the application, whichever comes first.
+// It adds a counter to the API.wg, so the application waits for it before exiting.
 func (a *API) background(timeout time.Duration, fn func(ctx context.Context)) {
 	a.wg.Go(func() {
 		defer func() {

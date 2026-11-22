@@ -2,10 +2,10 @@
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import { useConfigForm } from '@/composables/useConfigForm';
+import { useConfigForm } from '@/composables/config/useConfigForm';
 
-// The config file the configuration was loaded from and a save writes to. Without a file found
-// at startup, a save creates one in the first writable configuration directory.
+// The config file the configuration was loaded from and a save writes to, with its state in the tooltip.
+// Without a file found at startup, a save creates one in the first writable configuration directory.
 const { t } = useI18n();
 const { file } = useConfigForm();
 
@@ -16,11 +16,10 @@ const status = computed(() => {
 </script>
 
 <template>
-  <div class="text-muted flex min-w-0 items-start gap-2 text-sm">
-    <UIcon name="i-lucide-file-cog" class="mt-0.5 size-4 shrink-0" />
-    <p class="min-w-0">
-      <span>{{ status }}</span>
-      <span v-if="file.path" class="text-default ml-1 font-mono break-all">{{ file.path }}</span>
-    </p>
-  </div>
+  <UTooltip :text="status">
+    <span class="text-muted flex min-w-0 items-center gap-1.5 text-sm">
+      <UIcon name="i-lucide-file-cog" class="size-4 shrink-0" />
+      <span class="truncate font-mono">{{ file.path || status }}</span>
+    </span>
+  </UTooltip>
 </template>

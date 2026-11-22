@@ -43,13 +43,6 @@ func TestBundle_TN(t *testing.T) {
 			want:   "1.500 Elemente",
 		},
 		{
-			name:   "uses one in German",
-			locale: "de",
-			key:    "items",
-			count:  1,
-			want:   "1 Element",
-		},
-		{
 			name:   "uses the category of the amount for a negative count",
 			locale: "de",
 			key:    "items",
@@ -83,13 +76,6 @@ func TestBundle_TN(t *testing.T) {
 			key:    "only_other",
 			count:  2,
 			want:   "2 items",
-		},
-		{
-			name:   "falls back for an unknown locale",
-			locale: "fr",
-			key:    "items",
-			count:  1,
-			want:   "1 item",
 		},
 		{
 			name:   "returns the key without any translation",

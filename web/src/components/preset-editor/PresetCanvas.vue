@@ -6,20 +6,20 @@ import LaneCanvas from '@/components/preset-editor/LaneCanvas.vue';
 import LanePreview from '@/components/preset-editor/LanePreview.vue';
 import { EDITOR_SURFACE_ATTRIBUTE, useEditorCanvas } from '@/composables/editor/useEditorCanvas';
 import type { EditorViewOptions } from '@/composables/editor/useEditorWorkspace';
-import { useLaneDrag } from '@/composables/useLaneDrag';
-import { usePresetForm } from '@/composables/usePresetForm';
-import { frameOf, laneBounds, liveFirstLane, polygonPoints } from '@/lib/lanes';
+import { useLaneDrag } from '@/composables/preset/useLaneDrag';
+import { usePresetForm } from '@/composables/preset/usePresetForm';
+import { frameOf, laneBounds, liveFirstLane, polygonPoints } from '@/lib/preset/lanes';
 import { useLiveStore } from '@/stores/live';
 
-// The free space around the fitted canvas, which keeps it clear of the rulers.
-const CANVAS_PADDING = 32;
-
-// The reference resolution of the open preset as the editing canvas, with zoom and pan.
+// The reference resolution of the open preset as the editing canvas, with zoom and pan
 const props = defineProps<{
   view: EditorViewOptions;
-  // Shows the lanes as the AR overlay draws them, without the view options, and blocks editing.
+  // Shows the lanes as the AR overlay draws them, without the view options, and blocks editing
   viewMode: boolean;
 }>();
+
+// The free space around the fitted canvas, which keeps it clear of the rulers
+const CANVAS_PADDING = 32;
 
 const presetForm = usePresetForm();
 const { preset, editor, loaded } = presetForm;
@@ -80,7 +80,7 @@ const canvasStyle = computed(() => ({
   '--editor-px': `${1 / viewport.scale.value}px`,
 }));
 
-/** zoomToSelection fills the canvas with the selected lanes. */
+/** Fills the canvas with the selected lanes. */
 function zoomToSelection(): void {
   canvas.zoomToBounds(presetForm.selectionBounds.value);
 }
@@ -109,7 +109,7 @@ defineExpose({
     :show-guides="view.guides.value"
     :show-loupe="view.loupe.value && laneDrag.mode.value === 'corner'"
     :view-mode="viewMode"
-    class="aspect-(--frame-aspect) max-h-[80vh] min-h-48 lg:aspect-auto lg:max-h-none lg:min-h-0 lg:flex-1"
+    class="max-h-canvas aspect-(--frame-aspect) min-h-48 lg:aspect-auto lg:max-h-none lg:min-h-0 lg:flex-1"
     :style="{
       '--frame-aspect': `${preset.frameWidth} / ${preset.frameHeight}`,
     }"

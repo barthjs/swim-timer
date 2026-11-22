@@ -2,16 +2,16 @@
 import { onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import type { LiveHeat } from '@/api/types';
+import type { LiveHeat } from '@/api/types/live';
 import HeatTimer from '@/components/timing/HeatTimer.vue';
-import { useHeatLabel } from '@/composables/useHeatLabel';
-import { hasRank } from '@/lib/heat';
-import { eventName } from '@/lib/meet';
-import { fullName } from '@/lib/names';
-import { formatSwimtime } from '@/lib/time';
+import { useHeatLabel } from '@/composables/live/useHeatLabel';
+import { hasRank } from '@/lib/live/heat';
+import { eventName } from '@/lib/meet/meet';
+import { fullName } from '@/lib/live/names';
+import { formatSwimtime } from '@/lib/live/time';
 import { useLiveStore } from '@/stores/live';
 
-// Full-screen scoreboard for the operators, with every lane sharing the screen height.
+// Full-screen scoreboard for the operators, with every lane sharing the screen height
 const { t } = useI18n();
 const liveStore = useLiveStore();
 const { heatLabel } = useHeatLabel();
@@ -20,7 +20,7 @@ onMounted(() => {
   liveStore.connect();
 });
 
-/** eventLabel names the event of the live heat, without a name if the event is missing from the meet data. */
+/** Names the event of the live heat, without a name if the event is missing from the meet data. */
 function eventLabel(state: LiveHeat): string {
   return [
     t('overlays.event', {

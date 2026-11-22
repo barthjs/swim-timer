@@ -76,9 +76,7 @@ func newLocalStorage(options Options) (*localStorage, error) {
 	return storage, nil
 }
 
-// removeStaleTempFiles deletes the temporary files of Put and Copy that a crash or a power loss left behind.
-// List skips them, so without the cleanup they would fill the disk unnoticed.
-// Failures only leave the files in place, so they are ignored.
+// removeStaleTempFiles deletes the temporary files of interrupted writes, which List skips and which would fill the disk unnoticed.
 func (l *localStorage) removeStaleTempFiles() {
 	cutoff := l.now().Add(-staleTempFileAge)
 
@@ -280,8 +278,7 @@ func (l *localStorage) List(_ context.Context, prefix string) ([]string, error) 
 	return paths, nil
 }
 
-// listStart returns the directory below which every path starting with prefix lies:
-// the prefix itself if it ends with a slash, otherwise its parent directory.
+// listStart returns the directory below which every path starting with prefix lies.
 func (l *localStorage) listStart(prefix string) (string, error) {
 	dir := prefix
 	if !strings.HasSuffix(dir, "/") {
@@ -389,11 +386,8 @@ func (l *localStorage) SignedURL(_ context.Context, path string, ttl time.Durati
 	return l.signedBase + "/" + escapePath(objectPath) + "?" + query.Encode(), nil
 }
 
-// SignedHandler serves objects of the local driver behind the URLs SignedURL creates.
-//
-// Mount it below Options.SignedURLBase with the prefix stripped, for example with http.StripPrefix.
-// A missing, invalid, or expired signature answers 403. Other drivers serve their signed URLs themselves,
-// so for them the handler answers 404.
+// SignedHandler serves the objects of the local driver behind the URLs of SignedURL
+// and is mounted below Options.SignedURLBase with the prefix stripped.
 func SignedHandler(s Storage) http.Handler {
 	local, ok := s.(*localStorage)
 	if !ok {

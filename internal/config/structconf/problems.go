@@ -5,8 +5,8 @@ import (
 	"fmt"
 )
 
-// Problems collects validation errors, so validating a configuration reports
-// every invalid setting at once. Its zero value is ready to use.
+// Problems collects validation errors, so validating a configuration reports every invalid setting at once.
+// Its zero value is ready to use.
 type Problems struct {
 	errs []error
 }

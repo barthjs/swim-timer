@@ -1,28 +1,30 @@
-<script setup lang="ts">
+<script setup lang="ts" generic="TFilters extends TableFilterValues">
 import { computed, useSlots, useTemplateRef } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { defineShortcuts } from '@nuxt/ui/composables';
 
+import TableQuickFilters from '@/components/table/TableQuickFilters.vue';
 import TableSearchInput from '@/components/table/TableSearchInput.vue';
-import type { ShortcutKey } from '@/composables/useShortcutLabels';
-import { useStoredState } from '@/composables/useStoredState';
+import { useSearchShortcut } from '@/composables/ui/useSearchShortcut';
+import { useStoredState } from '@/composables/ui/useStoredState';
 import type { TableFilterPill } from '@/lib/table/filters';
+import {
+  sameTableFilters,
+  type TableFilterValues,
+  type TableQuickFilter,
+} from '@/lib/table/quickFilters';
 
-// The toolbar above a list. One row holds an optional title (#leading), the search, which takes the free width,
-// the filter button, the reset button, and the actions of the list (#actions) on the right.
-// The filters (#filters) sit below in an even grid of at most eight columns, each one a TableFilterField.
-// The grid collapses with the filter button and starts collapsed, the state is kept per list in the browser.
-// While collapsed, the set filters show as pills that remove their filter.
-// The reset button is there whenever the list has a search or filters,
-// and only disabled while nothing is set, so the row does not shift.
+// The toolbar above a list with an optional title (#leading), the quick filters, the search, the filters,
+// and the actions of the list. The filter grid keeps its open state per list in the browser,
+// and while it is collapsed the set filters show as pills, except those the active quick filter already shows.
 const props = withDefaults(
   defineProps<{
     placeholder?: string;
     hideSearch?: boolean;
-    // The keys that focus the search from anywhere on the page, also from another input
-    searchShortcut?: ShortcutKey[];
     // The set filters, for the pills and the count on the filter button
     activeFilters?: TableFilterPill[];
+    quickFilters?: TableQuickFilter[];
+    // The current filters of the list, which decide the active quick filter
+    filters?: Partial<TFilters>;
     // Whether a search or a filter is set, which enables the reset button
     canReset?: boolean;
     // Keeps whether the filters are open in the browser, per list
@@ -34,8 +36,9 @@ const props = withDefaults(
   {
     placeholder: '',
     hideSearch: false,
-    searchShortcut: undefined,
     activeFilters: () => [],
+    quickFilters: () => [],
+    filters: () => ({}),
     canReset: false,
     storageKey: undefined,
     loading: false,
@@ -43,11 +46,14 @@ const props = withDefaults(
   },
 );
 
-const emit = defineEmits<{ reset: [] }>();
-
 const search = defineModel<string>('search', {
   default: '',
 });
+
+const emit = defineEmits<{
+  reset: [];
+  quickFilter: [quickFilter: TableQuickFilter];
+}>();
 
 const { t } = useI18n();
 const slots = useSlots();
@@ -59,29 +65,48 @@ const filtersOpen = useStoredState(
 );
 
 const hasFilters = computed(() => !!slots.filters);
-const filterCount = computed(() => props.activeFilters.length);
+const hasQuickFilters = computed(() => props.quickFilters.length > 0);
+
+const activeQuickFilter = computed(() =>
+  props.quickFilters.find((item) => sameTableFilters(props.filters, item.filters)),
+);
+
+const shownFilters = computed(() =>
+  props.activeFilters.filter((pill) => !(pill.key in (activeQuickFilter.value?.filters ?? {}))),
+);
+const filterCount = computed(() => shownFilters.value.length);
+
+const hasSearch = computed(() => !props.hideSearch);
+
+const filterRowClass = computed(() =>
+  slots.leading ? 'order-3 flex basis-full flex-wrap items-center gap-2 sm:contents' : 'contents',
+);
+
+const quickFiltersClass = computed(() => {
+  if (!hasSearch.value) return slots.leading ? 'flex-1 sm:order-2' : 'order-1 flex-1';
+  if (!slots.leading) return 'order-1 flex-auto sm:flex-none';
+  return 'basis-full sm:order-2 sm:basis-auto';
+});
+
+const controlsClass = computed(() => {
+  if (!hasSearch.value) return slots.leading ? 'sm:order-3' : 'order-1 sm:order-3';
+  const wide = 'sm:order-3 sm:min-w-64 sm:flex-1 sm:basis-auto';
+  if (slots.leading) return `basis-full ${wide}`;
+  return hasQuickFilters.value ? `order-3 basis-full ${wide}` : `order-1 min-w-48 flex-1 ${wide}`;
+});
+
+const actionsClass = computed(() => (hasSearch.value || !hasQuickFilters.value ? 'ms-auto' : ''));
 
 const searchInput = useTemplateRef<{ focus: () => void }>('searchInput');
 
-/** focusSearch moves the focus into the search. */
+/** Moves the focus into the search. */
 function focusSearch() {
   searchInput.value?.focus();
 }
 
-// The keys of a shortcut joined by "_" are the notation of defineShortcuts, such as "meta_f"
-defineShortcuts(
-  computed(() => {
-    if (!props.searchShortcut || props.hideSearch) return {};
-    return {
-      [props.searchShortcut.join('_')]: {
-        usingInput: true,
-        handler: focusSearch,
-      },
-    };
-  }),
-);
+useSearchShortcut(focusSearch, () => !props.hideSearch);
 
-/** toggleFilters opens or closes the filter grid. */
+/** Opens or closes the filter grid. */
 function toggleFilters() {
   filtersOpen.value = !filtersOpen.value;
 }
@@ -89,75 +114,91 @@ function toggleFilters() {
 
 <template>
   <div class="flex flex-col gap-2">
-    <div class="flex flex-wrap items-center gap-x-6 gap-y-2">
-      <div v-if="$slots.leading" class="max-w-full min-w-0 shrink-0">
+    <div class="flex flex-wrap items-center gap-2">
+      <div v-if="$slots.leading" class="order-1 min-w-0 flex-1 sm:me-4 sm:flex-none sm:shrink-0">
         <slot name="leading" />
       </div>
 
-      <div class="flex min-w-64 flex-1 flex-wrap items-center gap-2">
-        <TableSearchInput
-          v-if="!hideSearch"
-          ref="searchInput"
-          v-model="search"
-          :placeholder="placeholder"
-          class="min-w-48 flex-1"
-        />
-        <div v-else class="flex-1" />
-
-        <UButton
-          v-if="hasFilters"
-          :label="t('table.filter')"
-          icon="i-lucide-list-filter"
-          color="neutral"
-          variant="outline"
-          :aria-expanded="filtersOpen"
-          @click="toggleFilters"
-        >
-          <template v-if="filterCount > 0" #trailing>
-            <UBadge :label="String(filterCount)" size="sm" class="rounded-full" />
-          </template>
-        </UButton>
-
-        <UTooltip v-if="hasFilters || !hideSearch" :text="t('table.resetAll')">
-          <UButton
-            icon="i-lucide-funnel-x"
-            color="neutral"
-            variant="ghost"
-            :disabled="!canReset"
-            :aria-label="t('table.resetAll')"
-            @click="emit('reset')"
+      <div :class="filterRowClass">
+        <div v-if="hasQuickFilters" class="flex" :class="quickFiltersClass">
+          <TableQuickFilters
+            :items="quickFilters"
+            :filters="filters"
+            @select="emit('quickFilter', $event)"
           />
-        </UTooltip>
+        </div>
 
-        <div class="ml-auto flex flex-wrap items-center justify-end gap-1.5">
-          <UTooltip v-if="onReload" :text="t('table.reload')">
+        <div
+          v-if="hasSearch || hasFilters"
+          class="table-toolbar-controls flex min-w-0 items-center gap-2"
+          :class="controlsClass"
+        >
+          <TableSearchInput
+            v-if="hasSearch"
+            ref="searchInput"
+            v-model="search"
+            :placeholder="placeholder"
+            class="min-w-0 flex-1"
+          />
+
+          <UButton
+            v-if="hasFilters"
+            :label="t('table.filter')"
+            icon="i-lucide-list-filter"
+            color="neutral"
+            variant="outline"
+            :aria-expanded="filtersOpen"
+            @click="toggleFilters"
+          >
+            <template v-if="filterCount > 0" #trailing>
+              <UBadge :label="String(filterCount)" size="sm" class="rounded-full" />
+            </template>
+          </UButton>
+
+          <UTooltip :text="t('table.resetAll')">
             <UButton
-              icon="i-lucide-refresh-cw"
+              icon="i-lucide-funnel-x"
               color="neutral"
-              variant="outline"
-              :loading="loading"
-              :aria-label="t('table.reload')"
-              @click="onReload"
+              variant="ghost"
+              :disabled="!canReset"
+              :aria-label="t('table.resetAll')"
+              @click="emit('reset')"
             />
           </UTooltip>
-          <slot name="actions" />
         </div>
+      </div>
+
+      <div
+        class="order-2 flex shrink-0 items-center justify-end gap-2 sm:order-4"
+        :class="actionsClass"
+      >
+        <UTooltip v-if="onReload" :text="t('table.reload')">
+          <UButton
+            icon="i-lucide-refresh-cw"
+            color="neutral"
+            variant="outline"
+            :loading="loading"
+            :aria-label="t('table.reload')"
+            @click="onReload"
+          />
+        </UTooltip>
+        <slot name="actions" />
       </div>
     </div>
 
     <!-- Hidden with a class instead of v-if, so the filter controls stay mounted and keep what they loaded -->
     <div
       v-if="hasFilters"
-      class="grid-cols-[repeat(auto-fill,minmax(max(11rem,calc((100%_-_5.25rem)/8)),1fr))] items-end gap-x-3 gap-y-2"
+      class="grid-cols-table-filters items-end gap-x-3 gap-y-2"
       :class="filtersOpen ? 'grid' : 'hidden'"
     >
       <slot name="filters" />
     </div>
 
-    <div v-if="!filtersOpen && activeFilters.length > 0" class="flex flex-wrap items-center gap-2">
+    <div v-if="!filtersOpen && shownFilters.length > 0" class="flex flex-wrap items-center gap-2">
       <span class="text-muted text-sm">{{ t('table.activeFilters') }}</span>
       <span
-        v-for="pill in activeFilters"
+        v-for="pill in shownFilters"
         :key="pill.key"
         class="bg-primary/10 ring-primary/25 inline-flex max-w-80 items-center gap-1 rounded-md py-0.5 ps-2 pe-1 text-sm ring ring-inset"
         :title="`${pill.label}: ${pill.value}`"

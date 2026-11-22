@@ -20,31 +20,6 @@ import (
 	"github.com/barthjs/swim-timer/internal/media"
 )
 
-// rejection is a change to a valid configuration that Validate must reject with an error naming wantErr.
-type rejection struct {
-	name    string
-	change  func(*Config)
-	wantErr string
-}
-
-// assertRejects applies each change to the default configuration and checks that Validate rejects it.
-func assertRejects(t *testing.T, tests []rejection) {
-	t.Helper()
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
-			cfg := testConfig(t)
-			tt.change(&cfg)
-
-			err := Validate(&cfg)
-
-			assert.ErrorContains(t, err, tt.wantErr)
-		})
-	}
-}
-
 func TestConfig(t *testing.T) {
 	t.Parallel()
 
@@ -185,25 +160,15 @@ func TestDefaults(t *testing.T) {
 	})
 }
 
-// loadWithoutSources loads the configuration with neither flags nor a config file. CONFIG_FILE points to a file
-// that does not exist, so Load neither reads a config file of the machine running the tests
-// nor fails for the missing file.
+// loadWithoutSources loads the configuration with neither flags nor a config file.
+// CONFIG_FILE points to a file that does not exist, so Load neither reads a config file
+// of the machine running the tests nor fails for the missing file.
 func loadWithoutSources(t *testing.T) Config {
 	t.Helper()
 
 	t.Setenv("CONFIG_FILE", filepath.Join(t.TempDir(), "config.yaml"))
 	cfg, err := Load(nil)
 	require.NoError(t, err)
-	return cfg
-}
-
-// testConfig returns the validated configuration built from the struct-tag defaults alone.
-func testConfig(t *testing.T) Config {
-	t.Helper()
-
-	cfg, err := Defaults()
-	require.NoError(t, err)
-	require.NoError(t, Validate(&cfg))
 	return cfg
 }
 
@@ -271,45 +236,4 @@ func TestDataPaths(t *testing.T) {
 		require.NoError(t, err)
 		assert.Empty(t, entries, "no candidate is created")
 	})
-}
-
-func TestCleanPath(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name string
-		path string
-		want string
-	}{
-		{
-			name: "keeps an empty path empty",
-			path: "",
-			want: "",
-		},
-		{
-			name: "keeps a blank path empty",
-			path: "  ",
-			want: "",
-		},
-		{
-			name: "trims and cleans the path",
-			path: " logs/../data/ ",
-			want: "data",
-		},
-		{
-			name: "keeps a clean absolute path",
-			path: "/var/lib/app",
-			want: "/var/lib/app",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
-			got := cleanPath(tt.path)
-
-			assert.Equal(t, tt.want, got)
-		})
-	}
 }

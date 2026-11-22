@@ -36,11 +36,15 @@ make test
 
 ## Feature tests
 
-- Feature tests in `internal/api` start the whole application per test through `internal/app`.
-- Every test gets storage in a temporary directory and a fake timing system.
-- Requests go through the helpers in `internal/apitest`.
-- Test data comes from factories that use a faker, so every test runs with different values. A failed test prints
-  the faker seed, and setting `APITEST_SEED` to it repeats the run with the same data.
+- `newHarness` in `internal/api` builds the whole application per test through `app.New`,
+  with storage in a temporary directory and a fake timing system.
+- The configuration starts from `config.Defaults()` without environment or config file and sets only what a test needs.
+- Requests go through the client of `internal/apitest`, with chained checks such as `AssertCreated`
+  and `AssertJSONPath`, and `Decode` for the response types of the API.
+- The admin signs in through `asAdmin`, so the session checks of the route run.
+- Payloads come from the fixtures in `internal/api/testing_fixtures_test.go`, which use a faker,
+  so every test runs with different values. A failed test prints the faker seed,
+  and setting `APITEST_SEED` to it repeats the run with the same data.
 
 ## Web interface and documentation
 
@@ -57,5 +61,5 @@ make test
 | `npm run test`           | Runs `test:lint`, `test:format`, and `test:unit`, in `docs/` also `test:app-links`                                          |
 | `npm run test:lint`      | Checks the code with the linters                                                                                            |
 | `npm run test:format`    | Checks the formatting                                                                                                       |
-| `npm run test:unit`      | Runs the unit tests with Vitest                                                                                             |
+| `npm run test:unit`      | Runs the unit tests with Vitest and prints the coverage                                                                     |
 | `npm run test:app-links` | Only in `docs/`, checks the [links from the web interface](./documentation.md#links-from-the-web-interface) against a build |

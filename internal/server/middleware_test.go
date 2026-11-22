@@ -78,18 +78,6 @@ func TestRequestID(t *testing.T) {
 	}
 }
 
-func TestRequestIDFromContext(t *testing.T) {
-	t.Parallel()
-
-	t.Run("returns nothing without the middleware", func(t *testing.T) {
-		t.Parallel()
-
-		id := server.RequestIDFromContext(t.Context())
-
-		assert.Empty(t, id)
-	})
-}
-
 func TestRealIP(t *testing.T) {
 	t.Parallel()
 
@@ -255,18 +243,6 @@ func TestSecurityHeaders(t *testing.T) {
 		rec := securityHeadersRequest(t, withSources, "app.test;script-src")
 
 		assert.Equal(t, options.ContentSecurityPolicy, rec.Header().Get("Content-Security-Policy"))
-	})
-
-	t.Run("keeps a policy without connect-src", func(t *testing.T) {
-		t.Parallel()
-		withoutConnect := server.SecurityHeadersOptions{
-			ContentSecurityPolicy: "default-src 'self'",
-			WebSocketSources:      true,
-		}
-
-		rec := securityHeadersRequest(t, withoutConnect, "app.test")
-
-		assert.Equal(t, withoutConnect.ContentSecurityPolicy, rec.Header().Get("Content-Security-Policy"))
 	})
 }
 

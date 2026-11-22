@@ -1,5 +1,7 @@
+import { objectKeys } from '@/lib/types/guards';
+
 /**
- * TableFilterPill is a set filter of a list as TableToolbar shows it while the filters are collapsed:
+ * A set filter of a list as TableToolbar shows it while the filters are collapsed:
  * its name, its value as text, and how to remove it.
  */
 export type TableFilterPill = {
@@ -10,7 +12,7 @@ export type TableFilterPill = {
 };
 
 /**
- * tableFilterPill returns the pill of a filter, or none while the filter has no value.
+ * Returns the pill of a filter, or none while the filter has no value.
  * A list builds its pills by joining these in the order of its filter fields.
  */
 export function tableFilterPill(
@@ -30,7 +32,10 @@ export function tableFilterPill(
   ];
 }
 
-/** tableOptionLabel returns the label of the option with a value, or undefined without a match. */
+/** The select value of a filter without a value, since Reka UI rejects an empty string. */
+export const TABLE_FILTER_ALL = 'all';
+
+/** Returns the label of the option with a value, or undefined without a match. */
 export function tableOptionLabel<V>(
   items: readonly { label: string; value: V }[],
   value: V | undefined,
@@ -39,24 +44,33 @@ export function tableOptionLabel<V>(
   return items.find((item) => item.value === value)?.label;
 }
 
-/** TableDateRange is a date range filter with both ends as 'YYYY-MM-DD', where an empty end is open. */
+/** A date range filter with both ends as 'YYYY-MM-DD', where an empty end is open. */
 export type TableDateRange = {
   from: string;
   to: string;
 };
 
-/**
- * tableDateRangeLabel returns a date range filter as text, such as "01.05.2026 – 31.05.2026",
- * or undefined while neither end is set. An open range names its one end with the given labels.
- */
+/** Returns a date range filter as text, with the year once for a range within one year. */
 export function tableDateRangeLabel(
   range: TableDateRange,
-  formatDate: (value: string) => string,
+  formatDate: (value: string, withYear: boolean) => string,
   labels: { from: string; to: string },
 ): string | undefined {
   const { from, to } = range;
-  if (from && to) return `${formatDate(from)} – ${formatDate(to)}`;
-  if (from) return `${labels.from} ${formatDate(from)}`;
-  if (to) return `${labels.to} ${formatDate(to)}`;
+  if (from && to) {
+    return `${formatDate(from, from.slice(0, 4) !== to.slice(0, 4))} – ${formatDate(to, true)}`;
+  }
+  if (from) return `${labels.from} ${formatDate(from, true)}`;
+  if (to) return `${labels.to} ${formatDate(to, true)}`;
   return undefined;
+}
+
+/** Leaves out the filters without a value, so an unset fixed filter keeps the one of the URL. */
+export function withoutEmpty<T extends Record<string, unknown>>(values: T): Partial<T> {
+  const result: Partial<T> = {};
+  for (const key of objectKeys(values)) {
+    const value = values[key];
+    if (value !== undefined && value !== '') result[key] = value;
+  }
+  return result;
 }

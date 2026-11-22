@@ -7,16 +7,9 @@ import PasswordField from '@/components/form/PasswordField.vue';
 // A password field for a secret the server never sends. A saved secret shows as a placeholder.
 // Leaving the field empty keeps it and typing replaces it. The remove button marks it for removal,
 // which the parent sends as clearSecrets.
-const model = defineModel<string>({
-  required: true,
-});
-const cleared = defineModel<boolean>('cleared', {
-  default: false,
-});
-
 const props = withDefaults(
   defineProps<{
-    // Whether the server has a value for this secret.
+    // Whether the server has a value for this secret
     saved: boolean;
     color?: 'warning';
     highlight?: boolean;
@@ -28,6 +21,13 @@ const props = withDefaults(
     maxlength: undefined,
   },
 );
+
+const model = defineModel<string>({
+  required: true,
+});
+const cleared = defineModel<boolean>('cleared', {
+  default: false,
+});
 
 const { t } = useI18n();
 

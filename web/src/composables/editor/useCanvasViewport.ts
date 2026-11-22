@@ -1,7 +1,7 @@
 import { computed, reactive, ref, toValue, watch, type MaybeRefOrGetter } from 'vue';
 import { useElementBounding, useEventListener, type MaybeElementRef } from '@vueuse/core';
 
-import { usePointerDrag } from '@/composables/usePointerDrag';
+import { usePointerDrag } from '@/composables/editor/usePointerDrag';
 import type { Bounds, Point } from '@/lib/editor/geometry';
 
 /** The zoom range relative to the fitted size. */
@@ -9,9 +9,8 @@ export const DEFAULT_MIN_ZOOM = 0.25;
 export const DEFAULT_MAX_ZOOM = 8;
 
 /**
- * How strongly the wheel zooms per pixel of scroll distance. A touchpad pinch reports small steps
- * and zooms at about the speed of the browser's own pinch zoom. One step is limited,
- * so the large steps of a mouse wheel zoom by about a fifth each.
+ * How strongly the wheel zooms per pixel of scroll distance, about the speed of the browser's own pinch zoom
+ * for the small steps of a touchpad.
  */
 const WHEEL_ZOOM_SPEED = 0.01;
 const WHEEL_ZOOM_STEP_MAX = 20;
@@ -29,18 +28,18 @@ const BUTTON_MIDDLE = 1;
 const BUTTON_SECONDARY = 2;
 
 export type CanvasViewportOptions = {
-  // The element the content is fitted into, which receives the wheel events.
+  // The element the content is fitted into, which receives the wheel events
   area: MaybeElementRef<HTMLElement | null | undefined>;
   // The size of the content in its own units. Only its aspect ratio decides the fitted size.
   contentWidth: MaybeRefOrGetter<number>;
   contentHeight: MaybeRefOrGetter<number>;
-  // The free space kept around the fitted content, in pixels of the screen.
+  // The free space kept around the fitted content, in pixels of the screen
   padding?: MaybeRefOrGetter<number>;
   minZoom?: number;
   maxZoom?: number;
 };
 
-/** ViewTransform places content in the area: its top left corner lies at x, y and one unit spans scale pixels. */
+/** Places content in the area: its top left corner lies at x, y and one unit spans scale pixels. */
 export type ViewTransform = {
   x: number;
   y: number;
@@ -48,16 +47,8 @@ export type ViewTransform = {
 };
 
 /**
- * useCanvasViewport fits content of a given aspect ratio into an area, with zoom and pan on top.
- * The content is drawn in its own units and scaled to the screen by contentStyle. Positions in the area
- * are pixels from its top left corner, so the pan is where the top left corner of the content lies in the area.
- * While neither zoom nor pan were changed, the content stays fitted and centered when the area
- * or the content changes size.
- *
- * Dragging with the right or the middle button, or with the left button while Space is held,
- * pans like in image editors and leaves the left button for the content.
- * The wheel and two fingers on a touchpad pan as well, Shift with the wheel pans sideways,
- * and Ctrl or Cmd with the wheel zooms around the pointer, as a pinch on a touchpad does.
+ * Fits content of a given aspect ratio into an area and scales it with contentStyle,
+ * with zoom and pan by mouse, wheel, and touchpad as in image editors.
  */
 export function useCanvasViewport(options: CanvasViewportOptions) {
   const minZoom = options.minZoom ?? DEFAULT_MIN_ZOOM;
@@ -99,12 +90,12 @@ export function useCanvasViewport(options: CanvasViewportOptions) {
     transformOrigin: '0 0',
   }));
 
-  /** clampZoom limits a zoom factor to the supported range. */
+  /** Limits a zoom factor to the supported range. */
   function clampZoom(value: number): number {
     return Math.min(maxZoom, Math.max(minZoom, value));
   }
 
-  /** center places the content in the middle of the area without changing the zoom. */
+  /** Places the content in the middle of the area without changing the zoom. */
   function center(): void {
     pan.x = (bounding.width.value - toValue(options.contentWidth) * scale.value) / 2;
     pan.y = (bounding.height.value - toValue(options.contentHeight) * scale.value) / 2;
@@ -122,7 +113,7 @@ export function useCanvasViewport(options: CanvasViewportOptions) {
     },
   );
 
-  /** zoomAt zooms by a factor and keeps the point at x, y in the area in place. */
+  /** Zooms by a factor and keeps the point at x, y in the area in place. */
   function zoomAt(x: number, y: number, factor: number): void {
     const next = clampZoom(zoom.value * factor);
     const ratio = next / zoom.value;
@@ -132,28 +123,25 @@ export function useCanvasViewport(options: CanvasViewportOptions) {
     fitted.value = false;
   }
 
-  /** zoomBy zooms by a factor around the middle of the area. */
+  /** Zooms by a factor around the middle of the area. */
   function zoomBy(factor: number): void {
     zoomAt(bounding.width.value / 2, bounding.height.value / 2, factor);
   }
 
-  /** zoomToScale zooms around the middle of the area until one content unit spans a number of screen pixels. */
+  /** Zooms around the middle of the area until one content unit spans a number of screen pixels. */
   function zoomToScale(target: number): void {
     if (target <= 0 || scale.value <= 0) return;
     zoomBy(target / scale.value);
   }
 
-  /** resetZoom fits the content into the area again and keeps it fitted. */
+  /** Fits the content into the area again and keeps it fitted. */
   function resetZoom(): void {
     zoom.value = 1;
     fitted.value = true;
     center();
   }
 
-  /**
-   * zoomToBounds zooms and pans so that a part of the content fills the area within the padding.
-   * Bounds without an extent, such as those of a single point, keep the zoom and are centered.
-   */
+  /** Zooms and pans so that a part of the content fills the area within the padding. */
   function zoomToBounds(bounds: Bounds): void {
     const padding = toValue(options.padding) ?? 0;
     const width = bounds.maxX - bounds.minX;
@@ -169,7 +157,7 @@ export function useCanvasViewport(options: CanvasViewportOptions) {
     fitted.value = false;
   }
 
-  /** panBy moves the content by a distance in screen pixels. */
+  /** Moves the content by a distance in screen pixels. */
   function panBy(dx: number, dy: number): void {
     pan.x += dx;
     pan.y += dy;
@@ -202,13 +190,13 @@ export function useCanvasViewport(options: CanvasViewportOptions) {
     },
   });
 
-  /** startPan moves the content with the pointer until the pointer is released. */
+  /** Moves the content with the pointer until the pointer is released. */
   function startPan(event: PointerEvent): void {
     event.preventDefault();
     panDrag.start(event);
   }
 
-  /** clientToArea converts a position in the browser window into a position in the area. */
+  /** Converts a position in the browser window into a position in the area. */
   function clientToArea(clientX: number, clientY: number): Point {
     return {
       x: clientX - bounding.left.value,
@@ -216,7 +204,7 @@ export function useCanvasViewport(options: CanvasViewportOptions) {
     };
   }
 
-  /** clientToContent converts a position in the browser window into content units. */
+  /** Converts a position in the browser window into content units. */
   function clientToContent(clientX: number, clientY: number): Point {
     const point = clientToArea(clientX, clientY);
     return {
@@ -225,7 +213,7 @@ export function useCanvasViewport(options: CanvasViewportOptions) {
     };
   }
 
-  /** contentToArea converts a position in content units into a position in the area. */
+  /** Converts a position in content units into a position in the area. */
   function contentToArea(x: number, y: number): Point {
     return {
       x: pan.x + x * scale.value,
@@ -233,13 +221,13 @@ export function useCanvasViewport(options: CanvasViewportOptions) {
     };
   }
 
-  /** isPanTrigger reports whether a pointer press pans instead of reaching the content. */
+  /** Reports whether a pointer press pans instead of reaching the content. */
   function isPanTrigger(event: PointerEvent): boolean {
     if (event.button === BUTTON_MIDDLE || event.button === BUTTON_SECONDARY) return true;
     return event.button === BUTTON_PRIMARY && spacePressed.value;
   }
 
-  // The capture phase starts the pan before an element of the content can take the press
+  // Capturing starts the pan before an element of the content can take the press
   useEventListener(
     options.area,
     'pointerdown',
@@ -271,7 +259,7 @@ export function useCanvasViewport(options: CanvasViewportOptions) {
     spacePressed.value = false;
   });
 
-  /** wheelDelta returns the scroll distance of a wheel event in pixels. */
+  /** Returns the scroll distance of a wheel event in pixels. */
   function wheelDelta(event: WheelEvent): Point {
     let factor = 1;
     if (event.deltaMode === DOM_DELTA_LINE) factor = WHEEL_LINE_HEIGHT;
@@ -334,10 +322,7 @@ export function useCanvasViewport(options: CanvasViewportOptions) {
   };
 }
 
-/**
- * isInteractiveTarget reports whether a key event belongs to a control that uses the Space key itself,
- * such as a text field or a button.
- */
+/** Reports whether a key event belongs to a control that uses the Space key itself. */
 function isInteractiveTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
   if (target.isContentEditable) return true;

@@ -19,17 +19,18 @@ import (
 // skipSetupAnnotation marks a command that runs without the application setup.
 const skipSetupAnnotation = "cmdline.skipSetup"
 
-// init makes cobra run every PersistentPreRunE from the root down to the command, not only the closest one.
-// It is a global switch of cobra, so it is set once instead of per command tree.
+// init makes cobra run every PersistentPreRunE from the root down to the command, not only the closest one,
+// and lets a double click in the Windows Explorer start the binary instead of showing a hint to use a terminal.
+// Both are global switches of cobra, so they are set once instead of per command tree.
 func init() {
 	cobra.EnableTraverseRunHooks = true
+	cobra.MousetrapHelpText = ""
 }
 
-// NewRoot creates the root command. It is named after the running binary, so help, usage,
-// and shell completion stay correct when the binary is renamed. Errors are printed by Execute instead of cobra,
-// and a failing command does not print its usage, since most failures are not usage errors.
-// The root command also answers --version.
+// NewRoot creates the root command, named after the running binary, which answers --version.
 func NewRoot(build Build, short string) *cobra.Command {
+	// The name of the binary keeps help and shell completion correct after a rename.
+	// Execute prints errors instead of cobra, and most failures are no usage errors.
 	root := &cobra.Command{
 		Use:           BinaryName(),
 		Short:         short,
@@ -115,21 +116,22 @@ type cleanups struct {
 	fns []func()
 }
 
-// Defer registers fn to run after the command finished, also when it failed.
-// Functions run in reverse order, like defer. Outside Execute, for example in a test
-// that calls root.Execute directly, fn runs when the command context ends, if it ever does.
+// Defer registers fn to run after the command finished, also when it failed, in reverse order like defer.
 func Defer(cmd *cobra.Command, fn func()) {
 	if list, ok := cmd.Context().Value(cleanupKey{}).(*cleanups); ok {
 		list.fns = append(list.fns, fn)
 		return
 	}
+	// Outside Execute, fn runs when the command context ends, if it ever does
 	context.AfterFunc(cmd.Context(), fn)
 }
 
-// Execute runs the root command with the given arguments, os.Args[1:] when nil. The context ends on SIGINT or SIGTERM,
-// so long-running commands can stop gracefully. It prints a failure to stderr and returns the exit code:
-// 0 on success, the code of an ExitError, and 1 for any other error.
+// Execute runs the root command with args, or os.Args[1:] for nil, until SIGINT or SIGTERM ends its context,
+// prints a failure to stderr, and returns the exit code of an ExitError, or 1 for any other error.
+// On Windows, it first closes the console window of a binary started outside a terminal.
 func Execute(root *cobra.Command, args []string) int {
+	releaseOwnConsole()
+
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 

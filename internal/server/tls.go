@@ -25,9 +25,7 @@ const (
 	certValidity = 397 * 24 * time.Hour
 )
 
-// certFiles resolves the certificate/key pair to serve over TLS. Explicit paths take precedence.
-// Otherwise, a self-signed certificate is generated and cached in the first directory that already holds one,
-// or else the first writable one (see resolveCertDir and defaultCertDir).
+// certFiles returns the configured certificate and key, or a self-signed pair kept in a config directory.
 func (s *Server) certFiles() (certFile, keyFile string, err error) {
 	if s.options.SSLCertFile != "" {
 		return s.options.SSLCertFile, s.options.SSLKeyFile, nil
@@ -55,9 +53,7 @@ func (s *Server) certFiles() (certFile, keyFile string, err error) {
 	return certFile, keyFile, nil
 }
 
-// certHosts lists the hostnames and IPs a locally generated certificate must cover.
-// Binding to one specific host only requires that host.
-// Binding to all interfaces also covers every local network address.
+// certHosts lists the hostnames and addresses a self-signed certificate must cover for the host the server binds to.
 func (s *Server) certHosts() []string {
 	hosts := []string{"localhost", "127.0.0.1", "::1"}
 
@@ -67,10 +63,7 @@ func (s *Server) certHosts() []string {
 	return append(hosts, s.options.Host)
 }
 
-// ensureSelfSignedCert makes certFile/keyFile hold a valid, unexpired self-signed certificate that covers
-// every entry in hosts (a mix of hostnames and IP addresses). An existing pair that already covers all hosts
-// and has not expired is left untouched. Otherwise, a new ECDSA P-256 key pair and certificate are generated
-// and written in its place.
+// ensureSelfSignedCert keeps a valid pair in certFile and keyFile that covers the hosts, or replaces it with a new one.
 func (s *Server) ensureSelfSignedCert(certFile, keyFile string, hosts []string) error {
 	if cert, err := loadCert(certFile, keyFile); err == nil && certCovers(cert, hosts) {
 		s.logger.Debug().Str("cert", certFile).Msg("reusing existing self-signed TLS certificate")
@@ -81,10 +74,8 @@ func (s *Server) ensureSelfSignedCert(certFile, keyFile string, hosts []string) 
 	return generateSelfSignedCert(certFile, keyFile, hosts)
 }
 
-// resolveCertDir reports the first of the candidate certificate directories that already contains a cert.pem
-// and key.pem pair, or empty if none does, in which case a caller generating a new certificate must pick a location
-// itself (see defaultCertDir). Uses the same search order as an existing config file (see appdirs.Roots.SearchDirs):
-// working directory, then the user config directory, then the system config directory.
+// resolveCertDir returns the first certificate directory in the search order of a config file that holds a pair,
+// or empty if none does.
 func resolveCertDir(roots appdirs.Roots, appDirName string) string {
 	for _, dir := range roots.SearchDirs(appDirName, certsDirName) {
 		if _, err := os.Stat(filepath.Join(dir, "cert.pem")); err != nil {

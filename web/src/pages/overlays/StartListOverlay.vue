@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 
-import { HeatStatus } from '@/api/types';
+import { HeatStatus } from '@/api/types/live';
 import HeatHeading from '@/components/overlay/HeatHeading.vue';
-import { compareResults, isResultRanked } from '@/lib/heat';
-import { fullName } from '@/lib/names';
-import { formatSwimtime } from '@/lib/time';
+import { compareResults, isResultRanked } from '@/lib/live/heat';
+import { fullName } from '@/lib/live/names';
+import { formatSwimtime } from '@/lib/live/time';
 import { useLiveStore } from '@/stores/live';
 
 const liveStore = useLiveStore();

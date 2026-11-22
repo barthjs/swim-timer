@@ -1,12 +1,14 @@
 <script setup lang="ts" generic="T">
-import { computed, nextTick, onBeforeUnmount, useTemplateRef } from 'vue';
+import { computed, useTemplateRef } from 'vue';
 import { useI18n } from 'vue-i18n';
-import Sortable from 'sortablejs';
 import type { TableColumn } from '@nuxt/ui';
 
+import { useSortableList } from '@/composables/ui/useSortableList';
 import {
   emptyTableColumnState,
+  isTableColumnVisible,
   moveItem,
+  setTableColumnVisible,
   tableColumnOptions,
   type TableColumnState,
 } from '@/lib/table/columns';
@@ -16,6 +18,8 @@ import {
 // Only the handle starts a drag, so a click on a checkbox always toggles it.
 const props = defineProps<{
   columns: TableColumn<T>[];
+  // Columns that stay hidden until the viewer shows them, the same list DataTable gets
+  hiddenByDefault?: string[];
 }>();
 
 const columnState = defineModel<TableColumnState>('columnState', {
@@ -26,78 +30,43 @@ const { t } = useI18n();
 
 const options = computed(() => tableColumnOptions(props.columns, columnState.value.order));
 
-const visibleCount = computed(
-  () => options.value.filter((option) => !columnState.value.hidden.includes(option.id)).length,
-);
+const visibleCount = computed(() => options.value.filter((option) => isVisible(option.id)).length);
 
-/** isVisible reports whether a column is shown. */
+/** Reports whether a column is shown. */
 function isVisible(id: string): boolean {
-  return !columnState.value.hidden.includes(id);
+  return isTableColumnVisible(id, columnState.value, props.hiddenByDefault);
 }
 
-/** setVisible shows or hides a column. */
+/** Shows or hides a column. */
 function setVisible(id: string, visible: boolean) {
-  const hidden = columnState.value.hidden.filter((hiddenId) => hiddenId !== id);
-  if (!visible) hidden.push(id);
-  columnState.value = {
-    ...columnState.value,
-    hidden,
-  };
+  columnState.value = setTableColumnVisible(columnState.value, id, visible, props.hiddenByDefault);
 }
 
-/** reset restores the order, visibility, and widths the page defines. */
+/** Restores the order, visibility, and widths the page defines. */
 function reset() {
   columnState.value = emptyTableColumnState();
 }
 
 const list = useTemplateRef<HTMLElement>('list');
-let sortable: Sortable | null = null;
+const { start, stop } = useSortableList(list, (oldIndex, newIndex) => {
+  columnState.value = {
+    ...columnState.value,
+    order: moveItem(
+      options.value.map((option) => option.id),
+      oldIndex,
+      newIndex,
+    ),
+  };
+});
 
-/** initSortable makes the list sortable once the popover rendered it. */
-function initSortable() {
-  if (!list.value || sortable) return;
-  sortable = new Sortable(list.value, {
-    handle: '[data-drag-handle]',
-    animation: 150,
-    forceFallback: true,
-    delay: 150,
-    delayOnTouchOnly: true,
-    ghostClass: 'opacity-30',
-    onEnd: (event) => {
-      const { oldIndex, newIndex, item, from } = event;
-      if (oldIndex === undefined || newIndex === undefined || oldIndex === newIndex) return;
-      // Sortable moved the element itself. It goes back to its place, so only Vue changes the DOM
-      // and renders the new order from the state.
-      from.removeChild(item);
-      from.insertBefore(item, from.children[oldIndex] ?? null);
-      columnState.value = {
-        ...columnState.value,
-        order: moveItem(
-          options.value.map((option) => option.id),
-          oldIndex,
-          newIndex,
-        ),
-      };
-    },
-  });
-}
-
-/** destroySortable removes the drag handling when the popover closes. */
-function destroySortable() {
-  sortable?.destroy();
-  sortable = null;
-}
-
-/** onOpenChange sets up the drag handling while the popover is open. */
+/** Sets up the drag handling while the popover is open. */
 function onOpenChange(open: boolean) {
   if (open) {
-    void nextTick(initSortable);
+    start();
     return;
   }
-  destroySortable();
+  stop();
 }
-
-onBeforeUnmount(destroySortable);
 </script>
 
 <template>

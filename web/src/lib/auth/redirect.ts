@@ -1,12 +1,12 @@
 import type { LocationQuery, RouteLocationRaw } from 'vue-router';
 
-/** REDIRECT_QUERY names the query parameter that carries the page to return to after logging in. */
+/** Names the query parameter that carries the page to return to after logging in. */
 const REDIRECT_QUERY = 'redirect';
 
-/** LoginRoute is the login page as a path, such as a localized one, or as a named route. */
+/** The login page as a path or as a named route. */
 export type LoginRoute = string | { name: string };
 
-/** loginLocation builds the location of the login page that returns to fullPath after a successful login. */
+/** Builds the location of the login page that returns to fullPath after a successful login. */
 export function loginLocation(login: LoginRoute, fullPath?: string): RouteLocationRaw {
   const page =
     typeof login === 'string'
@@ -29,7 +29,7 @@ export function loginLocation(login: LoginRoute, fullPath?: string): RouteLocati
 }
 
 /**
- * redirectTarget returns the page to open after a successful login, or the fallback without a usable one.
+ * Returns the page to open after a successful login, or the fallback without a usable one.
  * Only paths within the app are accepted, so a crafted login link cannot send the user to another site
  * ("//host" and "/\host" are protocol-relative URLs).
  */

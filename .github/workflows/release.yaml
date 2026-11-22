@@ -76,6 +76,8 @@ jobs:
   docs:
     needs: release
     uses: ./.github/workflows/docs.yaml
+    with:
+      tag: ${{ github.ref_name }}
     permissions:
       contents: read
       pages: write

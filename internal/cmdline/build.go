@@ -5,6 +5,7 @@ import (
 	"runtime"
 	"runtime/debug"
 	"strings"
+	"text/tabwriter"
 
 	"github.com/spf13/cobra"
 )
@@ -29,8 +30,7 @@ type versionInfo struct {
 	Platform  string `json:"platform" yaml:"platform"`
 }
 
-// ResolveCommit returns the short VCS revision the binary was built from,
-// or an empty string when the build carries none, for example in tests.
+// ResolveCommit returns the short VCS revision the binary was built from, empty when the build carries none.
 func ResolveCommit() string {
 	info, ok := debug.ReadBuildInfo()
 	if !ok {
@@ -45,7 +45,7 @@ func ResolveCommit() string {
 }
 
 // ResolveArch returns the architecture the binary was built for, with the ARM version for 32-bit ARM,
-// such as "amd64", "arm64", or "armv7". Release archives are named after it.
+// as the release archives name it.
 func ResolveArch() string {
 	arch := runtime.GOARCH
 	if arch != "arm" {
@@ -65,17 +65,22 @@ func ResolveArch() string {
 	return arch
 }
 
-// VersionText returns the version information as aligned text lines.
+// VersionText returns the version information as text, with the name and version in the first line.
 func VersionText(b Build) string {
 	info := b.info()
 
 	var sb strings.Builder
-	_, _ = fmt.Fprintf(&sb, "%s\t%s\n", info.Name, info.Version)
+	_, _ = fmt.Fprintf(&sb, "%s %s\n", info.Name, info.Version)
+
+	// Spaces instead of tabs line the values up in every terminal, whatever its tab width
+	w := tabwriter.NewWriter(&sb, 0, 0, 1, ' ', 0)
 	if info.Commit != "" {
-		_, _ = fmt.Fprintf(&sb, "Commit:\t\t%s\n", info.Commit)
+		_, _ = fmt.Fprintf(w, "Commit:\t%s\n", info.Commit)
 	}
-	_, _ = fmt.Fprintf(&sb, "Go Version:\t%s\n", info.GoVersion)
-	_, _ = fmt.Fprintf(&sb, "OS/Arch:\t%s\n", info.Platform)
+	_, _ = fmt.Fprintf(w, "Go Version:\t%s\n", info.GoVersion)
+	_, _ = fmt.Fprintf(w, "OS/Arch:\t%s\n", info.Platform)
+	_ = w.Flush()
+
 	return sb.String()
 }
 

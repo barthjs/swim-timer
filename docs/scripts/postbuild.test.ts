@@ -109,7 +109,7 @@ describe('setSpecVersion', () => {
       },
     });
 
-    const result = JSON.parse(setSpecVersion(spec, 'v1.2.3'));
+    const result: unknown = JSON.parse(setSpecVersion(spec, 'v1.2.3'));
 
     expect(result).toEqual({
       swagger: '2.0',
@@ -131,7 +131,7 @@ describe('postbuild', () => {
     });
   });
 
-  /** writeSite writes a minimal built site with a nested page, a module, and an OpenAPI document. */
+  /** Writes a minimal built site with a nested page, a module, and an OpenAPI document. */
   async function writeSite(page: string): Promise<void> {
     dist = await mkdtemp(path.join(tmpdir(), 'postbuild-'));
     await mkdir(path.join(dist, 'guide'));
@@ -153,9 +153,12 @@ describe('postbuild', () => {
     expect(await readFile(path.join(dist, '_astro', 'search.js'), 'utf8')).not.toContain(
       BASE_PLACEHOLDER,
     );
-    expect(JSON.parse(await readFile(path.join(dist, 'api.json'), 'utf8')).info.version).toBe(
-      'v1.2.3',
-    );
+    const spec: unknown = JSON.parse(await readFile(path.join(dist, 'api.json'), 'utf8'));
+    expect(spec).toMatchObject({
+      info: {
+        version: 'v1.2.3',
+      },
+    });
   });
 
   it('rejects a classic inline script that needs the base', async () => {

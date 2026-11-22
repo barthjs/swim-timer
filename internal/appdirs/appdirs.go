@@ -10,12 +10,10 @@ import (
 	"runtime"
 )
 
-// Roots are the base directories the application directories are derived from.
-// An empty root is skipped, for example when the OS exposes no user config directory.
+// Roots are the base directories of the user and of the system the application directories are derived from,
+// where an empty root is skipped.
 type Roots struct {
-	// User is the current user's root, such as ~/.config (config) or ~/.local/share (data) on Linux.
-	User string
-	// System is the system-wide root, such as /etc (config) or /var/lib (data) on Linux.
+	User   string
 	System string
 }
 
@@ -71,10 +69,8 @@ func LogDir(appName string) (string, error) {
 	return FirstWritableDir(LogDirs(appName)...)
 }
 
-// SearchDirs returns the directories to search for an existing file, in the order they should be tried:
-// the working directory, then the user root, then the system root.
-// appName names the application's subdirectory below the roots.
-// A non-empty subdir is appended to each directory, and an empty root is omitted.
+// SearchDirs returns the directories to search for an existing file of appName in their order,
+// the working directory, the user root, then the system root, each with subdir appended.
 func (r Roots) SearchDirs(appName, subdir string) []string {
 	return joinDirs(subdir, ".", r.appDir(r.User, appName), r.appDir(r.System, appName))
 }
@@ -116,7 +112,7 @@ func FirstWritableDir(dirs ...string) (string, error) {
 	return "", fmt.Errorf("no writable directory found (tried %v)", dirs)
 }
 
-// DirWritable reports whether a dir exists (creating it if missing) and accepts a new file.
+// DirWritable creates dir if it is missing and reports whether it accepts a new file.
 func DirWritable(dir string) bool {
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return false

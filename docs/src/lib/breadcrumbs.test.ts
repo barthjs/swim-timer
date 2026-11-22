@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { breadcrumbs, type SidebarNode } from './breadcrumbs.ts';
 
-/** link returns a sidebar link to a page. */
+/** Returns a sidebar link to a page. */
 function link(label: string, isCurrent = false): SidebarNode {
   return {
     type: 'link',

@@ -21,10 +21,10 @@ vi.mock('@nuxt/ui/composables', () => ({
   },
 }));
 
-/** registeredShortcut returns the save shortcut the last call of the composable registered. */
+/** Returns the save shortcut the last call of the composable registered. */
 function registeredShortcut(): ShortcutConfig {
   const shortcut = registered.at(-1)?.meta_s;
-  if (!shortcut || typeof shortcut !== 'object') {
+  if (shortcut === null || typeof shortcut !== 'object') {
     throw new Error('the save shortcut is not registered');
   }
   return shortcut;
@@ -76,7 +76,7 @@ describe('useSaveShortcut', () => {
     });
 
     it('ignores a missing form', () => {
-      useSaveShortcut(ref(null));
+      useSaveShortcut(ref<SubmitTarget | null>(null));
 
       const save = () => registeredShortcut().handler();
 

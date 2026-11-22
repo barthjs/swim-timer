@@ -15,8 +15,8 @@ import (
 // ErrPasswordMismatch is returned when the confirmation of a new password differs.
 var ErrPasswordMismatch = errors.New("passwords do not match")
 
-// Prompter asks for values interactively. Labels go to the error output, so the regular output of a command stays
-// clean for pipes. On a terminal, secrets are read without echo. With piped input, every value is read as a plain line.
+// Prompter asks for values on the error output, so the regular output stays clean for pipes,
+// and reads secrets without echo on a terminal.
 type Prompter struct {
 	in       *bufio.Reader
 	terminal *os.File

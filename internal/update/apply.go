@@ -19,10 +19,8 @@ import (
 	"github.com/minio/selfupdate"
 )
 
-// Apply downloads the archive of release, verifies it against the checksums of the release, and replaces the binary
-// with the one from the archive. The running process keeps the old binary until it restarts, see Restart.
-// A canceled ctx stops Apply until the replacement starts, which then runs to its end,
-// so a binary is never left half replaced.
+// Apply replaces the binary with the verified one of release, which the running process uses after Restart,
+// and finishes a replacement that has started even after ctx is canceled.
 func (u *Updater) Apply(ctx context.Context, release Release) error {
 	target, err := u.binary()
 	if err != nil {

@@ -32,9 +32,7 @@ func NewReader(r io.Reader) *Reader {
 	}
 }
 
-// Next returns the next entry and io.EOF after the last one. The application can stop while writing a line,
-// so a broken line directly before a session line or at the end of the recording is skipped.
-// Any other broken line, a recording that does not start with a session, and an unknown format fail with an error.
+// Next returns the next entry and io.EOF after the last one, skipping a line the application broke when it stopped.
 func (r *Reader) Next() (Entry, error) {
 	current, err := r.readNext()
 	if err != nil {

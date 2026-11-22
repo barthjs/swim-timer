@@ -6,7 +6,7 @@ import { MAIN_VERSION, type VersionIndex } from '../src/lib/versions.ts';
 const RELEASE_VERSION = /^v(\d+)\.(\d+)\.(\d+)(?:-(.+))?$/;
 
 /**
- * compareVersions orders release versions newest first. A prerelease comes before the release of the same number,
+ * Orders release versions newest first. A prerelease comes before the release of the same number,
  * and prereleases of one number are ordered by their name.
  */
 export function compareVersions(a: string, b: string): number {
@@ -40,10 +40,7 @@ export function compareVersions(a: string, b: string): number {
   });
 }
 
-/**
- * versionIndex lists the main branch first and the releases newest first. The latest version is the newest release
- * without a prerelease suffix. Folders that are no version are left out.
- */
+/** Lists the main branch and then the releases newest first, with the newest release without a prerelease suffix as the latest. */
 export function versionIndex(folders: string[]): VersionIndex {
   const releases = folders.filter((folder) => RELEASE_VERSION.test(folder)).sort(compareVersions);
   const latest = releases.find((release) => !release.includes('-')) ?? null;
@@ -55,7 +52,7 @@ export function versionIndex(folders: string[]): VersionIndex {
   };
 }
 
-/** redirectPage returns a page that sends the browser on to a URL, also without JavaScript. */
+/** Returns a page that sends the browser on to a URL, also without JavaScript. */
 export function redirectPage(title: string, url: string): string {
   return `<!doctype html>
 <html lang="en">
@@ -73,9 +70,8 @@ export function redirectPage(title: string, url: string): string {
 }
 
 /**
- * writeSiteIndex writes versions.json, the start page, and the 404 page at the root of the public documentation.
- * The start page leads to the latest release, or to the main branch before the first release. The 404 page
- * is served for any missing path, so it links to the start page with the absolute base path of the site.
+ * Writes versions.json, the start page leading to the latest release or the main branch, and the 404 page
+ * at the root of the public documentation.
  */
 export async function writeSiteIndex(site: string, basePath: string): Promise<VersionIndex> {
   const entries = await readdir(site, {
@@ -92,6 +88,7 @@ export async function writeSiteIndex(site: string, basePath: string): Promise<Ve
   const base = basePath.endsWith('/') ? basePath : `${basePath}/`;
   await writeFile(path.join(site, 'versions.json'), `${JSON.stringify(index, null, 2)}\n`);
   await writeFile(path.join(site, 'index.html'), redirectPage('Documentation', `./${start}/`));
+  // The 404 page is served for any missing path, so it links with the absolute base path
   await writeFile(path.join(site, '404.html'), redirectPage('Page not found', `${base}${start}/`));
 
   return index;

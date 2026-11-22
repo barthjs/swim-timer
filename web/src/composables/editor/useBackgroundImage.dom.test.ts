@@ -1,9 +1,10 @@
 import { nextTick } from 'vue';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { KeyValueStore } from '@/lib/keyValueStore';
+import type { KeyValueStore } from '@/lib/browser/keyValueStore';
 import { withSetup } from '@/test/withSetup';
 import { useBackgroundImage } from '@/composables/editor/useBackgroundImage';
+import { imageLoad } from '@/test/image';
 
 const store = {
   get: vi.fn<KeyValueStore<Blob>['get']>(),
@@ -22,7 +23,7 @@ describe('useBackgroundImage', () => {
   });
   afterEach(() => unmount());
 
-  /** mount creates the background image of a 1920 x 1080 content, or of an image cropped to fit. */
+  /** Creates the background image of a 1920 x 1080 content, or of an image cropped to fit. */
   function mount(cropped = false) {
     const mounted = withSetup(() =>
       useBackgroundImage({
@@ -41,16 +42,6 @@ describe('useBackgroundImage', () => {
     return mounted.result;
   }
 
-  /** loaded reports a loaded image of the given size, as the img element does. */
-  function loaded(width: number, height: number): Event {
-    return {
-      target: {
-        naturalWidth: width,
-        naturalHeight: height,
-      },
-    } as unknown as Event;
-  }
-
   describe('opacity', () => {
     it('starts light enough to see the items above it', () => {
       const image = mount();
@@ -63,7 +54,7 @@ describe('useBackgroundImage', () => {
     it('warns about an image with another aspect ratio', () => {
       const image = mount();
 
-      image.onLoad(loaded(1000, 1000));
+      image.onLoad(imageLoad(1000, 1000));
 
       expect(image.mismatch.value).toBe(true);
     });
@@ -71,7 +62,7 @@ describe('useBackgroundImage', () => {
     it('accepts an image with the aspect ratio of the content', () => {
       const image = mount();
 
-      image.onLoad(loaded(1280, 720));
+      image.onLoad(imageLoad(1280, 720));
 
       expect(image.mismatch.value).toBe(false);
     });
@@ -79,7 +70,7 @@ describe('useBackgroundImage', () => {
     it('never warns about an image that is cropped to fit', () => {
       const image = mount(true);
 
-      image.onLoad(loaded(1000, 1000));
+      image.onLoad(imageLoad(1000, 1000));
 
       expect(image.mismatch.value).toBe(false);
     });

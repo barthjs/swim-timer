@@ -52,9 +52,7 @@ func (s *state) setup(cmd *cobra.Command) error {
 	return nil
 }
 
-// logOptions maps the log settings of the configuration to the logger options.
-// The file channels write to the file named after the application in the log directory,
-// which is created if missing. It fails if the log directory is not writable.
+// logOptions maps the log settings to the logger options and fails when the log directory is not writable.
 func logOptions(cfg config.LogConfig) (logging.Options, error) {
 	options := logging.Options{
 		Level:   cfg.Level,

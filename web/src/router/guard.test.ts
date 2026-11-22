@@ -13,7 +13,7 @@ vi.mock('@/api/repositories/auth', () => ({
   },
 }));
 
-/** route returns a target location with the given path and meta fields. */
+/** Returns a target location with the given path and meta fields. */
 function route(fullPath: string, meta: RouteMeta): RouteLocationNormalized {
   return {
     fullPath,

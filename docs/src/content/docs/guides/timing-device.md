@@ -11,7 +11,7 @@ to the computer with a USB serial adapter.
 
 ## Serial port
 
-The Timing tab of the configuration page sets the connection:
+The Timing section of the configuration page sets the connection:
 
 | Setting     | Value                                                               |
 | ----------- | ------------------------------------------------------------------- |

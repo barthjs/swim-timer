@@ -52,8 +52,16 @@ export default defineConfig({
     },
   },
   integrations: [
+    // Every instance and release serves the documentation under a path of its own, so it has no address for a sitemap.
+    // Starlight only adds its sitemap, which would warn and skip, when no integration of that name exists.
+    {
+      name: '@astrojs/sitemap',
+      hooks: {},
+    },
     starlight({
       title: 'Swim-Timer',
+      // src/pages/404.astro replaces the 404 page of Starlight
+      disable404Route: true,
       // English is the main language, so its pages stay at the root, and pages without a translation fall back to it
       defaultLocale: 'root',
       locales: {

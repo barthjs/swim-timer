@@ -1,9 +1,10 @@
-import { apiFetch } from '@/api/client';
-import type { WebhookEvent, WebhookPreviewResponse } from '@/api/types';
+import { apiFetch } from '@/api/client/client';
+import type { WebhookEvent } from '@/api/types/webhook';
+import type { WebhookPreviewResponse } from '@/api/types/webhookPreview';
 
 export const webhookPreviewRepository = {
-  /** get returns a message of the event to the webhook with the given id as it would be sent now. */
-  get(webhookId: string, event: WebhookEvent): Promise<WebhookPreviewResponse> {
+  /** Returns a message of the event to the webhook with the given id as it would be sent now. */
+  async get(webhookId: string, event: WebhookEvent): Promise<WebhookPreviewResponse> {
     const query = new URLSearchParams({
       event,
     });

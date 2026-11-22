@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { presetRepository } from '@/api/repositories/preset';
-import type { PresetSaveRequest } from '@/api/types';
+import type { PresetSaveRequest } from '@/api/types/preset';
 import { jsonResponse, useFetchMock } from '@/test/fetchMock';
 
 describe('presetRepository', () => {

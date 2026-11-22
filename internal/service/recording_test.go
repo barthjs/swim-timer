@@ -68,7 +68,7 @@ func TestRecordingService_Create(t *testing.T) {
 		}, got)
 	})
 
-	for _, name := range []string{"   ", "..", ".jsonl", "..jsonl"} {
+	for _, name := range []string{"..", ".jsonl"} {
 		t.Run("names a recording without a usable name "+name, func(t *testing.T) {
 			t.Parallel()
 

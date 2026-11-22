@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, vi } from 'vitest';
 
-/** jsonResponse builds a response with a JSON body, or without a body for undefined. */
+/** Builds a response with a JSON body, or without a body for undefined. */
 export function jsonResponse(status: number, body: unknown): Response {
   return new Response(body === undefined ? null : JSON.stringify(body), {
     status,
@@ -8,7 +8,7 @@ export function jsonResponse(status: number, body: unknown): Response {
 }
 
 /**
- * useFetchMock replaces the global fetch for every test of the calling file and restores it afterward.
+ * Replaces the global fetch for every test of the calling file and restores it afterward.
  */
 export function useFetchMock() {
   const fetchMock = vi.fn<typeof fetch>();
@@ -23,7 +23,7 @@ export function useFetchMock() {
     vi.useRealTimers();
   });
 
-  /** lastRequest returns the URL and options of the most recent call. */
+  /** Returns the URL and options of the most recent call. */
   function lastRequest(): { url: unknown; init: RequestInit | undefined } {
     const call = fetchMock.mock.calls.at(-1);
     return {

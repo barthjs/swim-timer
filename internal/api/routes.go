@@ -14,9 +14,9 @@ import (
 	"github.com/barthjs/swim-timer/web"
 )
 
-// contentSecurityPolicy only allows the resources of the application itself. Styles may be inline, since Nuxt UI
-// injects style elements at runtime. Images and fonts may be data: and blob: URLs for the fonts inlined
-// in the stylesheets and the images the editor shows from local files.
+// contentSecurityPolicy only allows the resources of the application itself. Styles may be inline,
+// since Nuxt UI injects style elements at runtime. Images and fonts may be data: and blob: URLs
+// for the fonts inlined in the stylesheets and the images the editor shows from local files.
 const contentSecurityPolicy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; " +
 	"img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; " +
 	"form-action 'self'; frame-ancestors 'none'"
@@ -41,8 +41,8 @@ func (a *API) Routes() http.Handler {
 		server.RequestID,
 		a.recoverPanic,
 		server.RealIP(a.options.TrustedProxies),
-		// The overlays run in the Chromium of streaming software, which may predate 'self' matching
-		// websockets, so the websocket origin of the request host is listed in the policy as well.
+		// The overlays run in the Chromium of streaming software, which may predate 'self' matching websockets,
+		// so the websocket origin of the request host is listed in the policy as well.
 		server.SecurityHeaders(server.SecurityHeadersOptions{
 			ContentSecurityPolicy: contentSecurityPolicy,
 			PermissionsPolicy:     permissionsPolicy,
@@ -66,8 +66,8 @@ func (a *API) Routes() http.Handler {
 	return r
 }
 
-// realtimeRoutes registers the WebSocket endpoint at "/api/ws". It stays outside the "/api" group, whose timeout
-// and compression do not fit a connection that stays open. It is public like the overlays it feeds.
+// realtimeRoutes registers the public WebSocket endpoint outside the "/api" group,
+// whose timeout and compression do not fit a connection that stays open.
 func (a *API) realtimeRoutes(r chi.Router) {
 	r.With(a.logRequest).Get("/api/ws", a.realtimeConnectHandler)
 }
@@ -75,8 +75,8 @@ func (a *API) realtimeRoutes(r chi.Router) {
 // apiRoutes registers the JSON API under "/api".
 func (a *API) apiRoutes(r chi.Router) {
 	r.Route("/api", func(r chi.Router) {
-		// Every route of the JSON API is compressed and logged. State-changing requests from another origin
-		// are rejected unless CORS allows that origin explicitly.
+		// Every route of the JSON API is compressed and logged. State-changing requests from another origin are rejected
+		// unless CORS allows that origin explicitly.
 		r.Use(
 			server.Timeout(server.DefaultRequestTimeout),
 			gorillaHandlers.CompressHandler,
@@ -190,9 +190,9 @@ func (a *API) recordingRoutes(r chi.Router) {
 		r.Use(a.sm.LoadAndSave, a.requireAuthentication)
 
 		r.Get("/", a.recordingListHandler)
+		r.With(server.Timeout(downloadTimeout)).Get("/{name}", a.recordingGetHandler)
 		r.With(server.BodyLimit(uploadBodyLimit(maxRecordingUploadMB)), server.Timeout(uploadTimeout)).Post("/", a.recordingCreateHandler)
 		r.Delete("/{name}", a.recordingDeleteHandler)
-		r.With(server.Timeout(downloadTimeout)).Get("/{name}", a.recordingDownloadHandler)
 		r.With(server.Timeout(downloadTimeout)).Get("/{name}/csv", a.recordingExportHandler)
 	})
 }
@@ -233,8 +233,8 @@ func (a *API) webhookRoutes(r chi.Router) {
 	})
 }
 
-// docsRoutes serves the embedded documentation with the API reference under "/docs". Its bundles carry a hash
-// in their names, so they are cached like the assets of the SPA.
+// docsRoutes serves the embedded documentation with the API reference under "/docs".
+// Its bundles carry a hash in their names, so they are cached like the assets of the SPA.
 func (a *API) docsRoutes(r chi.Router) {
 	if !a.options.Docs {
 		return

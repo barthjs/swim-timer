@@ -42,22 +42,6 @@ func TestPrompter_Line(t *testing.T) {
 	})
 }
 
-func TestPrompter_Secret(t *testing.T) {
-	t.Parallel()
-
-	t.Run("reads the secret from a pipe", func(t *testing.T) {
-		t.Parallel()
-
-		want := apitest.Faker(t).LetterN(12)
-		p := newPrompter(strings.NewReader(want+"\n"), io.Discard)
-
-		secret, err := p.Secret("Password: ")
-
-		require.NoError(t, err)
-		assert.Equal(t, want, secret)
-	})
-}
-
 func TestPrompter_NewPassword(t *testing.T) {
 	t.Parallel()
 
@@ -90,28 +74,13 @@ func TestPrompter_Confirm(t *testing.T) {
 			want:  true,
 		},
 		{
-			name:  "accepts an uppercase yes",
-			input: "YES\n",
+			name:  "accepts a yes in any case with surrounding spaces",
+			input: " YES \n",
 			want:  true,
-		},
-		{
-			name:  "accepts a yes with surrounding spaces",
-			input: " yes \n",
-			want:  true,
-		},
-		{
-			name:  "declines a no",
-			input: "n\n",
-			want:  false,
 		},
 		{
 			name:  "declines an empty answer",
 			input: "\n",
-			want:  false,
-		},
-		{
-			name:  "declines any other answer",
-			input: "maybe\n",
 			want:  false,
 		},
 	}

@@ -2,12 +2,12 @@ import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
 
 import { timingRepository } from '@/api/repositories/timing';
-import type { TimingStatusResponse } from '@/api/types';
+import type { TimingStatusResponse } from '@/api/types/timing';
 
-/** POLL_INTERVAL_MS is how often the connection to the timing device is checked. */
+/** The interval of the checks of the connection to the timing device. */
 const POLL_INTERVAL_MS = 5_000;
 
-/** useTimingStore polls and holds the connection status of the timing device. */
+/** Polls and holds the connection status of the timing device. */
 export const useTimingStore = defineStore('timing', () => {
   // The last status the backend reported, or null before the first poll resolves
   const status = ref<TimingStatusResponse | null>(null);
@@ -17,7 +17,7 @@ export const useTimingStore = defineStore('timing', () => {
 
   let timer: ReturnType<typeof setInterval> | null = null;
 
-  /** poll reads the status of the timing device. */
+  /** Reads the status of the timing device. */
   async function poll(): Promise<void> {
     try {
       status.value = await timingRepository.getStatus();
@@ -26,14 +26,14 @@ export const useTimingStore = defineStore('timing', () => {
     }
   }
 
-  /** start polls the status of the timing device at a fixed interval. */
+  /** Polls the status of the timing device at a fixed interval. */
   function start(): void {
     if (timer !== null) return;
     void poll();
-    timer = setInterval(poll, POLL_INTERVAL_MS);
+    timer = setInterval(() => void poll(), POLL_INTERVAL_MS);
   }
 
-  /** stop ends the polling. */
+  /** Ends the polling. */
   function stop(): void {
     if (timer === null) return;
     clearInterval(timer);

@@ -1,9 +1,8 @@
 import { createApp } from 'vue';
 
 /**
- * withSetup runs a composable inside a mounted component, so lifecycle hooks such as onMounted and onUnmounted
- * fire as in the app. It returns the composable's result and a function that unmounts the component.
- * It needs a DOM and is meant for .dom.test.ts files.
+ * Runs a composable inside a mounted component of a .dom.test.ts file, so its lifecycle hooks fire,
+ * and returns its result and a function that unmounts the component.
  */
 export function withSetup<T>(composable: () => T): { result: T; unmount: () => void } {
   let result: T | undefined;

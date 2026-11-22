@@ -14,16 +14,13 @@ import (
 
 // Leaf describes one setting, a scalar field of the configuration struct, and the names it is set by.
 type Leaf struct {
-	// Key is the dotted config-file key, such as log.max_age_days.
+	// Key is the dotted config-file key.
 	Key string
-	// Path is the dotted path of the JSON names, such as log.maxAgeDays, the way the setting leaves the process as JSON.
-	// It is empty if the field or one of its sections has no JSON name.
+	// Path is the dotted path of the JSON names, empty if the field or one of its sections has none.
 	Path string
-	// Flag is the command-line flag name without dashes in front, such as log-max-age-days.
+	// Flag is the command-line flag name without dashes in front.
 	Flag string
-	// Env is the environment variable name, such as LOG_MAX_AGE_DAYS.
-	Env string
-	// Type is the Go type of the field.
+	Env  string
 	Type reflect.Type
 	// Default is the raw default tag, empty for the zero value.
 	Default string
@@ -35,7 +32,7 @@ type Leaf struct {
 	Secret bool
 }
 
-// Description returns the usage text followed by the allowed values, such as "Log level (debug, info)",
+// Description returns the usage text followed by the allowed values in parentheses,
 // so flags, documentation, and templates describe a setting with the same words.
 func (l Leaf) Description() string {
 	if len(l.Values) == 0 {
@@ -54,8 +51,8 @@ func Leaves(cfg any) []Leaf {
 }
 
 var (
-	// flagNameReplacer turns a dotted config key (log.max_age_days) into the flag name convention
-	// (log-max-age-days): both dots and underscores become dashes.
+	// flagNameReplacer turns a dotted config key (log.max_age_days) into the flag name convention (log-max-age-days):
+	// both dots and underscores become dashes.
 	flagNameReplacer = strings.NewReplacer(".", "-", "_", "-")
 )
 
@@ -91,10 +88,8 @@ func walkValue(v reflect.Value, prefix string, fn func(key string, value any)) {
 	}
 }
 
-// RegisterFlags adds a command-line flag for every configuration field of cfg to flags,
-// using the field's default and description from its struct tags. It must be called before
-// the flag set is parsed. Binding these flags to the config keys happens later in Load.
-// The caller registers flags that are not settings, such as --config.
+// RegisterFlags adds a flag with the default and description of its struct tags for every setting of cfg,
+// and must run before the flag set is parsed.
 func RegisterFlags(flags *pflag.FlagSet, cfg any) error {
 	var outErr error
 	eachLeaf(cfg, func(l Leaf) {
@@ -127,11 +122,7 @@ func RegisterFlags(flags *pflag.FlagSet, cfg any) error {
 	return outErr
 }
 
-// bindLeaves registers the struct-tag default and the environment binding for every config key of cfg on v.
-// Registering the default also makes the key known to viper, so Unmarshal resolves it from the environment
-// or a config file even when nothing else sets it. When flags are non-nil, each key is additionally bound
-// to its already-registered flag, so a flag passed on the command line overrides the environment, the config file,
-// and the default. A command that registers no flags passes nil and gets the environment and the defaults only.
+// bindLeaves binds the default, the environment, and the flags, which may be nil, to every config key of cfg on v.
 func bindLeaves(v *viper.Viper, cfg any, flags *pflag.FlagSet) error {
 	var outErr error
 	eachLeaf(cfg, func(l Leaf) {
@@ -144,6 +135,8 @@ func bindLeaves(v *viper.Viper, cfg any, flags *pflag.FlagSet) error {
 			outErr = fmt.Errorf("config %s: invalid default %q: %w", l.Key, l.Default, err)
 			return
 		}
+		// The default also makes the key known to viper, so Unmarshal resolves it from the environment
+		// or a config file even when nothing else sets it.
 		v.SetDefault(l.Key, value)
 
 		// Bind the exact environment variable for this key. This is deliberately explicit rather than AutomaticEnv,
@@ -155,6 +148,7 @@ func bindLeaves(v *viper.Viper, cfg any, flags *pflag.FlagSet) error {
 			return
 		}
 
+		// A command that registers no flags gets the environment and the defaults only
 		if flags == nil {
 			return
 		}
@@ -166,15 +160,11 @@ func bindLeaves(v *viper.Viper, cfg any, flags *pflag.FlagSet) error {
 }
 
 // fileSuffix marks the environment variable that names a file holding a setting's value,
-// the convention Docker and Kubernetes use for secrets, for example APP_SECRET_FILE.
+// the convention Docker and Kubernetes use for secrets.
 const fileSuffix = "_FILE"
 
-// bindFileValue sets the value of l from the file its _FILE variable names, at the precedence of the environment.
-// It overrides a config file and the default, while a flag passed on the command line still wins.
-// Surrounding whitespace, such as the trailing newline of a secret file, is removed.
-// Setting both the variable and its _FILE variant is an error, since it is unclear which one is meant.
-// An empty variable counts as unset, as in viper and Sources, so a compose default such as ${APP_SECRET:-}
-// does not conflict with the _FILE variant.
+// bindFileValue sets the value of l from the trimmed content of the file its _FILE variable names,
+// at the precedence of the environment.
 func bindFileValue(v *viper.Viper, l Leaf, flags *pflag.FlagSet) error {
 	fileEnv := l.Env + fileSuffix
 	path := os.Getenv(fileEnv)
@@ -182,6 +172,8 @@ func bindFileValue(v *viper.Viper, l Leaf, flags *pflag.FlagSet) error {
 		return nil
 	}
 
+	// Setting both is unclear. An empty variable counts as unset, as in viper and Sources,
+	// so a compose default that expands to nothing does not conflict with the _FILE variant.
 	if os.Getenv(l.Env) != "" {
 		return fmt.Errorf("config %s: set either %s or %s, not both", l.Key, l.Env, fileEnv)
 	}
@@ -221,9 +213,8 @@ func setDefaults(v *viper.Viper, cfg any) error {
 	return outErr
 }
 
-// eachLeaf walks the struct behind cfg and calls fn for every scalar field, building the dotted key
-// from the mapstructure tags and the path from the JSON tags. Nested structs are recursed into.
-// Fields tagged `mapstructure:"-"` hold values derived at load time and are skipped.
+// eachLeaf calls fn for every setting of the struct behind cfg, including those of nested sections,
+// and skips the fields tagged `mapstructure:"-"`, which hold values derived at load time.
 func eachLeaf(cfg any, fn func(Leaf)) {
 	walkStruct(reflect.TypeOf(cfg).Elem(), "", "", fn)
 }

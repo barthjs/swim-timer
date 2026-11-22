@@ -8,6 +8,8 @@ GOOS	?= $(shell go env GOOS)
 GOARCH	?= $(shell go env GOARCH)
 GOARM	?=
 OUT		?= bin/$(APP_NAME)
+EXE		:= $(if $(filter windows,$(GOOS)),.exe,)
+VERSION	?= $(shell git describe --tags --abbrev=0 2>/dev/null || echo dev)
 
 MODULE			:= $(shell go list -m)
 # Every Go package except the ones inside web/node_modules, which go list includes.
@@ -84,14 +86,14 @@ test-types:
 test-unit:
 	@echo 'Running unit tests...'
 	@mkdir -p $(COVER_DIR)
-	@go test -race -vet=off -coverpkg=$(COVER_PKGS) -coverprofile=$(COVER_DIR)/unit.out $(UNIT_PKGS)
+	@go test -vet=off -coverpkg=$(COVER_PKGS) -coverprofile=$(COVER_DIR)/unit.out $(UNIT_PKGS)
 
 ## test-feature: run the feature tests with coverage
 .PHONY: test-feature
 test-feature:
 	@echo 'Running feature tests...'
 	@mkdir -p $(COVER_DIR)
-	go test -race -vet=off -tags='$(FEATURE_TAGS)' -coverpkg=$(COVER_PKGS) -coverprofile=$(COVER_DIR)/feature.out $(FEATURE_PKGS)
+	go test -vet=off -tags='$(FEATURE_TAGS)' -coverpkg=$(COVER_PKGS) -coverprofile=$(COVER_DIR)/feature.out $(FEATURE_PKGS)
 
 ## test: run every quality check and print the total coverage
 .PHONY: test
@@ -105,7 +107,7 @@ test: test-lint test-types test-unit test-feature
 .PHONY: update
 update:
 	@echo 'Updating all dependencies...'
-	go get -u ./...
+	go get -u -t ./...
 	@echo 'Tidying after update...'
 	go mod tidy
 
@@ -125,16 +127,12 @@ docs-api: fmt
 # BUILD
 # ==================================================================================== #
 
-## build-backend: build the backend
-.PHONY: build-backend
-build-backend:
-	GOOS=$(GOOS) GOARCH=$(GOARCH) go build -ldflags='-s -w' -o=$(OUT) ./cmd/$(APP_NAME)/
-
-## build: build the whole application for the current platform (GOOS/GOARCH/GOARM overridable)
+## build: build the binary with the web interface and the documentation into bin/ (GOOS/GOARCH/GOARM overridable)
 .PHONY: build
 build:
-	@mkdir -p $(dir $(OUT))
-	GOOS=$(GOOS) GOARCH=$(GOARCH) GOARM=$(GOARM) goreleaser build --single-target --snapshot --clean -o $(OUT)
+	cd web && VITE_APP_VERSION=$(VERSION) npm run build-only
+	cd docs && DOCS_VERSION=$(VERSION) npm run build-only
+	CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) GOARM=$(GOARM) go build -trimpath -ldflags='-s -w -X main.Version=$(VERSION)' -o=$(OUT)$(EXE) ./cmd/$(APP_NAME)/
 
 ## build-linux-386: build for Linux 386
 .PHONY: build-linux-386

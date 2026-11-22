@@ -1,11 +1,7 @@
-/** ShortcutMap names the keys of each shortcut, as the keys a tooltip or the help shows. */
+/** Names the keys of each shortcut, as the keys a tooltip or the help shows. */
 export type ShortcutMap = Record<string, readonly string[]>;
 
-/**
- * EDITOR_SHORTCUTS are the keyboard shortcuts every editor offers. Single keys do not fire while an input has
- * the focus. The digits and the arrow keys are left to the items of an editor, so the actions use letters
- * and symbols.
- */
+/** The keyboard shortcuts every editor offers, leaving the digits and arrow keys to its items. */
 export const EDITOR_SHORTCUTS = {
   undo: ['meta', 'z'],
   redo: ['meta', 'y'],
@@ -32,17 +28,9 @@ export const EDITOR_SHORTCUTS = {
 export type EditorShortcut = keyof typeof EDITOR_SHORTCUTS;
 
 /**
- * shortcutKeys returns the keys of a shortcut as a new array,
+ * Returns the keys of a shortcut as a new array,
  * the form a UTooltip and the keyLabels of useShortcutLabels take.
  */
 export function shortcutKeys(keys: readonly string[]): string[] {
   return [...keys];
-}
-
-/**
- * shortcutDefinition joins the keys of a shortcut into the name defineShortcuts of Nuxt UI expects,
- * such as "meta_z" or "shift_f".
- */
-export function shortcutDefinition(keys: readonly string[]): string {
-  return keys.join('_');
 }

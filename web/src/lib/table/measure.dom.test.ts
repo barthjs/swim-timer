@@ -1,16 +1,16 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { measureColumnWidth } from '@/lib/table/measure';
+import { measureColumnWidth, measureTableColumns, rootFontSize } from '@/lib/table/measure';
 
 /**
- * renderTable renders a table with a header row and the given body rows.
+ * Renders a table with a header row and the given body rows.
  * happy-dom does no layout, so every cell reports a width of ten pixels per character of its text.
  */
 function renderTable(header: string[], rows: string[][]): HTMLTableElement {
   vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (
     this: HTMLElement,
   ) {
-    return new DOMRect(0, 0, (this.textContent ?? '').length * 10, 20);
+    return new DOMRect(0, 0, this.textContent.length * 10, 20);
   });
 
   const table = document.createElement('table');
@@ -21,6 +21,67 @@ function renderTable(header: string[], rows: string[][]): HTMLTableElement {
   document.body.append(table);
   return table;
 }
+
+describe('rootFontSize', () => {
+  afterEach(() => {
+    document.documentElement.style.fontSize = '';
+  });
+
+  it('returns the size of 1rem in pixels', () => {
+    document.documentElement.style.fontSize = '20px';
+
+    const size = rootFontSize();
+
+    expect(size).toBe(20);
+  });
+});
+
+describe('measureTableColumns', () => {
+  afterEach(() => {
+    document.body.innerHTML = '';
+    vi.restoreAllMocks();
+  });
+
+  it('returns the widest cell of every column, header included', () => {
+    const table = renderTable(
+      ['Name', 'Email'],
+      [
+        ['Ann', 'a@example.com'],
+        ['Christopher', 'c@example.com'],
+      ],
+    );
+
+    const widths = measureTableColumns(table);
+
+    expect(widths).toEqual([110, 130]);
+  });
+
+  it('ignores a row whose cell spans the whole table', () => {
+    const table = renderTable(['Id', 'Name'], []);
+    table.querySelector('tbody')!.innerHTML =
+      '<tr><td colspan="2">Nothing found in this list</td></tr>';
+
+    const widths = measureTableColumns(table);
+
+    expect(widths).toEqual([20, 40]);
+  });
+
+  it('returns nothing for a table without a header', () => {
+    const table = document.createElement('table');
+
+    const widths = measureTableColumns(table);
+
+    expect(widths).toEqual([]);
+  });
+
+  it('removes its helper table again', () => {
+    const table = renderTable(['Name'], [['Ann']]);
+
+    measureTableColumns(table);
+
+    expect(document.querySelectorAll('table')).toHaveLength(1);
+  });
+});
 
 describe('measureColumnWidth', () => {
   afterEach(() => {

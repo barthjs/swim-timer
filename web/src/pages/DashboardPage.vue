@@ -4,8 +4,8 @@ import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
 import { presetRepository } from '@/api/repositories/preset';
-import { useApiError } from '@/composables/useApiError';
-import { useHeatLabel } from '@/composables/useHeatLabel';
+import { useApiError } from '@/composables/form/useApiError';
+import { useHeatLabel } from '@/composables/live/useHeatLabel';
 import OverlayLinks, { type OverlayLink } from '@/components/overlay/OverlayLinks.vue';
 import DocsLink from '@/components/system/DocsLink.vue';
 import TimingStatusBadge from '@/components/timing/TimingStatusBadge.vue';
@@ -44,7 +44,7 @@ onUnmounted(() => {
 // An event missing from the meet data has no name, which is left out.
 const heatLabel = computed(() => {
   const state = liveStore.state;
-  if (!state || !state.status) return null;
+  if (!state?.status) return null;
 
   return [
     t('overlays.event', {
@@ -92,7 +92,7 @@ const arLinks = computed<OverlayLink[]>(() =>
   })),
 );
 
-// The lanes of the live heat, which change with every loaded heat.
+// The lanes of the live heat, which change with every loaded heat
 const laneLinks = computed<OverlayLink[]>(() => {
   if (!liveStore.state) return [];
   return Object.values(liveStore.state.lanes)
@@ -111,7 +111,7 @@ const laneLinks = computed<OverlayLink[]>(() => {
     <div class="flex flex-col gap-1">
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div class="flex items-center gap-1">
-          <h1 class="text-highlighted text-xl font-semibold">{{ t('pages.dashboard.title') }}</h1>
+          <h1 class="text-highlighted heading-page">{{ t('pages.dashboard.title') }}</h1>
           <DocsLink page="dashboard" />
         </div>
         <TimingStatusBadge />
@@ -133,7 +133,6 @@ const laneLinks = computed<OverlayLink[]>(() => {
 
     <OverlayLinks
       :title="t('pages.dashboard.overlays')"
-      :help="t('pages.dashboard.help.overlays')"
       icon="i-lucide-layers"
       :links="overlayLinks"
     />
@@ -141,7 +140,6 @@ const laneLinks = computed<OverlayLink[]>(() => {
     <OverlayLinks
       v-if="arLinks.length"
       :title="t('pages.dashboard.arOverlays')"
-      :help="t('pages.dashboard.help.arOverlays')"
       icon="i-lucide-scan"
       :links="arLinks"
     />
@@ -149,7 +147,6 @@ const laneLinks = computed<OverlayLink[]>(() => {
     <OverlayLinks
       v-if="laneLinks.length"
       :title="t('pages.dashboard.lanes')"
-      :help="t('pages.dashboard.help.lanes')"
       icon="i-lucide-rows-3"
       :links="laneLinks"
     />

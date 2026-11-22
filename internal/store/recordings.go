@@ -63,8 +63,8 @@ func (s *RecordingStore) List(ctx context.Context) ([]domain.Recording, error) {
 	return recordings, nil
 }
 
-// Get opens the recording at a storage path for reading, or returns apperr.ErrNotFound if it does not exist.
-// It takes the path, since the configuration names the replayed recording by its path. The caller must close it.
+// Get opens the recording at a storage path for reading, as the configuration names the replayed one,
+// and the caller closes it.
 func (s *RecordingStore) Get(ctx context.Context, p string) (io.ReadCloser, error) {
 	reader, err := s.storage.Get(ctx, p)
 	if err != nil {
@@ -124,8 +124,8 @@ func (s *RecordingStore) Delete(ctx context.Context, name string) error {
 	return nil
 }
 
-// Path returns the storage path of the recording with the given name, or ErrInvalidName for a name
-// without the recording extension or one that cannot address a recording file.
+// Path returns the storage path of the recording with the given name,
+// or ErrInvalidName for a name without the recording extension or one that cannot address a recording file.
 func (s *RecordingStore) Path(name string) (string, error) {
 	base, found := strings.CutSuffix(name, recordingExtension)
 	if !found {

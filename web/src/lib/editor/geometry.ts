@@ -1,10 +1,10 @@
-/** Point is a position in the content units of an editor. */
+/** A position in the content units of an editor. */
 export type Point = {
   x: number;
   y: number;
 };
 
-/** Bounds is an axis-aligned rectangle given by its edges. */
+/** An axis-aligned rectangle given by its edges. */
 export type Bounds = {
   minX: number;
   maxX: number;
@@ -12,13 +12,13 @@ export type Bounds = {
   maxY: number;
 };
 
-/** Size is a width and a height, such as of the content of an editor or of an image. */
+/** A width and a height. */
 export type Size = {
   width: number;
   height: number;
 };
 
-/** pointsBounds returns the smallest bounds that contain every point. */
+/** Returns the smallest bounds that contain every point. */
 export function pointsBounds(points: readonly Point[]): Bounds {
   return {
     minX: Math.min(...points.map((point) => point.x)),
@@ -28,7 +28,7 @@ export function pointsBounds(points: readonly Point[]): Bounds {
   };
 }
 
-/** unionBounds returns the smallest bounds that contain every given bounds, or null for none. */
+/** Returns the smallest bounds that contain every given bounds, or null for none. */
 export function unionBounds(list: readonly Bounds[]): Bounds | null {
   if (list.length === 0) return null;
   return {
@@ -39,7 +39,7 @@ export function unionBounds(list: readonly Bounds[]): Bounds | null {
   };
 }
 
-/** sizeBounds returns the bounds of content of a size, starting at the origin. */
+/** Returns the bounds of content of a size, starting at the origin. */
 export function sizeBounds(size: Size): Bounds {
   return {
     minX: 0,
@@ -49,21 +49,18 @@ export function sizeBounds(size: Size): Bounds {
   };
 }
 
-/** boundsIntersect reports whether two bounds overlap. */
+/** Reports whether two bounds overlap. */
 export function boundsIntersect(a: Bounds, b: Bounds): boolean {
   return a.minX < b.maxX && a.maxX > b.minX && a.minY < b.maxY && a.maxY > b.minY;
 }
 
 /**
- * ASPECT_RATIO_TOLERANCE is the relative difference below which two aspect ratios count as equal,
+ * The relative difference below which two aspect ratios count as equal,
  * which absorbs sizes rounded to whole pixels.
  */
 export const ASPECT_RATIO_TOLERANCE = 0.01;
 
-/**
- * aspectRatioDiffers reports whether two sizes differ in their aspect ratio by more than the tolerance,
- * which would stretch one of them when it is drawn into the other. An empty size never differs.
- */
+/** Reports whether drawing one size into the other would stretch it beyond the tolerance. */
 export function aspectRatioDiffers(a: Size, b: Size, tolerance = ASPECT_RATIO_TOLERANCE): boolean {
   if (a.width <= 0 || a.height <= 0 || b.width <= 0 || b.height <= 0) return false;
   const ratioA = a.width / a.height;
@@ -71,14 +68,14 @@ export function aspectRatioDiffers(a: Size, b: Size, tolerance = ASPECT_RATIO_TO
   return Math.abs(ratioA / ratioB - 1) > tolerance;
 }
 
-/** clamp limits a value to a range. A range whose maximum is below its minimum collapses to the minimum. */
+/** Limits a value to a range. A range whose maximum is below its minimum collapses to the minimum. */
 export function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), Math.max(min, max));
 }
 
 /**
- * clampOffset limits a shift of bounds, so they stay inside a container. Bounds larger than the container
- * keep their start at its start.
+ * Limits a shift of bounds, so they stay inside a container.
+ * Bounds larger than the container keep their start at its start.
  */
 export function clampOffset(bounds: Bounds, container: Bounds, offset: Point): Point {
   return {
@@ -87,7 +84,7 @@ export function clampOffset(bounds: Bounds, container: Bounds, offset: Point): P
   };
 }
 
-/** translateBounds returns bounds moved by an offset. */
+/** Returns bounds moved by an offset. */
 export function translateBounds(bounds: Bounds, offset: Point): Bounds {
   return {
     minX: bounds.minX + offset.x,
@@ -98,7 +95,7 @@ export function translateBounds(bounds: Bounds, offset: Point): Bounds {
 }
 
 /**
- * constrainToAxis keeps only the larger part of an offset, so a drag follows the horizontal or the vertical axis,
+ * Keeps only the larger part of an offset, so a drag follows the horizontal or the vertical axis,
  * whichever the pointer moved along more.
  */
 export function constrainToAxis(offset: Point): Point {
@@ -115,7 +112,7 @@ export function constrainToAxis(offset: Point): Point {
 }
 
 /**
- * mapPointBetween moves a point from one bounds into another, keeping its relative position,
+ * Moves a point from one bounds into another, keeping its relative position,
  * so a group of items scales and moves with the bounds around it. Bounds without an extent keep the relative start.
  */
 export function mapPointBetween(point: Point, from: Bounds, to: Bounds): Point {

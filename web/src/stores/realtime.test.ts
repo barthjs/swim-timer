@@ -9,28 +9,40 @@ import {
   type RealtimeHandler,
 } from '@/stores/realtime';
 
-/** FakeWebSocket records the sockets the store opens and lets a test drive their events. */
-class FakeWebSocket {
+/** Records the sockets the store opens and lets a test drive their events. */
+class FakeWebSocket extends EventTarget {
   static instances: FakeWebSocket[] = [];
 
   url: string;
   closed = false;
-  onopen: (() => void) | null = null;
-  onmessage: ((event: { data: unknown }) => void) | null = null;
-  onclose: (() => void) | null = null;
 
   constructor(url: string) {
+    super();
     this.url = url;
     FakeWebSocket.instances.push(this);
   }
 
-  /** close marks the socket closed and reports it like a browser. */
-  close(): void {
-    this.closed = true;
-    this.onclose?.();
+  /** Signals that the connection is established. */
+  open(): void {
+    this.dispatchEvent(new Event('open'));
   }
 
-  /** latest returns the socket opened last. */
+  /** Delivers a message with the given data. */
+  receive(data: unknown): void {
+    this.dispatchEvent(
+      new MessageEvent('message', {
+        data,
+      }),
+    );
+  }
+
+  /** Marks the socket closed and reports it like a browser. */
+  close(): void {
+    this.closed = true;
+    this.dispatchEvent(new Event('close'));
+  }
+
+  /** Returns the socket opened last. */
   static latest(): FakeWebSocket {
     const socket = FakeWebSocket.instances.at(-1);
     if (!socket) throw new Error('no socket was opened');
@@ -78,13 +90,13 @@ describe('useRealtimeStore', () => {
       vi.useFakeTimers();
       const store = useRealtimeStore();
       store.connect();
-      FakeWebSocket.latest().onopen?.();
-      FakeWebSocket.latest().onclose?.();
+      FakeWebSocket.latest().open();
+      FakeWebSocket.latest().close();
       await vi.advanceTimersByTimeAsync(1_000);
-      FakeWebSocket.latest().onclose?.();
+      FakeWebSocket.latest().close();
       await vi.advanceTimersByTimeAsync(2_000);
 
-      FakeWebSocket.latest().onopen?.();
+      FakeWebSocket.latest().open();
 
       expect(store.reconnects).toBe(1);
     });
@@ -93,10 +105,10 @@ describe('useRealtimeStore', () => {
       vi.useFakeTimers();
       const store = useRealtimeStore();
       store.connect();
-      FakeWebSocket.latest().onclose?.();
+      FakeWebSocket.latest().close();
       await vi.advanceTimersByTimeAsync(1_000);
 
-      FakeWebSocket.latest().onopen?.();
+      FakeWebSocket.latest().open();
 
       expect(store.reconnects).toBe(1);
     });
@@ -104,11 +116,11 @@ describe('useRealtimeStore', () => {
     it('does not count the first connection or one after a disconnect', () => {
       const store = useRealtimeStore();
       store.connect();
-      FakeWebSocket.latest().onopen?.();
+      FakeWebSocket.latest().open();
       store.disconnect();
       store.connect();
 
-      FakeWebSocket.latest().onopen?.();
+      FakeWebSocket.latest().open();
 
       expect(store.reconnects).toBe(0);
     });
@@ -121,7 +133,7 @@ describe('useRealtimeStore', () => {
       store.on(RESYNC_MESSAGE, resync);
 
       store.connect();
-      FakeWebSocket.latest().onopen?.();
+      FakeWebSocket.latest().open();
 
       expect(FakeWebSocket.latest().url).toBe('wss://example.test/api/ws');
       expect(store.isConnected).toBe(true);
@@ -141,9 +153,9 @@ describe('useRealtimeStore', () => {
       vi.useFakeTimers();
       const store = useRealtimeStore();
       store.connect();
-      FakeWebSocket.latest().onopen?.();
+      FakeWebSocket.latest().open();
 
-      FakeWebSocket.latest().onclose?.();
+      FakeWebSocket.latest().close();
       await vi.advanceTimersByTimeAsync(1_000);
 
       expect(store.isConnected).toBe(false);
@@ -184,16 +196,14 @@ describe('useRealtimeStore', () => {
       const store = useRealtimeStore();
       const changed = vi.fn<RealtimeHandler>();
       const other = vi.fn<RealtimeHandler>();
-      store.on('notifications.changed', changed);
+      store.on('status', changed);
       store.on('other', other);
       store.connect();
 
-      FakeWebSocket.latest().onmessage?.({
-        data: '{"type":"notifications.changed"}',
-      });
+      FakeWebSocket.latest().receive('{"type":"status"}');
 
       expect(changed).toHaveBeenCalledWith({
-        type: 'notifications.changed',
+        type: 'status',
       });
       expect(other).not.toHaveBeenCalled();
     });
@@ -201,15 +211,11 @@ describe('useRealtimeStore', () => {
     it('skips a message that is not a message of the server', () => {
       const store = useRealtimeStore();
       const handler = vi.fn<RealtimeHandler>();
-      store.on('notifications.changed', handler);
+      store.on('status', handler);
       store.connect();
 
-      FakeWebSocket.latest().onmessage?.({
-        data: 'not json',
-      });
-      FakeWebSocket.latest().onmessage?.({
-        data: '{"kind":"notifications.changed"}',
-      });
+      FakeWebSocket.latest().receive('not json');
+      FakeWebSocket.latest().receive('{"kind":"status"}');
 
       expect(handler).not.toHaveBeenCalled();
     });
@@ -217,13 +223,11 @@ describe('useRealtimeStore', () => {
     it('returns the function that removes the handler', () => {
       const store = useRealtimeStore();
       const handler = vi.fn<RealtimeHandler>();
-      const off = store.on('notifications.changed', handler);
+      const off = store.on('status', handler);
       store.connect();
 
       off();
-      FakeWebSocket.latest().onmessage?.({
-        data: '{"type":"notifications.changed"}',
-      });
+      FakeWebSocket.latest().receive('{"type":"status"}');
 
       expect(handler).not.toHaveBeenCalled();
     });

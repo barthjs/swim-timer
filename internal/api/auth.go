@@ -24,12 +24,10 @@ func (a *API) authStatusGetHandler(w http.ResponseWriter, r *http.Request) {
 	}, nil)
 }
 
-// AuthStatusResponse reports whether the session is logged in.
 type AuthStatusResponse struct {
 	Authenticated bool `json:"authenticated"`
 }
 
-// AuthLoginRequest holds the admin password of a login.
 type AuthLoginRequest struct {
 	Password string `json:"password"`
 }
@@ -62,7 +60,7 @@ func (a *API) authLoginHandler(w http.ResponseWriter, r *http.Request) {
 
 	authenticated, err := a.authService.Login(r.Context(), req.Password)
 	if err != nil {
-		a.serverErrorResponse(w, r, err)
+		a.respondError(w, r, err)
 		return
 	}
 	if !authenticated {
@@ -85,7 +83,7 @@ func (a *API) authLoginHandler(w http.ResponseWriter, r *http.Request) {
 //	@Router			/auth/logout [post]
 func (a *API) authLogoutHandler(w http.ResponseWriter, r *http.Request) {
 	if err := a.authService.Logout(r.Context()); err != nil {
-		a.serverErrorResponse(w, r, err)
+		a.respondError(w, r, err)
 		return
 	}
 

@@ -11,20 +11,20 @@ import { marqueeBounds } from '@/composables/editor/useMarqueeSelection';
 import type { Size } from '@/lib/editor/geometry';
 import type { SnapFeedback } from '@/lib/editor/snap';
 
-// The area of an editor with zoom and pan and the aids drawn above the content: the snap guides, the rulers
-// with the guides dragged out of them, the pointer guides, the marquee, and the loupe. The default slot draws
-// the content, whose root element carries EDITOR_SURFACE_ATTRIBUTE. The loupe slot draws the content again
-// in content units while the loupe is shown.
+// The area of an editor with zoom and pan and the aids drawn above the content:
+// the snap guides, the rulers with the guides dragged out of them, the pointer guides, the marquee, and the loupe.
+// The default slot draws the content, whose root element carries EDITOR_SURFACE_ATTRIBUTE.
+// The loupe slot draws the content again in content units while the loupe is shown.
 const props = defineProps<{
   canvas: EditorCanvas;
-  // The size of the content in its own units.
+  // The size of the content in its own units
   content: Size;
   feedback: SnapFeedback;
-  // The unit of the content, which the rulers and the distances are labeled in, such as "px" or "mm".
+  // The unit of the content, which the rulers and the distances are labeled in, such as "px" or "mm"
   unit: string;
   showRulers: boolean;
   showGuides: boolean;
-  // Whether the loupe is shown, such as while a corner is dragged.
+  // Whether the loupe is shown, such as while a corner is dragged
   showLoupe: boolean;
   viewMode: boolean;
 }>();
@@ -83,7 +83,7 @@ const pointerGuidesShown = computed(
       <div
         v-for="(guide, index) in guides"
         :key="`guide-${index}`"
-        class="group absolute z-[4] flex touch-none"
+        class="group absolute z-4 flex touch-none"
         :class="
           guide.axis === 'x'
             ? 'inset-y-0 w-2 -translate-x-1/2 cursor-col-resize justify-center'

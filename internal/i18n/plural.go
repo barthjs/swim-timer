@@ -9,7 +9,7 @@ import (
 // CountKey is the data key TN adds the count under, so a message writes "{{.Count}}".
 const CountKey = "Count"
 
-// pluralForm returns the CLDR plural category of a whole number in the locale, such as "one" or "other".
+// pluralForm returns the CLDR plural category of a whole number in the locale.
 func pluralForm(locale string, count int) string {
 	n := count
 	if n < 0 {

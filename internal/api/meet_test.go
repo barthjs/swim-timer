@@ -551,19 +551,12 @@ func TestMeetFileSaveHandler(t *testing.T) {
 
 	t.Run("rejects a malformed body", func(t *testing.T) {
 		t.Parallel()
+		h := newHarness(t)
+		admin := h.asAdmin().WithHeader("Content-Type", "multipart/form-data")
 
-		for _, tt := range malformedForms() {
-			t.Run(tt.name, func(t *testing.T) {
-				t.Parallel()
-				h := newHarness(t)
-				boundary := h.Faker.LetterN(16)
-				admin := h.asAdmin().WithHeader("Content-Type", tt.contentType(boundary))
+		response := admin.PUT(meetFilePath(domain.MeetFileStyles), strings.NewReader(h.Faker.LoremIpsumSentence(4)))
 
-				response := admin.PUT(meetFilePath(domain.MeetFileStyles), strings.NewReader(tt.body(h, boundary)))
-
-				response.AssertBadRequest().AssertJSONPath("code", "bad_request")
-			})
-		}
+		response.AssertBadRequest().AssertJSONPath("code", "bad_request")
 	})
 
 	t.Run("rejects an oversized body", func(t *testing.T) {
@@ -659,19 +652,12 @@ func TestMeetFileUploadHandler(t *testing.T) {
 
 	t.Run("rejects a malformed body", func(t *testing.T) {
 		t.Parallel()
+		h := newHarness(t)
+		admin := h.asAdmin().WithHeader("Content-Type", "multipart/form-data")
 
-		for _, tt := range malformedForms() {
-			t.Run(tt.name, func(t *testing.T) {
-				t.Parallel()
-				h := newHarness(t)
-				boundary := h.Faker.LetterN(16)
-				admin := h.asAdmin().WithHeader("Content-Type", tt.contentType(boundary))
+		response := admin.POST("/api/meet/files", strings.NewReader(h.Faker.LoremIpsumSentence(4)))
 
-				response := admin.POST("/api/meet/files", strings.NewReader(tt.body(h, boundary)))
-
-				response.AssertBadRequest().AssertJSONPath("code", "bad_request")
-			})
-		}
+		response.AssertBadRequest().AssertJSONPath("code", "bad_request")
 	})
 
 	t.Run("rejects an oversized body", func(t *testing.T) {
@@ -730,40 +716,6 @@ func TestMeetFileUploadHandler(t *testing.T) {
 
 		h.Client.GET("/api/meet").AssertJSONCount("events", 0)
 	})
-}
-
-// malformedForm is a request body that is no readable multipart form.
-type malformedForm struct {
-	name        string
-	contentType func(boundary string) string
-	body        func(h *harness, boundary string) string
-}
-
-// malformedForms returns bodies that cannot be read as a multipart form.
-func malformedForms() []malformedForm {
-	return []malformedForm{
-		{
-			name:        "not multipart",
-			contentType: func(string) string { return "application/json" },
-			body: func(h *harness, _ string) string {
-				return `{"file":"` + h.Faker.Word() + `"}`
-			},
-		},
-		{
-			name:        "missing boundary",
-			contentType: func(string) string { return "multipart/form-data" },
-			body: func(h *harness, _ string) string {
-				return h.Faker.LoremIpsumSentence(4)
-			},
-		},
-		{
-			name:        "unterminated part",
-			contentType: func(boundary string) string { return "multipart/form-data; boundary=" + boundary },
-			body: func(h *harness, boundary string) string {
-				return "--" + boundary + "\r\nContent-Disposition: form-data; name=\"comment\"\r\n\r\n" + h.Faker.Word()
-			},
-		},
-	}
 }
 
 // endlessUpload returns a multipart body and its content type with a file in field

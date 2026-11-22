@@ -1,51 +1,51 @@
-import { apiFetch } from '@/api/client';
+import { apiFetch } from '@/api/client/client';
 import type {
   WebhookCreateRequest,
-  WebhookDeliveryResponse,
   WebhookResponse,
   WebhookUpdateRequest,
-} from '@/api/types';
+} from '@/api/types/webhook';
+import type { WebhookDeliveryResponse } from '@/api/types/webhookDelivery';
 
 export const webhookRepository = {
-  /** list returns every webhook with the state of its deliveries. */
-  list(): Promise<WebhookResponse[]> {
+  /** Returns every webhook with the state of its deliveries. */
+  async list(): Promise<WebhookResponse[]> {
     return apiFetch('/webhooks', {
       method: 'GET',
     });
   },
 
-  /** get returns the webhook with the given id. */
-  get(id: string): Promise<WebhookResponse> {
+  /** Returns the webhook with the given id. */
+  async get(id: string): Promise<WebhookResponse> {
     return apiFetch(`/webhooks/${encodeURIComponent(id)}`, {
       method: 'GET',
     });
   },
 
-  /** create stores a new webhook. */
-  create(payload: WebhookCreateRequest): Promise<WebhookResponse> {
+  /** Stores a new webhook. */
+  async create(payload: WebhookCreateRequest): Promise<WebhookResponse> {
     return apiFetch('/webhooks', {
       method: 'POST',
       body: payload,
     });
   },
 
-  /** update replaces the settings of the webhook with the given id. */
-  update(id: string, payload: WebhookUpdateRequest): Promise<WebhookResponse> {
+  /** Replaces the settings of the webhook with the given id. */
+  async update(id: string, payload: WebhookUpdateRequest): Promise<WebhookResponse> {
     return apiFetch(`/webhooks/${encodeURIComponent(id)}`, {
       method: 'PUT',
       body: payload,
     });
   },
 
-  /** delete removes the webhook with the given id. */
-  delete(id: string): Promise<void> {
+  /** Removes the webhook with the given id. */
+  async delete(id: string): Promise<void> {
     return apiFetch(`/webhooks/${encodeURIComponent(id)}`, {
       method: 'DELETE',
     });
   },
 
-  /** test sends a test message to the webhook with the given id and returns the delivery. */
-  test(id: string): Promise<WebhookDeliveryResponse> {
+  /** Sends a test message to the webhook with the given id and returns the delivery. */
+  async test(id: string): Promise<WebhookDeliveryResponse> {
     return apiFetch(`/webhooks/${encodeURIComponent(id)}/test`, {
       method: 'POST',
     });

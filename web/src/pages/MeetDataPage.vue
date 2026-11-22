@@ -6,11 +6,10 @@ import type { FileUploadItem } from '@nuxt/ui';
 
 import { meetRepository } from '@/api/repositories/meet';
 import { meetFileRepository } from '@/api/repositories/meetFile';
-import { type MeetFile, type MeetFileResponse, type MeetFileUploadResponse } from '@/api/types';
-import { ApiError } from '@/api/errors';
-import HelpHint from '@/components/form/HelpHint.vue';
+import type { MeetFile, MeetFileResponse, MeetFileUploadResponse } from '@/api/types/meetFile';
+import { ApiError } from '@/api/client/errors';
 import DocsLink from '@/components/system/DocsLink.vue';
-import { useApiError } from '@/composables/useApiError';
+import { useApiError } from '@/composables/form/useApiError';
 import { useMutation } from '@/composables/form/useMutation';
 
 // The extension the timing software exports its files with. The browser matches it regardless of case.
@@ -27,7 +26,7 @@ const loadError = ref<unknown>(null);
 
 const uploadingFile = ref<MeetFile | null>(null);
 
-/** load reads which meet files are stored. */
+/** Reads which meet files are stored. */
 async function load(): Promise<void> {
   try {
     files.value = await meetFileRepository.list();
@@ -52,6 +51,10 @@ const { mutate: upload } = useMutation(
     }
   },
   {
+    loading: (file) =>
+      t('pages.meetData.uploading', {
+        name: fileName(file),
+      }),
     success: (_result, file) =>
       t('pages.meetData.uploadSuccess', {
         name: fileName(file),
@@ -61,7 +64,7 @@ const { mutate: upload } = useMutation(
 );
 
 /**
- * reportUploadResults reports every file the server did not accept on its own,
+ * Reports every file the server did not accept on its own,
  * so one unknown file does not hide the others.
  */
 function reportUploadResults(results: MeetFileUploadResponse[]): void {
@@ -86,7 +89,7 @@ function reportUploadResults(results: MeetFileUploadResponse[]): void {
   }
 }
 
-/** reportUploadError reports one file that was not stored, with the reason as its description. */
+/** Reports one file that was not stored, with the reason as its description. */
 function reportUploadError(filename: string, error: string): void {
   toast.add({
     title: t('pages.meetData.uploadError', {
@@ -100,8 +103,9 @@ function reportUploadError(filename: string, error: string): void {
 }
 
 const { mutate: uploadMany, pending: uploadingMany } = useMutation(
-  (contents: File[]) => meetFileRepository.upload(contents),
+  async (contents: File[]) => meetFileRepository.upload(contents),
   {
+    loading: () => t('pages.meetData.uploadingMany'),
     onSuccess: async (results) => {
       reportUploadResults(results);
       await load();
@@ -109,7 +113,8 @@ const { mutate: uploadMany, pending: uploadingMany } = useMutation(
   },
 );
 
-const { mutate: reload, pending: reloading } = useMutation(() => meetRepository.reload(), {
+const { mutate: reload, pending: reloading } = useMutation(async () => meetRepository.reload(), {
+  loading: () => t('pages.meetData.reloading'),
   success: () => t('pages.meetData.reloadSuccess'),
   onSuccess: load,
   onError: (err) => {
@@ -126,24 +131,24 @@ const { mutate: reload, pending: reloading } = useMutation(() => meetRepository.
   },
 });
 
-/** fileName returns the display name of a meet file. */
+/** Returns the display name of a meet file. */
 function fileName(file: MeetFile): string {
   return t(`pages.meetData.fileNames.${file}`);
 }
 
-/** onFileSelected uploads the file chosen for one meet file. */
+/** Uploads the file chosen for one meet file. */
 function onFileSelected(file: MeetFile, content: File | FileUploadItem | null | undefined): void {
   if (content instanceof File) void upload(file, content);
 }
 
-/** onFilesSelected uploads several files at once. */
+/** Uploads several files at once. */
 function onFilesSelected(contents: (File | FileUploadItem)[] | null | undefined): void {
   // The model type also allows custom file items, which a file dialog or a drop never produces
   const selected = contents?.filter((content) => content instanceof File) ?? [];
   if (selected.length) void uploadMany(selected);
 }
 
-/** onFilesRejected reports dropped files whose type the upload does not accept, which never reach the server. */
+/** Reports dropped files whose type the upload does not accept, which never reach the server. */
 function onFilesRejected(contents: File[]): void {
   for (const content of contents) {
     reportUploadError(content.name, 'unsupported_type');
@@ -155,18 +160,19 @@ function onFilesRejected(contents: File[]): void {
   <div class="flex flex-col gap-4">
     <div class="flex flex-wrap items-center justify-between gap-3">
       <div class="flex items-center gap-1">
-        <h1 class="text-highlighted text-xl font-semibold">{{ t('pages.meetData.title') }}</h1>
+        <h1 class="text-highlighted heading-page">{{ t('pages.meetData.title') }}</h1>
         <DocsLink page="meetData" />
       </div>
 
       <div class="flex items-center gap-1.5">
-        <UButton
-          :label="t('pages.meetData.reload')"
-          icon="i-lucide-refresh-ccw"
-          :loading="reloading"
-          @click="reload()"
-        />
-        <HelpHint :text="t('pages.meetData.reloadHint')" />
+        <UTooltip :text="t('pages.meetData.reloadHint')">
+          <UButton
+            :label="t('pages.meetData.reload')"
+            icon="i-lucide-refresh-ccw"
+            :loading="reloading"
+            @click="reload()"
+          />
+        </UTooltip>
       </div>
     </div>
 
@@ -187,14 +193,9 @@ function onFilesRejected(contents: File[]): void {
       @reject="onFilesRejected"
     />
 
-    <div class="flex items-center gap-1">
-      <h2 class="text-highlighted font-semibold">{{ t('fields.files') }}</h2>
-      <HelpHint :text="t('pages.meetData.filesHint')" />
-    </div>
+    <h2 class="text-highlighted heading-section">{{ t('fields.files') }}</h2>
 
-    <div v-if="loading" class="grid grid-cols-1 gap-4 md:grid-cols-2">
-      <USkeleton v-for="i in 6" :key="i" class="h-20 w-full" />
-    </div>
+    <USkeleton v-if="loading" class="h-80 w-full" />
 
     <UAlert
       v-else-if="loadFailed"
@@ -204,8 +205,9 @@ function onFilesRejected(contents: File[]): void {
       color="error"
     />
 
-    <div v-else class="grid grid-cols-1 gap-4 md:grid-cols-2">
-      <UCard v-for="item in files" :key="item.file" :ui="{ body: 'flex items-center gap-4' }">
+    <!-- The files are rows of one list, since they are items of the meet data rather than sections of their own -->
+    <ul v-else class="border-default divide-default divide-y rounded-md border">
+      <li v-for="item in files" :key="item.file" class="flex items-center gap-4 px-4 py-3">
         <div
           class="flex size-10 shrink-0 items-center justify-center rounded-lg"
           :class="item.available ? 'bg-success/10 text-success' : 'bg-elevated text-muted'"
@@ -240,6 +242,7 @@ function onFilesRejected(contents: File[]): void {
           :disabled="uploadingFile !== null"
           class="shrink-0"
           @update:model-value="(content) => onFileSelected(item.file, content)"
+          @reject="onFilesRejected"
         >
           <UButton
             :label="t('pages.meetData.upload')"
@@ -251,7 +254,7 @@ function onFilesRejected(contents: File[]): void {
             @click="open()"
           />
         </UFileUpload>
-      </UCard>
-    </div>
+      </li>
+    </ul>
   </div>
 </template>

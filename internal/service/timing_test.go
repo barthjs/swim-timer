@@ -453,20 +453,7 @@ func TestTimingService_handleFrame(t *testing.T) {
 		}
 	})
 
-	t.Run("ranks the lanes by their times", func(t *testing.T) {
-		t.Parallel()
-
-		svc := newTenLaneTimingService(t)
-		handleFrames(svc, frame(t, '2', 'S', 2, 7, 1, 0, 1, 0, "10:00:00.00"), frame(t, '2', 'I', 2, 7, 1, 1, 1, 1, "      30.00"))
-
-		svc.handleFrame(frame(t, '2', 'I', 2, 7, 1, 2, 10, 1, "      31.00"))
-
-		lanes := svc.GetLiveHeat().Lanes
-		assert.Equal(t, 1, lanes[1].Rank)
-		assert.Equal(t, 2, lanes[10].Rank)
-	})
-
-	t.Run("ranks the lanes again after a faster time entered late", func(t *testing.T) {
+	t.Run("ranks the lanes by their times again after a faster time entered late", func(t *testing.T) {
 		t.Parallel()
 
 		svc := newTenLaneTimingService(t)
@@ -644,13 +631,16 @@ func TestTimingService_handleFrame(t *testing.T) {
 		assert.True(t, state.Lanes[4].Finished)
 	})
 
-	t.Run("publishes the live heat", func(t *testing.T) {
+	t.Run("publishes the live heat and hands it to the callback", func(t *testing.T) {
 		t.Parallel()
 
 		broadcaster := &fakeBroadcaster{}
+		var published []*domain.LiveHeat
 		svc := NewTimingService(zerolog.Nop(), TimingOptions{
 			PoolLength: 50,
-		}, broadcaster, fakeDevice{}, nil, newTestTimingService(t, 50).store, nil)
+		}, broadcaster, fakeDevice{}, nil, newTestTimingService(t, 50).store, func(heat *domain.LiveHeat) {
+			published = append(published, heat)
+		})
 		before := time.Now()
 
 		svc.handleFrame(frame(t, '0', ' ', 4, 101, 1, 0, 0, 0, ""))
@@ -666,20 +656,6 @@ func TestTimingService_handleFrame(t *testing.T) {
 		assert.Equal(t, 101, message.Data.Event)
 		assert.Contains(t, message.Data.Lanes, 4)
 		assert.WithinRange(t, message.ServerTime, before.Add(-time.Second), time.Now().Add(time.Second), "the time the message was built")
-	})
-
-	t.Run("hands the published live heat to the callback", func(t *testing.T) {
-		t.Parallel()
-
-		var published []*domain.LiveHeat
-		svc := NewTimingService(zerolog.Nop(), TimingOptions{
-			PoolLength: 50,
-		}, &fakeBroadcaster{}, fakeDevice{}, nil, newTestTimingService(t, 50).store, func(heat *domain.LiveHeat) {
-			published = append(published, heat)
-		})
-
-		svc.handleFrame(frame(t, '0', ' ', 4, 101, 1, 0, 0, 0, ""))
-
 		require.Len(t, published, 1)
 		assert.Equal(t, svc.GetLiveHeat(), published[0])
 	})
@@ -1866,66 +1842,6 @@ func TestTimingService_getPoolLength(t *testing.T) {
 	}
 }
 
-func TestLocalTimeOfDayMS(t *testing.T) {
-	t.Parallel()
-
-	t.Run("returns the milliseconds since midnight", func(t *testing.T) {
-		t.Parallel()
-
-		at := time.Date(2026, 5, 1, 10, 15, 42, 300_000_000, time.Local)
-
-		ms := localTimeOfDayMS(at)
-
-		assert.Equal(t, (10*3600+15*60+42)*1000+300, ms)
-	})
-}
-
-func TestClockOffset(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name        string
-		localDayMS  int
-		omegaTimeMS int
-		want        time.Duration
-	}{
-		{
-			name:        "returns a negative offset for a device ahead",
-			localDayMS:  36_000_000,
-			omegaTimeMS: 36_180_000,
-			want:        -180 * time.Second,
-		},
-		{
-			name:        "returns a positive offset for a device behind",
-			localDayMS:  43_200_150,
-			omegaTimeMS: 43_200_000,
-			want:        150 * time.Millisecond,
-		},
-		{
-			name:        "returns the offset with the local clock past midnight",
-			localDayMS:  1000,
-			omegaTimeMS: 86_399_000,
-			want:        2 * time.Second,
-		},
-		{
-			name:        "returns the offset with the device clock past midnight",
-			localDayMS:  86_399_000,
-			omegaTimeMS: 1000,
-			want:        -2 * time.Second,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
-			offset := clockOffset(tt.localDayMS, tt.omegaTimeMS)
-
-			assert.Equal(t, tt.want, offset)
-		})
-	}
-}
-
 func TestHeatState_clearResults(t *testing.T) {
 	t.Parallel()
 
@@ -2172,6 +2088,66 @@ func TestLapRanks(t *testing.T) {
 			},
 		}, ranks, "an intermediate time at the last lap takes no part in the ranks")
 	})
+}
+
+func TestLocalTimeOfDayMS(t *testing.T) {
+	t.Parallel()
+
+	t.Run("returns the milliseconds since midnight", func(t *testing.T) {
+		t.Parallel()
+
+		at := time.Date(2026, 5, 1, 10, 15, 42, 300_000_000, time.Local)
+
+		ms := localTimeOfDayMS(at)
+
+		assert.Equal(t, (10*3600+15*60+42)*1000+300, ms)
+	})
+}
+
+func TestClockOffset(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name        string
+		localDayMS  int
+		omegaTimeMS int
+		want        time.Duration
+	}{
+		{
+			name:        "returns a negative offset for a device ahead",
+			localDayMS:  36_000_000,
+			omegaTimeMS: 36_180_000,
+			want:        -180 * time.Second,
+		},
+		{
+			name:        "returns a positive offset for a device behind",
+			localDayMS:  43_200_150,
+			omegaTimeMS: 43_200_000,
+			want:        150 * time.Millisecond,
+		},
+		{
+			name:        "returns the offset with the local clock past midnight",
+			localDayMS:  1000,
+			omegaTimeMS: 86_399_000,
+			want:        2 * time.Second,
+		},
+		{
+			name:        "returns the offset with the device clock past midnight",
+			localDayMS:  86_399_000,
+			omegaTimeMS: 1000,
+			want:        -2 * time.Second,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			offset := clockOffset(tt.localDayMS, tt.omegaTimeMS)
+
+			assert.Equal(t, tt.want, offset)
+		})
+	}
 }
 
 // handleFrames passes the frames to the timing service in their order.

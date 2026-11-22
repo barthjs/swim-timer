@@ -25,10 +25,8 @@ const (
 	fileName = "config"
 )
 
-// Load fills the struct cfg points to from four sources, in decreasing precedence:
-// command-line flags, environment variables, a config file, and the defaults of the struct tags.
-// appName names the directory the config file is searched in (see FindFile).
-// The flags may be nil for a command that registers none. The flag layer is then skipped.
+// Load fills cfg from the flags, which may be nil, the environment, the config file of appName,
+// and the defaults, in that precedence.
 func Load(appName string, flags *pflag.FlagSet, cfg any) error {
 	v := viper.New()
 
@@ -72,16 +70,12 @@ func LoadFile(path string, cfg any) error {
 	return v.Unmarshal(cfg)
 }
 
-// readFile makes viper read an optional config file.
-//
-// An explicit path from the flag or the environment takes precedence, but a missing file there is not an error,
-// since container images set the variable to a fixed path that may not exist yet on a fresh volume.
-// Without an explicit path, the config directories of appName are searched.
-// A missing file there is not an error either.
+// readFile makes viper read the config file, which is optional.
 func readFile(v *viper.Viper, appName string, flags *pflag.FlagSet) error {
 	if explicit := explicitFile(flags); explicit != "" {
 		v.SetConfigFile(explicit)
 		if err := v.ReadInConfig(); err != nil {
+			// Container images name a fixed path that may not exist yet on a fresh volume
 			if os.IsNotExist(err) {
 				return nil
 			}
@@ -103,7 +97,7 @@ func readFile(v *viper.Viper, appName string, flags *pflag.FlagSet) error {
 	return nil
 }
 
-// explicitFile returns the config file named by the flag, else by the environment, or empty if neither names one.
+// explicitFile returns the config file the flag or the environment names, the flag first.
 func explicitFile(flags *pflag.FlagSet) string {
 	if flags != nil {
 		if path, err := flags.GetString(FileFlag); err == nil && path != "" {

@@ -3,9 +3,9 @@ import { reactive, useTemplateRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 
-import { ApiError } from '@/api/errors';
+import { ApiError } from '@/api/client/errors';
 import { authRepository } from '@/api/repositories/auth';
-import type { AuthLoginRequest } from '@/api/types';
+import type { AuthLoginRequest } from '@/api/types/auth';
 import PasswordField from '@/components/form/PasswordField.vue';
 import type { FormErrorTarget } from '@/composables/form/useFormValidation';
 import { useMutation } from '@/composables/form/useMutation';
@@ -72,15 +72,15 @@ const {
       <template #header>
         <div class="flex flex-col items-center gap-3">
           <img src="@/assets/images/logo/favicon.svg" alt="" class="size-12" />
-          <h1 class="text-highlighted text-center text-xl font-semibold">
+          <h1 class="text-highlighted heading-page text-center">
             {{ t('pages.login.title') }}
           </h1>
         </div>
       </template>
 
       <UForm
-        :validate-on="FORM_VALIDATE_ON"
         ref="form"
+        :validate-on="FORM_VALIDATE_ON"
         :state="state"
         class="space-y-4"
         @submit="login()"

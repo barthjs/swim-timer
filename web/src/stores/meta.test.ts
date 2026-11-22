@@ -2,7 +2,7 @@ import { createPinia, setActivePinia } from 'pinia';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { metaRepository } from '@/api/repositories/meta';
-import type { MetaResponse } from '@/api/types';
+import type { MetaResponse } from '@/api/types/meta';
 import { useMetaStore } from '@/stores/meta';
 
 const get = vi.hoisted(() => vi.fn<typeof metaRepository.get>());

@@ -61,8 +61,8 @@ type RecordingService struct {
 	store    *store.RecordingStore
 }
 
-// NewRecordingService creates a RecordingService. The recorder may be nil, and so may the store
-// for a service that only converts recordings, see ExportCSV.
+// NewRecordingService creates a RecordingService with an optional recorder,
+// and without a store for a service that only converts recordings, see ExportCSV.
 func NewRecordingService(options RecordingOptions, recorder *recording.Writer, store *store.RecordingStore) *RecordingService {
 	return &RecordingService{
 		options:  options,
@@ -85,9 +85,9 @@ func (s *RecordingService) List(ctx context.Context) ([]domain.Recording, error)
 	return recordings, nil
 }
 
-// Create stores data as a recording under the sanitized filename of the upload with the .jsonl extension,
-// replacing a recording of the same name. Data that is not a readable recording and a name that cannot be stored
-// fail with a validation error of the file, the name of the recording being written fails with ErrRecordingInUse.
+// Create stores data as a recording under the sanitized filename of the upload with the .jsonl extension, replacing a recording of the same name.
+// Data that is not a readable recording and a name that cannot be stored fail with a validation error of the file,
+// the name of the recording being written fails with ErrRecordingInUse.
 func (s *RecordingService) Create(ctx context.Context, filename string, data []byte) (domain.Recording, error) {
 	if !readable(data) {
 		return domain.Recording{}, apperr.NewValidationError("file", "invalid")
@@ -115,8 +115,7 @@ func (s *RecordingService) Create(ctx context.Context, filename string, data []b
 }
 
 // Delete removes the recording with the given name, or returns apperr.ErrNotFound if it does not exist
-// or name cannot address a recording file. The replayed recording and the one being written
-// fail with ErrRecordingInUse.
+// or name cannot address a recording file. The replayed recording and the one being written fail with ErrRecordingInUse.
 func (s *RecordingService) Delete(ctx context.Context, name string) error {
 	recordingPath, err := s.store.Path(name)
 	if errors.Is(err, store.ErrInvalidName) {
@@ -185,9 +184,9 @@ func (s *RecordingService) currentName() string {
 	return s.recorder.FileName()
 }
 
-// ExportCSV reads a recording from r and writes it to w as a CSV table with one row per frame, discarded block,
-// gap, session, and meet line, in the order of the recording. The frames are decoded and their start times corrected
-// as the timing service did it while recording: every session starts with a new decoder and a new clock baseline.
+// ExportCSV reads a recording from r and writes it to w as a CSV table with one row per frame, discarded block, gap, session, and meet line,
+// in the order of the recording. The frames are decoded and their start times corrected as the timing service did it while recording:
+// every session starts with a new decoder and a new clock baseline.
 func (s *RecordingService) ExportCSV(r io.Reader, w io.Writer) error {
 	reader := recording.NewReader(r)
 	first, err := reader.Next()
@@ -371,8 +370,8 @@ func hexBytes(data []byte) string {
 	return string(text)
 }
 
-// recordingSource hands the data of one session to a decoder, one data line per read, so a frame is complete
-// at the time of the data line that holds its last byte. It passes the other lines to onEntry in their order
+// recordingSource hands the data of one session to a decoder, one data line per read,
+// so a frame is complete at the time of the data line that holds its last byte. It passes the other lines to onEntry in their order
 // and ends the session with io.EOF at the next session line, which it keeps in nextSession.
 type recordingSource struct {
 	reader  *recording.Reader

@@ -1,16 +1,9 @@
 package api_test
 
 import (
-	"crypto/hmac"
-	"crypto/sha256"
-	"encoding/base64"
-	"encoding/json/jsontext"
 	"encoding/json/v2"
-	"io"
 	"net/http"
-	"net/http/httptest"
 	"strings"
-	"sync"
 	"testing"
 	"time"
 
@@ -19,7 +12,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/barthjs/swim-timer/internal/api"
-	"github.com/barthjs/swim-timer/internal/config"
 	"github.com/barthjs/swim-timer/internal/omega"
 )
 
@@ -170,7 +162,7 @@ func TestWebhookGetHandler(t *testing.T) {
 			AssertJSONPath("name", request.Name).
 			AssertJSONPath("url", request.URL).
 			AssertJSONPath("enabled", true).
-			AssertJSONPath("secret", request.Secret).
+			AssertJSONPathMissing("secret").
 			AssertJSONPathMissing("status.lastDeliveredAt")
 	})
 
@@ -200,7 +192,8 @@ func TestWebhookCreateHandler(t *testing.T) {
 		assert.Equal(t, request.Name, created.Name)
 		assert.Equal(t, request.Events, created.Events)
 		assert.Equal(t, request.SkipTLSVerify, created.SkipTLSVerify)
-		admin.GET(webhookPath(created.ID)).AssertOK().AssertJSONPath("secret", request.Secret)
+		assert.Equal(t, request.Secret, created.Secret, "the response that created the webhook shows its secret once")
+		admin.GET(webhookPath(created.ID)).AssertOK().AssertJSONPathMissing("secret")
 	})
 
 	t.Run("generates a missing secret", func(t *testing.T) {
@@ -343,7 +336,7 @@ func TestWebhookUpdateHandler(t *testing.T) {
 			AssertJSONPath("url", request.URL).
 			AssertJSONPath("events", []any{"meet.reloaded"}).
 			AssertJSONPath("enabled", false).
-			AssertJSONPath("secret", request.Secret)
+			AssertJSONPathMissing("secret")
 		admin.GET(webhookPath(id)).AssertOK().AssertJSONPath("name", request.Name)
 	})
 
@@ -457,7 +450,7 @@ func TestWebhookTestHandler(t *testing.T) {
 		admin.GET(webhookPath(created.ID)).AssertOK().AssertJSONPath("status.consecutiveFailures", 0)
 	})
 
-	t.Run("reports a failed delivery", func(t *testing.T) {
+	t.Run("reports a failed delivery without counting it", func(t *testing.T) {
 		t.Parallel()
 		h := newHarness(t, withWebhookReceivers())
 		admin := h.asAdmin()
@@ -467,9 +460,8 @@ func TestWebhookTestHandler(t *testing.T) {
 
 		response.AssertOK().AssertJSONPath("outcome", "rejected").AssertJSONPath("statusCode", http.StatusBadRequest)
 		admin.GET(webhookPath(id)).AssertOK().
-			AssertJSONPath("status.consecutiveFailures", 1).
-			AssertJSONPath("status.lastStatusCode", http.StatusBadRequest).
-			AssertJSONPathMissing("status.lastErrorCode")
+			AssertJSONPath("status.consecutiveFailures", 0).
+			AssertJSONPathMissing("status.lastStatusCode")
 	})
 
 	t.Run("returns not found for an unknown webhook", func(t *testing.T) {
@@ -605,16 +597,6 @@ func TestWebhookPreviewGetHandler(t *testing.T) {
 	})
 }
 
-// webhookWaitTimeout bounds how long a test waits for a webhook message.
-const webhookWaitTimeout = 5 * time.Second
-
-// withWebhookReceivers allows the loopback network, so webhooks can be delivered to the test receivers.
-func withWebhookReceivers() option {
-	return withConfig(func(cfg *config.Config) {
-		cfg.Webhook.RawAllowedNetworks = "127.0.0.0/8,::1/128"
-	})
-}
-
 // webhookPath returns the API path of a webhook.
 func webhookPath(id string) string {
 	return "/api/webhooks/" + id
@@ -626,104 +608,4 @@ func (h *harness) createWebhook(url string) string {
 
 	created := h.asAdmin().POST("/api/webhooks", newWebhookCreateRequest(h.Faker, url)).AssertCreated().Decode[api.WebhookResponse]()
 	return created.ID
-}
-
-// newWebhookCreateRequest returns an enabled webhook for the heat updates at the URL with a random name and secret.
-func newWebhookCreateRequest(f *gofakeit.Faker, url string) api.WebhookCreateRequest {
-	return api.WebhookCreateRequest{
-		Name: f.Word(),
-		URL:  url,
-		Events: []string{
-			"heat.updated",
-		},
-		Enabled:       true,
-		Secret:        "whsec_" + base64.StdEncoding.EncodeToString([]byte(f.LetterN(32))),
-		SkipTLSVerify: f.Bool(),
-	}
-}
-
-// receivedWebhook is a message a webhookReceiver received with the headers that sign it.
-type receivedWebhook struct {
-	ID   string         `json:"id"`
-	Type string         `json:"type"`
-	Data jsontext.Value `json:"data"`
-
-	body      []byte
-	header    http.Header
-	signature string
-}
-
-// verify reports whether the message carries a valid signature with the secret, as a receiver checks it.
-func (m receivedWebhook) verify(secret string) bool {
-	key, err := base64.StdEncoding.DecodeString(strings.TrimPrefix(secret, "whsec_"))
-	if err != nil {
-		return false
-	}
-	mac := hmac.New(sha256.New, key)
-	_, _ = mac.Write([]byte(m.header.Get("webhook-id") + "." + m.header.Get("webhook-timestamp") + "." + string(m.body)))
-	return m.signature == "v1,"+base64.StdEncoding.EncodeToString(mac.Sum(nil))
-}
-
-// webhookReceiver is an endpoint that records the messages it receives. It answers with the given statuses
-// in turn and repeats the last one, 204 without any.
-type webhookReceiver struct {
-	server   *httptest.Server
-	messages chan receivedWebhook
-
-	mu       sync.Mutex
-	statuses []int
-	requests int
-}
-
-// newWebhookReceiver starts a receiver that answers with the statuses in turn and stops when the test ends.
-func newWebhookReceiver(t *testing.T, statuses ...int) *webhookReceiver {
-	t.Helper()
-
-	receiver := &webhookReceiver{
-		messages: make(chan receivedWebhook, 100),
-		statuses: statuses,
-	}
-	receiver.server = httptest.NewServer(http.HandlerFunc(receiver.handle))
-	t.Cleanup(receiver.server.Close)
-	return receiver
-}
-
-// URL returns the URL of the receiver.
-func (r *webhookReceiver) URL() string {
-	return r.server.URL
-}
-
-// handle records a message and answers with the next status.
-func (r *webhookReceiver) handle(w http.ResponseWriter, req *http.Request) {
-	body, _ := io.ReadAll(req.Body)
-	message := receivedWebhook{
-		body:      body,
-		header:    req.Header.Clone(),
-		signature: req.Header.Get("webhook-signature"),
-	}
-	_ = json.Unmarshal(body, &message)
-
-	r.mu.Lock()
-	r.requests++
-	status := http.StatusNoContent
-	if len(r.statuses) > 0 {
-		status = r.statuses[min(r.requests, len(r.statuses))-1]
-	}
-	r.mu.Unlock()
-
-	r.messages <- message
-	w.WriteHeader(status)
-}
-
-// next waits for the next received message.
-func (r *webhookReceiver) next(t *testing.T) receivedWebhook {
-	t.Helper()
-
-	select {
-	case message := <-r.messages:
-		return message
-	case <-time.After(webhookWaitTimeout):
-		t.Fatal("no webhook message received")
-		return receivedWebhook{}
-	}
 }

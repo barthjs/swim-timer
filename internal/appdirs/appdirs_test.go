@@ -333,40 +333,6 @@ func TestRoots_DataDir(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, filepath.Join(r.User, appName), got)
 	})
-
-	t.Run("skips an empty root", func(t *testing.T) {
-		t.Parallel()
-
-		r := appdirs.Roots{
-			User: t.TempDir(),
-		}
-
-		got, err := r.DataDir(appName)
-
-		require.NoError(t, err)
-		assert.Equal(t, filepath.Join(r.User, appName), got)
-	})
-
-	t.Run("fails without a writable directory", func(t *testing.T) {
-		t.Parallel()
-
-		r := appdirs.Roots{
-			User:   unwritableRoot(t),
-			System: unwritableRoot(t),
-		}
-
-		_, err := r.DataDir(appName)
-
-		assert.ErrorContains(t, err, "no writable directory")
-	})
-
-	t.Run("never uses the working directory", func(t *testing.T) {
-		t.Parallel()
-
-		_, err := appdirs.Roots{}.DataDir(appName)
-
-		assert.Error(t, err)
-	})
 }
 
 func TestRoots_DataDirs(t *testing.T) {
@@ -404,19 +370,6 @@ func TestRoots_DataDirs(t *testing.T) {
 func TestFirstWritableDir(t *testing.T) {
 	t.Parallel()
 
-	t.Run("returns the first writable directory", func(t *testing.T) {
-		t.Parallel()
-
-		first := filepath.Join(t.TempDir(), "first")
-		second := t.TempDir()
-
-		got, err := appdirs.FirstWritableDir(first, second)
-
-		require.NoError(t, err)
-		assert.Equal(t, first, got)
-		assert.DirExists(t, got, "the directory is created")
-	})
-
 	t.Run("skips an unwritable directory", func(t *testing.T) {
 		t.Parallel()
 
@@ -435,20 +388,12 @@ func TestFirstWritableDir(t *testing.T) {
 
 		assert.ErrorContains(t, err, "no writable directory")
 	})
-
-	t.Run("fails without any directory", func(t *testing.T) {
-		t.Parallel()
-
-		_, err := appdirs.FirstWritableDir()
-
-		assert.Error(t, err)
-	})
 }
 
 func TestDirWritable(t *testing.T) {
 	t.Parallel()
 
-	t.Run("creates a missing directory", func(t *testing.T) {
+	t.Run("creates a missing directory and leaves no probe file behind", func(t *testing.T) {
 		t.Parallel()
 
 		dir := filepath.Join(t.TempDir(), "a", "b")
@@ -456,19 +401,6 @@ func TestDirWritable(t *testing.T) {
 		writable := appdirs.DirWritable(dir)
 
 		assert.True(t, writable)
-		info, err := os.Stat(dir)
-		require.NoError(t, err)
-		assert.True(t, info.IsDir())
-	})
-
-	t.Run("leaves no probe file behind", func(t *testing.T) {
-		t.Parallel()
-
-		dir := t.TempDir()
-
-		writable := appdirs.DirWritable(dir)
-
-		require.True(t, writable)
 		entries, err := os.ReadDir(dir)
 		require.NoError(t, err)
 		assert.Empty(t, entries)

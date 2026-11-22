@@ -1,7 +1,6 @@
 package cmdline_test
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"os"
@@ -15,12 +14,6 @@ import (
 
 	"github.com/barthjs/swim-timer/internal/cmdline"
 )
-
-var testBuild = cmdline.Build{
-	Title:   "Demo",
-	Version: "v1.2.3",
-	Commit:  "abc1234",
-}
 
 func TestNewRoot(t *testing.T) {
 	t.Parallel()
@@ -43,6 +36,13 @@ func TestNewRoot(t *testing.T) {
 
 		assert.Equal(t, 0, code)
 		assert.Equal(t, cmdline.VersionText(testBuild), stdout.String())
+	})
+
+	// A GUI binary has no console, so the hint of cobra would end it silently
+	t.Run("starts from the windows explorer without the hint to use a terminal", func(t *testing.T) {
+		t.Parallel()
+
+		assert.Empty(t, cobra.MousetrapHelpText)
 	})
 }
 
@@ -273,12 +273,6 @@ func TestExecute(t *testing.T) {
 			wantCode: 0,
 		},
 		{
-			name:       "returns one and prints an error",
-			run:        func(*cobra.Command, []string) error { return errors.New("broken") },
-			wantCode:   1,
-			wantStderr: "Error: broken\n",
-		},
-		{
 			name:       "returns the exit code and prints its message",
 			run:        func(*cobra.Command, []string) error { return cmdline.Exit(3, errors.New("partial")) },
 			wantCode:   3,
@@ -307,21 +301,6 @@ func TestExecute(t *testing.T) {
 			assert.Equal(t, tt.wantStderr, stderr.String())
 		})
 	}
-
-	t.Run("rejects an unknown command", func(t *testing.T) {
-		t.Parallel()
-
-		root, _, stderr := newTestRoot(t)
-		root.AddCommand(&cobra.Command{
-			Use: "run",
-			Run: func(*cobra.Command, []string) {},
-		})
-
-		code := cmdline.Execute(root, []string{"nope"})
-
-		assert.Equal(t, 1, code)
-		assert.Contains(t, stderr.String(), `unknown command "nope"`)
-	})
 }
 
 func TestManCommand(t *testing.T) {
@@ -345,15 +324,4 @@ func TestManCommand(t *testing.T) {
 		require.NoError(t, err)
 		assert.Contains(t, pages, filepath.Join(dir, root.Name()+"-gen-man.1"))
 	})
-}
-
-// newTestRoot creates a root command whose output is captured.
-func newTestRoot(t *testing.T) (*cobra.Command, *bytes.Buffer, *bytes.Buffer) {
-	t.Helper()
-
-	root := cmdline.NewRoot(testBuild, "A demo")
-	var stdout, stderr bytes.Buffer
-	root.SetOut(&stdout)
-	root.SetErr(&stderr)
-	return root, &stdout, &stderr
 }

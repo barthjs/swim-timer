@@ -8,9 +8,8 @@ import (
 	"golang.org/x/text/number"
 )
 
-// dateLayouts holds the date and date-time layouts of a language. Languages without an entry use ISO 8601,
-// which every reader understands. The layouts avoid month names where the language needs its own,
-// since time.Format only writes English names.
+// dateLayouts holds the date and date-time layouts of the languages that do not use ISO 8601.
+// They avoid month names, since time.Format only writes English ones.
 var dateLayouts = map[string]struct{ date, dateTime string }{
 	"de": {
 		date:     "02.01.2006",
@@ -27,8 +26,7 @@ const (
 	isoDateTime = "2006-01-02 15:04"
 )
 
-// FormatNumber writes a number with the digit grouping and decimal separator of the locale,
-// such as "1.234,5" in German and "1,234.5" in English. Integers and floats are accepted.
+// FormatNumber writes an integer or a float with the digit grouping and decimal separator of the locale.
 func FormatNumber(locale string, value any) string {
 	return message.NewPrinter(tag(locale)).Sprint(number.Decimal(value))
 }
@@ -49,7 +47,7 @@ func FormatDateTime(locale string, t time.Time) string {
 	return t.Format(isoDateTime)
 }
 
-// base returns the language of a locale without region or script, such as "de" for "de-AT".
+// base returns the language of a locale without region or script.
 func base(locale string) string {
 	b, _ := tag(locale).Base()
 	return b.String()

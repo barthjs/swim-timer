@@ -3,11 +3,12 @@ import { vi } from 'vitest';
 import type { LocationQuery, LocationQueryRaw } from 'vue-router';
 
 /**
- * fakeRouter stands in for useRoute and useRouter in composables that keep their state in the URL.
+ * Stands in for useRoute and useRouter in composables that keep their state in the URL.
  * replace writes the query synchronously, dropping undefined values as vue-router does.
  */
 export function fakeRouter(initial: LocationQuery = {}) {
-  const route = reactive<{ query: LocationQuery }>({
+  const route = reactive<{ path: string; query: LocationQuery }>({
+    path: '/',
     query: {
       ...initial,
     },
@@ -30,4 +31,9 @@ export function fakeRouter(initial: LocationQuery = {}) {
       replace,
     },
   };
+}
+
+/** Waits until every pending change of the query has run. */
+export async function settleRouter(): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, 0));
 }

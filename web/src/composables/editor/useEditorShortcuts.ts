@@ -1,13 +1,13 @@
 import { defineShortcuts } from '@nuxt/ui/composables';
 
 import type { EditorWorkspace } from '@/composables/editor/useEditorWorkspace';
-import type { History } from '@/composables/useHistory';
-import { EDITOR_SHORTCUTS, shortcutDefinition } from '@/lib/editor/shortcuts';
+import type { History } from '@/composables/editor/useHistory';
+import { EDITOR_SHORTCUTS } from '@/lib/editor/shortcuts';
+import { shortcutDefinition } from '@/lib/ui/shortcuts';
 
-// The zoom factor of one zoom step.
 const ZOOM_STEP = 1.25;
 
-/** EditorCanvasActions are what the shortcuts do with the canvas, which the canvas component of an editor offers. */
+/** What the shortcuts do with the canvas, which the canvas component of an editor offers. */
 export type EditorCanvasActions = {
   zoomBy: (factor: number) => void;
   resetZoom: () => void;
@@ -20,49 +20,43 @@ export type EditorShortcutOptions = {
   canvas: () => EditorCanvasActions | null | undefined;
   selectAll: () => void;
   pickImage: () => void;
-  // Moves the selected items by a distance in content units.
+  // Moves the selected items by a distance in content units
   nudge: (dx: number, dy: number) => void;
-  // The distances the arrow keys move the selected items, with and without Shift.
+  // The distances the arrow keys move the selected items, with and without Shift
   nudgeStep: number;
   nudgeStepLarge: number;
-  // The shortcuts of the editor itself, by the name defineShortcuts expects.
+  // The shortcuts of the editor itself, by the name defineShortcuts expects
   extra: Record<string, () => void>;
 };
 
 /**
- * useEditorShortcuts registers the keyboard shortcuts every editor offers, together with those of the editor itself.
- * Actions that change items wait for the end of a gesture and do nothing in the view mode, undo and redo only wait
- * for the end of a gesture.
+ * Registers the keyboard shortcuts every editor offers together with those of the editor itself,
+ * where actions that change items wait for the end of a gesture and do nothing in the view mode.
  */
 export function useEditorShortcuts(options: EditorShortcutOptions): void {
   const { workspace, history } = options;
   const { view, whenEditing, whenIdle, toggle } = workspace;
 
-  /** key returns the name of an editor shortcut for defineShortcuts. */
-  function key(shortcut: keyof typeof EDITOR_SHORTCUTS): string {
-    return shortcutDefinition(EDITOR_SHORTCUTS[shortcut]);
-  }
-
   defineShortcuts({
-    [key('undo')]: whenIdle(() => history.undo()),
-    [key('redo')]: whenIdle(() => history.redo()),
-    [key('redoAlternative')]: whenIdle(() => history.redo()),
-    [key('selectAll')]: whenEditing(options.selectAll),
-    [key('zoomIn')]: () => options.canvas()?.zoomBy(ZOOM_STEP),
-    [key('zoomOut')]: () => options.canvas()?.zoomBy(1 / ZOOM_STEP),
-    [key('resetZoom')]: () => options.canvas()?.resetZoom(),
-    [key('zoomToSelection')]: () => options.canvas()?.zoomToSelection(),
-    [key('grid')]: () => toggle(view.grid),
-    [key('guides')]: () => toggle(view.guides),
-    [key('rulers')]: () => toggle(view.rulers),
-    [key('loupe')]: () => toggle(view.loupe),
-    [key('preview')]: () => toggle(view.preview),
-    [key('snapping')]: () => toggle(view.snapping),
-    [key('image')]: () => options.pickImage(),
-    [key('viewMode')]: () => workspace.toggleViewMode(),
-    [key('sidebar')]: () => toggle(workspace.sidebarOpen),
-    [key('fullscreen')]: () => void workspace.fullscreen.toggle(),
-    [key('help')]: () => workspace.openHelp(),
+    [shortcutKey('undo')]: whenIdle(() => history.undo()),
+    [shortcutKey('redo')]: whenIdle(() => history.redo()),
+    [shortcutKey('redoAlternative')]: whenIdle(() => history.redo()),
+    [shortcutKey('selectAll')]: whenEditing(options.selectAll),
+    [shortcutKey('zoomIn')]: () => options.canvas()?.zoomBy(ZOOM_STEP),
+    [shortcutKey('zoomOut')]: () => options.canvas()?.zoomBy(1 / ZOOM_STEP),
+    [shortcutKey('resetZoom')]: () => options.canvas()?.resetZoom(),
+    [shortcutKey('zoomToSelection')]: () => options.canvas()?.zoomToSelection(),
+    [shortcutKey('grid')]: () => toggle(view.grid),
+    [shortcutKey('guides')]: () => toggle(view.guides),
+    [shortcutKey('rulers')]: () => toggle(view.rulers),
+    [shortcutKey('loupe')]: () => toggle(view.loupe),
+    [shortcutKey('preview')]: () => toggle(view.preview),
+    [shortcutKey('snapping')]: () => toggle(view.snapping),
+    [shortcutKey('image')]: () => options.pickImage(),
+    [shortcutKey('viewMode')]: () => workspace.toggleViewMode(),
+    [shortcutKey('sidebar')]: () => toggle(workspace.sidebarOpen),
+    [shortcutKey('fullscreen')]: () => void workspace.fullscreen.toggle(),
+    [shortcutKey('help')]: () => workspace.openHelp(),
     arrowup: whenEditing(() => options.nudge(0, -options.nudgeStep)),
     arrowdown: whenEditing(() => options.nudge(0, options.nudgeStep)),
     arrowleft: whenEditing(() => options.nudge(-options.nudgeStep, 0)),
@@ -73,4 +67,9 @@ export function useEditorShortcuts(options: EditorShortcutOptions): void {
     shift_arrowright: whenEditing(() => options.nudge(options.nudgeStepLarge, 0)),
     ...options.extra,
   });
+}
+
+/** Returns the name of an editor shortcut for defineShortcuts. */
+function shortcutKey(shortcut: keyof typeof EDITOR_SHORTCUTS): string {
+  return shortcutDefinition(EDITOR_SHORTCUTS[shortcut]);
 }

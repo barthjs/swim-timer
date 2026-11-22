@@ -25,7 +25,6 @@ func (a *API) updateStatusGetHandler(w http.ResponseWriter, r *http.Request) {
 	}, nil)
 }
 
-// UpdateStatusResponse is the state of the last update.
 type UpdateStatusResponse struct {
 	State   string `json:"state" enums:"idle,running,failed,applied"`
 	Version string `json:"version,omitzero"`
@@ -46,7 +45,7 @@ type UpdateStatusResponse struct {
 func (a *API) updateCheckHandler(w http.ResponseWriter, r *http.Request) {
 	check, err := a.updateService.Check(r.Context())
 	if err != nil {
-		a.serverErrorResponse(w, r, err)
+		a.respondError(w, r, err)
 		return
 	}
 
@@ -59,17 +58,16 @@ func (a *API) updateCheckHandler(w http.ResponseWriter, r *http.Request) {
 	}, nil)
 }
 
-// UpdateCheckResponse compares the running version with the latest release.
-// Unsupported names why this installation cannot install it itself, empty if it can.
 type UpdateCheckResponse struct {
-	Current     string `json:"current"`
-	Latest      string `json:"latest"`
-	URL         string `json:"url"`
-	Newer       bool   `json:"newer"`
+	Current string `json:"current"`
+	Latest  string `json:"latest"`
+	URL     string `json:"url"`
+	Newer   bool   `json:"newer"`
+	// Unsupported names why this installation cannot install the release itself, empty if it can.
 	Unsupported string `json:"unsupported,omitzero" enums:"development_build,container,package_managed,not_writable"`
 }
 
-// updateStartHandler installs the latest release in the background. The application restarts once it is installed.
+// updateStartHandler installs the latest release in the background and restarts the application.
 //
 //	@Summary		Start update
 //	@Description	Starts installing the latest release in the background and answers right away. The application restarts once it is installed, see the update status (Admin only).

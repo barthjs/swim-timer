@@ -255,19 +255,19 @@ func TestLocalStorage_List(t *testing.T) {
 	}{
 		{
 			name:   "filters by a partial directory name",
-			prefix: "captures/par",
+			prefix: "files/alp",
 			want: []string{
-				"captures/party/a.jpg",
-				"captures/parade/b.jpg",
+				"files/alpha/a.jpg",
+				"files/alpine/b.jpg",
 			},
 		},
 		{
 			name:   "filters by a partial name of files and directories",
-			prefix: "capture",
+			prefix: "file",
 			want: []string{
-				"captures/party/a.jpg",
-				"captures/parade/b.jpg",
-				"capture.txt",
+				"files/alpha/a.jpg",
+				"files/alpine/b.jpg",
+				"file.txt",
 			},
 		},
 		{
@@ -283,10 +283,10 @@ func TestLocalStorage_List(t *testing.T) {
 
 			storage := newLocalStorage(t, t.TempDir())
 			for _, path := range []string{
-				"captures/party/a.jpg",
-				"captures/parade/b.jpg",
-				"capture.txt",
-				"prints/party/c.jpg",
+				"files/alpha/a.jpg",
+				"files/alpine/b.jpg",
+				"file.txt",
+				"other/alpha/c.jpg",
 			} {
 				putObject(t, storage, path, "x")
 			}

@@ -44,3 +44,6 @@ the preset without it.
 A preset can be downloaded as a file and imported in another installation, where it replaces a preset with the same
 name once it is saved. Renaming a preset changes the URL of its AR overlay, so browser sources that show it
 need the new URL. An open AR overlay picks up a saved preset when it is reloaded.
+
+The name of a preset is also its file name, so it cannot contain any of `/ \ < > : " | ? *`
+or be a name Windows keeps for a device, such as `CON` or `NUL`.

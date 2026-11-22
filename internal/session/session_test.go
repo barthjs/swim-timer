@@ -14,6 +14,8 @@ import (
 	"github.com/barthjs/swim-timer/internal/session"
 )
 
+const cookieName = "app_session"
+
 func TestWithLifetime(t *testing.T) {
 	t.Parallel()
 
@@ -27,53 +29,16 @@ func TestWithLifetime(t *testing.T) {
 			lifetime:     24 * time.Hour,
 			wantLifetime: 24 * time.Hour,
 		},
-		{
-			name:         "ignores a non-positive lifetime",
-			lifetime:     0,
-			wantLifetime: session.DefaultLifetime,
-		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			sm, err := session.New(false, session.WithLifetime(tt.lifetime))
+			sm, err := session.New(cookieName, false, session.WithLifetime(tt.lifetime))
 
 			require.NoError(t, err)
 			assert.Equal(t, tt.wantLifetime, sm.Lifetime)
-		})
-	}
-}
-
-func TestWithIdleTimeout(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name     string
-		timeout  time.Duration
-		wantIdle time.Duration
-	}{
-		{
-			name:     "sets the idle timeout",
-			timeout:  time.Hour,
-			wantIdle: time.Hour,
-		},
-		{
-			name:     "ignores a non-positive idle timeout",
-			timeout:  -time.Minute,
-			wantIdle: 0,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
-			sm, err := session.New(false, session.WithIdleTimeout(tt.timeout))
-
-			require.NoError(t, err)
-			assert.Equal(t, tt.wantIdle, sm.IdleTimeout)
 		})
 	}
 }
@@ -84,7 +49,7 @@ func TestWithRememberMe(t *testing.T) {
 	t.Run("keeps the cookie of a remembered login", func(t *testing.T) {
 		t.Parallel()
 
-		sm, err := session.New(false, session.WithRememberMe(), session.WithLifetime(48*time.Hour))
+		sm, err := session.New(cookieName, false, session.WithRememberMe(), session.WithLifetime(48*time.Hour))
 		require.NoError(t, err)
 
 		cookie := loginCookie(t, sm, true)
@@ -95,7 +60,7 @@ func TestWithRememberMe(t *testing.T) {
 	t.Run("ends a login that is not remembered with the browser session", func(t *testing.T) {
 		t.Parallel()
 
-		sm, err := session.New(false, session.WithRememberMe())
+		sm, err := session.New(cookieName, false, session.WithRememberMe())
 		require.NoError(t, err)
 
 		cookie := loginCookie(t, sm, false)
@@ -107,7 +72,7 @@ func TestWithRememberMe(t *testing.T) {
 	t.Run("keeps every cookie for the lifetime without the option", func(t *testing.T) {
 		t.Parallel()
 
-		sm, err := session.New(false)
+		sm, err := session.New(cookieName, false)
 		require.NoError(t, err)
 
 		cookie := loginCookie(t, sm, false)
@@ -140,16 +105,19 @@ func TestNew(t *testing.T) {
 		t.Parallel()
 
 		tests := []struct {
-			name   string
-			secure bool
+			name       string
+			secure     bool
+			cookieName string
 		}{
 			{
-				name:   "configures the cookie for development",
-				secure: false,
+				name:       "configures the cookie for development",
+				secure:     false,
+				cookieName: cookieName,
 			},
 			{
-				name:   "configures the cookie for production",
-				secure: true,
+				name:       "configures the cookie for production with the host prefix",
+				secure:     true,
+				cookieName: "__Host-" + cookieName,
 			},
 		}
 
@@ -157,7 +125,7 @@ func TestNew(t *testing.T) {
 			t.Run(tt.name, func(t *testing.T) {
 				t.Parallel()
 
-				sm, err := session.New(tt.secure)
+				sm, err := session.New(cookieName, tt.secure)
 
 				require.NoError(t, err)
 				assert.Equal(t, 168*time.Hour, sm.Lifetime)
@@ -165,24 +133,26 @@ func TestNew(t *testing.T) {
 				assert.True(t, sm.Cookie.HttpOnly)
 				assert.Equal(t, http.SameSiteLaxMode, sm.Cookie.SameSite)
 				assert.Equal(t, tt.secure, sm.Cookie.Secure)
+				assert.Equal(t, tt.cookieName, sm.Cookie.Name)
+				assert.Equal(t, "/", sm.Cookie.Path)
+				assert.Empty(t, sm.Cookie.Domain)
 			})
 		}
 	})
 
-	t.Run("uses the default lifetime without idle timeout", func(t *testing.T) {
+	t.Run("uses the default lifetime", func(t *testing.T) {
 		t.Parallel()
 
-		sm, err := session.New(false)
+		sm, err := session.New(cookieName, false)
 
 		require.NoError(t, err)
 		assert.Equal(t, session.DefaultLifetime, sm.Lifetime)
-		assert.Equal(t, time.Duration(0), sm.IdleTimeout)
 	})
 
 	t.Run("keeps memory sessions between requests", func(t *testing.T) {
 		t.Parallel()
 
-		sm, err := session.New(false)
+		sm, err := session.New(cookieName, false)
 
 		require.NoError(t, err)
 		roundTrip(t, sm)
@@ -221,7 +191,7 @@ func TestStopCleanup(t *testing.T) {
 	t.Run("returns on repeated calls", func(t *testing.T) {
 		t.Parallel()
 
-		sm, err := session.New(false)
+		sm, err := session.New(cookieName, false)
 		require.NoError(t, err)
 		stopped := make(chan struct{})
 

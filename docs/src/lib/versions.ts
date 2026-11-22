@@ -1,19 +1,19 @@
-/** MAIN_VERSION is the version of the documentation built from the main branch. */
+/** The version of the documentation built from the main branch. */
 export const MAIN_VERSION = 'main';
 
-/** VersionIndex lists the versions of the public documentation, newest first, and the latest stable release. */
-export interface VersionIndex {
+/** Lists the versions of the public documentation, newest first, and the latest stable release. */
+export type VersionIndex = {
   latest: string | null;
   versions: string[];
-}
+};
 
-/** parseVersionIndex returns the version index of a parsed versions.json, or undefined for anything else. */
+/** Returns the version index of a parsed versions.json, or undefined for anything else. */
 export function parseVersionIndex(data: unknown): VersionIndex | undefined {
-  if (typeof data !== 'object' || data === null) {
+  if (typeof data !== 'object' || data === null || !('latest' in data) || !('versions' in data)) {
     return undefined;
   }
 
-  const { latest, versions } = data as Record<string, unknown>;
+  const { latest, versions } = data;
   if (latest !== null && typeof latest !== 'string') {
     return undefined;
   }
@@ -27,13 +27,13 @@ export function parseVersionIndex(data: unknown): VersionIndex | undefined {
   };
 }
 
-/** VersionLabels holds the translated marks of the main branch and of the latest release. */
-export interface VersionLabels {
+/** Holds the translated marks of the main branch and of the latest release. */
+export type VersionLabels = {
   development: string;
   latest: string;
-}
+};
 
-/** versionLabel returns the name of a version in the version select. */
+/** Returns the name of a version in the version select. */
 export function versionLabel(version: string, index: VersionIndex, labels: VersionLabels): string {
   if (version === MAIN_VERSION) {
     return `${version} (${labels.development})`;
@@ -46,7 +46,7 @@ export function versionLabel(version: string, index: VersionIndex, labels: Versi
 }
 
 /**
- * versionUrl returns the URL of the same page in another version. Every version lies in a folder of its own
+ * Returns the URL of the same page in another version. Every version lies in a folder of its own
  * next to the others, so the path of the page below the root of its version stays the same.
  */
 export function versionUrl(page: URL, root: URL, version: string): URL {

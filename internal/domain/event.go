@@ -8,9 +8,8 @@ import (
 // unscheduledTime is the time the timing software exports for an event without a scheduled time.
 const unscheduledTime = "00:00"
 
-// Event represents an event of the meet (from LSTRACE.TXT), a group of heats over one distance and style,
-// for example 200 m breaststroke male. The timing software numbers every phase of an event,
-// such as heats and final, as its own event.
+// Event represents an event of the meet from LSTRACE.TXT, a group of heats over one distance and style,
+// where the timing software numbers every phase as its own event.
 type Event struct {
 	Number     int       `csv:"event"` // event number, the key the device transmits
 	PhaseID    int       `csv:"round"` // see Phase.ID
@@ -27,8 +26,7 @@ type Event struct {
 	Order      int       `csv:"-"`    // position in the file, which lists the events in the order of the program
 }
 
-// DisplayName combines distance, style, and category into the name the overlays and the meet overview show,
-// for example "200 m Medley Women". Parts whose reference is missing are left out.
+// DisplayName combines the distance, style, and category that are known into the name of the event.
 func (e *Event) DisplayName() string {
 	parts := make([]string, 0, 3)
 	if e.Distance != nil && strings.TrimSpace(e.Distance.Name) != "" {
@@ -43,8 +41,7 @@ func (e *Event) DisplayName() string {
 	return strings.Join(parts, " ")
 }
 
-// PhaseName returns the name of the phase of the event, such as "Final",
-// or an empty string if the phases are not loaded or the phase is unknown.
+// PhaseName returns the name of the phase of the event, or an empty string while it is unknown.
 func (e *Event) PhaseName() string {
 	if e.Phase == nil {
 		return ""
@@ -52,15 +49,13 @@ func (e *Event) PhaseName() string {
 	return strings.TrimSpace(e.Phase.Name)
 }
 
-// ISODate returns the scheduled date as YYYY-MM-DD. The timing software exports dates as yy/mm/dd.
-// A value in another format is returned trimmed but otherwise unchanged, so nothing is lost.
+// ISODate returns the scheduled date of the export as YYYY-MM-DD, or another format trimmed but unchanged.
 func (e *Event) ISODate() string {
 	return ParseExportDate(e.Date)
 }
 
-// TrimmedTime returns the scheduled start time without the padding of the export, e.g. "16:00",
-// or an empty string for an event without a scheduled time. The timing software exports such an event,
-// for example a final added during the meet, with the time "00:00".
+// TrimmedTime returns the scheduled start time without the padding of the export,
+// or an empty string for the time "00:00" of an event without one.
 func (e *Event) TrimmedTime() string {
 	trimmed := strings.TrimSpace(e.Time)
 	if trimmed == unscheduledTime {

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 
-import type { CornerKey } from '@/api/types';
+import type { CornerKey } from '@/api/types/preset';
 import {
   CORNERS,
   heatLaneNumber,
@@ -10,18 +10,18 @@ import {
   polygonPoints,
   presetLaneCount,
   type PixelLane,
-} from '@/lib/lanes';
+} from '@/lib/preset/lanes';
 
 // Draws the lanes of a preset on the canvas in pixels of the reference resolution,
-// with the corner handles of the single selected, unlocked lane. A label also names the lane of the heat
-// the AR overlay shows there if it differs.
+// with the corner handles of the single selected, unlocked lane.
+// A label also names the lane of the heat the AR overlay shows there if it differs.
 const props = defineProps<{
   lanes: Record<string, PixelLane>;
   selectedLanes: ReadonlySet<string>;
   activeLaneKey: string | null;
   reverseLanes: boolean;
   firstLane: number;
-  // Draws only the outlines, so the preview underneath stays visible.
+  // Draws only the outlines, so the preview underneath stays visible
   outlineOnly: boolean;
 }>();
 
@@ -48,7 +48,7 @@ const labels = computed(() =>
   }),
 );
 
-// The lane whose corner handles are shown, if it can be edited.
+// The lane whose corner handles are shown, if it can be edited
 const handleLane = computed(() => {
   if (!props.activeLaneKey) return null;
   const lane = props.lanes[props.activeLaneKey];

@@ -144,6 +144,44 @@ func TestNewPayload(t *testing.T) {
 	})
 }
 
+func TestNewPayloadWithID(t *testing.T) {
+	t.Parallel()
+
+	t.Run("encodes the message under the id of the key", func(t *testing.T) {
+		t.Parallel()
+		key := rand.Text()
+		data := map[string]int{
+			"count": 4,
+		}
+
+		payload, err := NewPayloadWithID(key, "item.updated", data)
+
+		require.NoError(t, err)
+		var decoded struct {
+			ID   string         `json:"id"`
+			Type string         `json:"type"`
+			Data map[string]int `json:"data"`
+		}
+		require.NoError(t, json.Unmarshal(payload.Body, &decoded))
+		assert.Equal(t, messageIDPrefix+key, payload.ID)
+		assert.Equal(t, payload.ID, decoded.ID)
+		assert.Equal(t, "item.updated", decoded.Type)
+		assert.Equal(t, data, decoded.Data)
+	})
+
+	t.Run("keeps the id for the same key", func(t *testing.T) {
+		t.Parallel()
+		key := rand.Text()
+
+		first, err := NewPayloadWithID(key, "item.updated", nil)
+		require.NoError(t, err)
+		second, err := NewPayloadWithID(key, "item.updated", nil)
+		require.NoError(t, err)
+
+		assert.Equal(t, first.ID, second.ID)
+	})
+}
+
 func TestClient_CheckURL(t *testing.T) {
 	t.Parallel()
 
@@ -435,6 +473,13 @@ func TestClient_Send(t *testing.T) {
 				retryAfter:     "30",
 				wantOutcome:    OutcomeDeferred,
 				wantRetryAfter: 30 * time.Second,
+			},
+			{
+				name:           "retry-after beyond the longest wait",
+				status:         http.StatusServiceUnavailable,
+				retryAfter:     "99999999999999999",
+				wantOutcome:    OutcomeDeferred,
+				wantRetryAfter: maxRetryAfter,
 			},
 		}
 

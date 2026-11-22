@@ -22,7 +22,7 @@ describe('locales', () => {
   });
 });
 
-/** textKeys returns the dotted keys of every text of a locale, sorted. */
+/** Returns the dotted keys of every text of a locale, sorted. */
 function textKeys(messages: Record<string, unknown>, prefix = ''): string[] {
   return Object.entries(messages)
     .flatMap(([key, value]) => {

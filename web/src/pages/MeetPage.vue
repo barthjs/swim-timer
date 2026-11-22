@@ -1,13 +1,11 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, useTemplateRef, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { useRoute, useRouter } from 'vue-router';
 
-import type { CompetitorResponse, EventResponse } from '@/api/types';
-import { useApiError } from '@/composables/useApiError';
+import type { CompetitorResponse, EventResponse } from '@/api/types/meet';
+import { useApiError } from '@/composables/form/useApiError';
 import { useTableColumnState } from '@/composables/table/useTableColumnState';
 import { useTableView } from '@/composables/table/useTableView';
-import HelpHint from '@/components/form/HelpHint.vue';
 import MeetClubsTable from '@/components/meet/MeetClubsTable.vue';
 import MeetEventsTable, { type EventRow } from '@/components/meet/MeetEventsTable.vue';
 import MeetFilterBar from '@/components/meet/MeetFilterBar.vue';
@@ -15,7 +13,10 @@ import MeetLiveCard from '@/components/meet/MeetLiveCard.vue';
 import MeetStartEntriesTable from '@/components/meet/MeetStartEntriesTable.vue';
 import DocsLink from '@/components/system/DocsLink.vue';
 import TableColumnMenu from '@/components/table/TableColumnMenu.vue';
-import { useMeetFilters } from '@/composables/useMeetFilters';
+import SectionNav from '@/components/ui/SectionNav.vue';
+import { MEET_FILTER_KEYS, useMeetFilters } from '@/composables/meet/useMeetFilters';
+import { useUrlSection } from '@/composables/ui/useUrlSection';
+import { useDates } from '@/composables/ui/useDates';
 import {
   currentHeatIndex,
   eventName,
@@ -23,14 +24,14 @@ import {
   filterClubs,
   filterEvents,
   filterRows,
-} from '@/lib/meet';
+} from '@/lib/meet/meet';
 import { useLiveStore } from '@/stores/live';
 import { useMeetStore } from '@/stores/meet';
 
-// How many animation frames a jump waits at most for its target to be rendered.
+// How many animation frames a jump waits at most for its target to be rendered
 const MAX_SCROLL_ATTEMPTS = 30;
 
-// Below sm, a header button only shows its leading icon, so the title and the buttons fit in one row.
+// Below sm, a header button only shows its leading icon, so the title and the buttons fit in one row
 const COMPACT_BUTTON_UI = {
   base: 'max-sm:p-1.5',
   label: 'max-sm:hidden',
@@ -39,10 +40,9 @@ const COMPACT_BUTTON_UI = {
 
 const EVENT_SORTABLE = ['number', 'schedule', 'name', 'heatCount', 'startCount'] as const;
 
-// The overview of the meet, searched and filtered in the browser on the loaded meet.
-const { t, locale } = useI18n();
-const route = useRoute();
-const router = useRouter();
+// The overview of the meet, searched and filtered in the browser on the loaded meet
+const { t } = useI18n();
+const { formatDateTime } = useDates();
 const { messageFor } = useApiError();
 
 const meetStore = useMeetStore();
@@ -59,41 +59,32 @@ const eventsTable = useTemplateRef<InstanceType<typeof MeetEventsTable>>('events
 const startsTable = useTemplateRef<InstanceType<typeof MeetStartEntriesTable>>('startsTable');
 const clubsTable = useTemplateRef<InstanceType<typeof MeetClubsTable>>('clubsTable');
 
-const TABS = ['events', 'starts', 'clubs'] as const;
-type Tab = (typeof TABS)[number];
-
-// Each tab has its own columns, so switching tabs starts without sorting on the first page.
-const tab = computed<Tab>({
-  get: () => TABS.find((value) => value === route.query.tab) ?? 'events',
-  set: (value) => {
-    void router.replace({
-      query: {
-        ...route.query,
-        tab: value === 'events' ? undefined : value,
-        sort: undefined,
-        page: undefined,
-      },
-    });
-  },
-});
-
-const tabs = computed(() => [
+// Computed, since the language can change after the page is set up
+const sections = computed(() => [
   {
-    label: t('pages.meet.tabs.events'),
+    value: 'events' as const,
+    label: t('pages.meet.sections.events'),
     icon: 'i-lucide-list-ordered',
-    value: 'events',
   },
   {
-    label: t('pages.meet.tabs.starts'),
+    value: 'starts' as const,
+    label: t('pages.meet.sections.starts'),
     icon: 'i-lucide-users',
-    value: 'starts',
   },
   {
-    label: t('pages.meet.tabs.clubs'),
+    value: 'clubs' as const,
+    label: t('pages.meet.sections.clubs'),
     icon: 'i-lucide-shield',
-    value: 'clubs',
   },
 ]);
+
+// Each section has its own columns, so switching sections starts without sorting on the first page.
+// The filters apply to every section and stay.
+const section = useUrlSection(
+  () => sections.value.map((item) => item.value),
+  'events',
+  MEET_FILTER_KEYS,
+);
 
 const index = computed(() => meetStore.index);
 const currentIndex = computed(() =>
@@ -102,7 +93,7 @@ const currentIndex = computed(() =>
 const liveEvent = computed(() => index.value?.heats[currentIndex.value]?.event.number ?? null);
 const liveHeat = computed(() => index.value?.heats[currentIndex.value]?.heat ?? null);
 
-/** stateOf tells whether an event lies before, at, or after the live heat. */
+/** Tells whether an event lies before, at, or after the live heat. */
 function stateOf(event: EventResponse) {
   return index.value ? eventState(index.value, event, currentIndex.value) : null;
 }
@@ -126,7 +117,7 @@ const eventRows = computed<EventRow[]>(() =>
 
 const eventView = useTableView(eventRows, {
   sortable: EVENT_SORTABLE,
-  value: (row, id) => row[id as (typeof EVENT_SORTABLE)[number]],
+  value: (row, id) => row[id],
   resetOn: () => filters,
 });
 
@@ -136,11 +127,12 @@ const expanded = ref<Record<string, boolean>>({});
 watch(
   liveEvent,
   (event) => {
-    if (event !== null)
+    if (event !== null) {
       expanded.value = {
         ...expanded.value,
         [String(event)]: true,
       };
+    }
   },
   {
     immediate: true,
@@ -149,16 +141,12 @@ watch(
 
 const loadedAt = computed(() => {
   const value = meetStore.meet?.loadedAt;
-  if (!value) return null;
-  return new Intl.DateTimeFormat(locale.value, {
-    dateStyle: 'short',
-    timeStyle: 'short',
-  }).format(new Date(value));
+  return value ? formatDateTime(value) : null;
 });
 
 /**
- * scrollTo scrolls to the first of the elements that exists,
- * waiting a few frames for the new page, tab, or expanded row to render.
+ * Scrolls to the first of the elements that exists,
+ * waiting a few frames for the new page, section, or expanded row to render.
  */
 function scrollTo(ids: string[], attempt = 0): void {
   for (const id of ids) {
@@ -177,38 +165,38 @@ function scrollTo(ids: string[], attempt = 0): void {
 }
 
 /**
- * showHeat opens an event in the event list on the page that holds it and scrolls to the heat.
+ * Opens an event in the event list on the page that holds it and scrolls to the heat.
  * Filters are only cleared if they hide the event.
  */
 function showHeat(event: number, heat: number): void {
   if (!events.value.some((item) => item.number === event)) {
     reset();
   }
-  tab.value = 'events';
+  section.value = 'events';
   expanded.value = {
     ...expanded.value,
     [String(event)]: true,
   };
 
-  // The tab switch clears the sorting first, so the page is looked up once the URL is updated
+  // The section switch clears the sorting first, so the page is looked up once the URL is updated
   requestAnimationFrame(() => {
     eventView.goTo((row) => row.number === event);
     scrollTo([`meet-heat-${event}-${heat}`, `meet-event-${event}`]);
   });
 }
 
-/** showCompetitor filters the overview by a competitor: its starts and the events it swims in. */
+/** Filters the overview by a competitor: its starts and the events it swims in. */
 function showCompetitor(competitor: CompetitorResponse): void {
   reset();
   filters.query = [competitor.lastName, competitor.firstName].filter(Boolean).join(' ');
-  tab.value = 'starts';
+  section.value = 'starts';
 }
 
-/** selectClub filters the overview by a club: its starts and the events its competitors swim in. */
+/** Filters the overview by a club: its starts and the events its competitors swim in. */
 function selectClub(name: string): void {
   reset();
   filters.clubs = [name];
-  tab.value = 'starts';
+  section.value = 'starts';
 }
 </script>
 
@@ -221,15 +209,16 @@ function selectClub(name: string): void {
     -->
     <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
       <div class="flex items-center gap-1">
-        <h1 class="text-highlighted text-xl font-semibold">{{ t('pages.meet.title') }}</h1>
+        <h1 class="text-highlighted heading-page">{{ t('pages.meet.title') }}</h1>
         <DocsLink page="meet" />
       </div>
       <span
         v-if="loadedAt"
-        class="text-muted order-last flex w-full items-center gap-1 text-sm sm:order-none sm:ml-auto sm:w-auto"
+        class="text-muted order-last flex w-full items-center gap-1 text-sm sm:order-0 sm:ml-auto sm:w-auto"
       >
-        {{ t('pages.meet.loadedAt', { time: loadedAt }) }}
-        <HelpHint :text="t('pages.meet.loadedAtHint')" />
+        <UTooltip :text="t('pages.meet.loadedAtHint')">
+          <span>{{ t('pages.meet.loadedAt', { time: loadedAt }) }}</span>
+        </UTooltip>
       </span>
       <div class="ml-auto flex items-center gap-2" :class="{ 'sm:ml-0': loadedAt }">
         <UTooltip :text="t('pages.meet.currentHeatHint')">
@@ -292,34 +281,34 @@ function selectClub(name: string): void {
       <MeetFilterBar v-model="filters" :index="index" @reset="reset">
         <template #actions>
           <TableColumnMenu
-            v-if="tab === 'events' && eventsTable"
+            v-if="section === 'events' && eventsTable"
             v-model:column-state="eventColumnState"
             :columns="eventsTable.columns"
           />
           <TableColumnMenu
-            v-else-if="tab === 'starts' && startsTable"
+            v-else-if="section === 'starts' && startsTable"
             v-model:column-state="startColumnState"
             :columns="startsTable.columns"
           />
           <TableColumnMenu
-            v-else-if="tab === 'clubs' && clubsTable"
+            v-else-if="section === 'clubs' && clubsTable"
             v-model:column-state="clubColumnState"
             :columns="clubsTable.columns"
           />
         </template>
       </MeetFilterBar>
 
-      <UTabs v-model="tab" :items="tabs" class="w-full" :content="false" />
+      <SectionNav v-model="section" :sections="sections" variant="pill" />
 
       <MeetEventsTable
-        v-if="tab === 'events'"
+        v-if="section === 'events'"
         ref="eventsTable"
-        class="lg:min-h-80"
         v-model:column-state="eventColumnState"
         v-model:sorting="eventView.sorting.value"
         v-model:page="eventView.page.value"
         v-model:page-size="eventView.pageSize.value"
         v-model:expanded="expanded"
+        class="lg:min-h-80"
         :index="index"
         :rows="eventView.visible.value"
         :total="eventView.total.value"
@@ -329,10 +318,10 @@ function selectClub(name: string): void {
         @select-club="selectClub"
       />
       <MeetStartEntriesTable
-        v-else-if="tab === 'starts'"
+        v-else-if="section === 'starts'"
         ref="startsTable"
-        class="lg:min-h-80"
         v-model:column-state="startColumnState"
+        class="lg:min-h-80"
         :rows="rows"
         :filters="filters"
         @show-competitor="showCompetitor"
@@ -342,8 +331,8 @@ function selectClub(name: string): void {
       <MeetClubsTable
         v-else
         ref="clubsTable"
-        class="lg:min-h-80"
         v-model:column-state="clubColumnState"
+        class="lg:min-h-80"
         :clubs="clubs"
         :filters="filters"
         @select-club="selectClub"

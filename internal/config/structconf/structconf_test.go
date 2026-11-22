@@ -11,9 +11,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// testAppName names the config directories the tests search, which do not exist on the test machine.
-const testAppName = "structconf-test"
-
 func TestLoad(t *testing.T) {
 	t.Run("applies the default, the file, the environment, and the flags in order", func(t *testing.T) {
 		path := writeFile(t, "config.yaml", "demo:\n  name: from file\n  server:\n    port: 9000\n    log_level: info\n")
@@ -99,15 +96,6 @@ func TestLoad(t *testing.T) {
 	})
 }
 
-// loadTagConfig loads a tagConfig through all sources.
-func loadTagConfig(t *testing.T, flags *pflag.FlagSet) (tagConfig, error) {
-	t.Helper()
-
-	var cfg tagConfig
-	err := Load(testAppName, flags, &cfg)
-	return cfg, err
-}
-
 func TestDefaults(t *testing.T) {
 	t.Run("returns the defaults without the environment or the file", func(t *testing.T) {
 		t.Setenv("DEMO_NAME", "from-env")
@@ -144,10 +132,6 @@ func TestLoadFile(t *testing.T) {
 			name: "rejects a missing file",
 			path: filepath.Join(t.TempDir(), "config.yaml"),
 		},
-		{
-			name: "rejects an invalid file",
-			path: writeFile(t, "config.yaml", "demo: [unclosed"),
-		},
 	}
 
 	for _, tt := range tests {
@@ -161,13 +145,4 @@ func TestLoadFile(t *testing.T) {
 			assert.ErrorContains(t, err, tt.path)
 		})
 	}
-}
-
-// writeFile writes content to a file in a fresh temporary directory and returns its path.
-func writeFile(t *testing.T, name, content string) string {
-	t.Helper()
-
-	path := filepath.Join(t.TempDir(), name)
-	require.NoError(t, os.WriteFile(path, []byte(content), 0o644))
-	return path
 }

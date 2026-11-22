@@ -9,6 +9,13 @@ const alias = {
 // or component lifecycle hooks, carry the .dom.test.ts suffix and run in happy-dom.
 export default defineConfig({
   test: {
+    coverage: {
+      provider: 'v8',
+      include: ['src/**/*.ts'],
+      // The entry only mounts the app in a browser, which the unit tests do not cover
+      exclude: ['src/main.ts', 'src/**/*.test.ts', 'src/**/*.d.ts'],
+      reporter: ['text-summary'],
+    },
     projects: [
       {
         resolve: {

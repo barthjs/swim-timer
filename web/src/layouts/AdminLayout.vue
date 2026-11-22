@@ -5,27 +5,56 @@ import { useRoute, useRouter } from 'vue-router';
 import type { NavigationMenuItem } from '@nuxt/ui';
 
 import { useMutation } from '@/composables/form/useMutation';
+import DashboardFrame from '@/components/dashboard/DashboardFrame.vue';
 import AppVersion from '@/components/system/AppVersion.vue';
-import { docsUrl } from '@/lib/docs';
+import FooterLinks, { type FooterLink } from '@/components/system/FooterLinks.vue';
+import { docsUrl } from '@/lib/app/docs';
+import { loginLocation } from '@/lib/auth/redirect';
 import { useAuthStore } from '@/stores/auth';
 import { useMetaStore } from '@/stores/meta';
 
+const REPOSITORY_URL = 'https://github.com/barthjs/swim-timer';
+
 const { t } = useI18n();
+
+// The icon links of the footer of the sidebar
+const footerLinks = computed<FooterLink[]>(() => [
+  {
+    label: t('common.docs'),
+    icon: 'i-lucide-book-open',
+    to: docsUrl(),
+    external: true,
+  },
+  {
+    label: t('common.repository'),
+    icon: 'i-lucide-github',
+    to: REPOSITORY_URL,
+    external: true,
+  },
+]);
 const route = useRoute();
 const router = useRouter();
 
 const authStore = useAuthStore();
 const metaStore = useMetaStore();
 
-// Pages such as the editor use the whole width of the main area instead of the container width,
-// and from lg up fill the height between header and footer instead of scrolling.
-const fullWidth = computed(() => !!route.meta.fullWidth);
+// From lg up, a page that fills the viewport keeps its height inside the panel, so its table scrolls on its own
 const fillViewport = computed(() => {
   const fill = route.meta.fillViewport;
   return typeof fill === 'function' ? fill(route) : !!fill;
 });
 
 const appName = computed(() => metaStore.meta?.name || 'Swim-Timer');
+
+// The login returns to the page it was opened from
+const loginTarget = computed(() =>
+  loginLocation(
+    {
+      name: 'login',
+    },
+    route.fullPath,
+  ),
+);
 
 const navItems = computed<NavigationMenuItem[]>(() => [
   {
@@ -57,6 +86,10 @@ const navItems = computed<NavigationMenuItem[]>(() => [
       name: 'editor',
     },
   },
+]);
+
+// The configuration sits at the bottom of the sidebar, apart from the pages of the meet
+const bottomNavItems = computed<NavigationMenuItem[]>(() => [
   {
     label: t('admin.nav.config'),
     icon: 'i-lucide-settings',
@@ -71,7 +104,7 @@ onMounted(() => {
   void authStore.ensureLoaded();
 });
 
-const { mutate: logout, pending: loggingOut } = useMutation(() => authStore.logout(), {
+const { mutate: logout, pending: loggingOut } = useMutation(async () => authStore.logout(), {
   onSuccess: () => {
     void router.push({
       name: 'dashboard',
@@ -81,87 +114,74 @@ const { mutate: logout, pending: loggingOut } = useMutation(() => authStore.logo
 </script>
 
 <template>
-  <!--
-  The footer shares the viewport height with the header and the main area,
-  so the version stays visible on short pages instead of being pushed below the fold.
-  A page that fills the viewport gets exactly the height left between header and footer.
-  -->
-  <div class="flex min-h-dvh flex-col" :class="{ 'lg:h-dvh': fillViewport }">
-    <UHeader>
-      <template #title>
-        <RouterLink
-          :to="{ name: 'dashboard' }"
-          class="text-highlighted flex items-center gap-2 font-semibold"
-        >
-          <img src="@/assets/images/logo/favicon.svg" alt="" class="size-6" />
-          {{ appName }}
-        </RouterLink>
-      </template>
+  <DashboardFrame
+    :items="navItems"
+    :bottom-items="bottomNavItems"
+    :home-to="{
+      name: 'dashboard',
+    }"
+    storage-key="admin"
+    :desktop-navbar="false"
+  >
+    <template #logo>
+      <span class="text-highlighted flex items-center gap-2 font-semibold">
+        <img src="@/assets/images/logo/favicon.svg" alt="" class="size-6" />
+        {{ appName }}
+      </span>
+    </template>
 
-      <UNavigationMenu :items="navItems" />
-
-      <template #right>
-        <UTooltip :text="t('admin.openScoreboard')">
-          <UButton
-            icon="i-lucide-external-link"
-            color="neutral"
-            variant="ghost"
-            :aria-label="t('admin.openScoreboard')"
-            :to="{ name: 'scoreboard' }"
-            target="_blank"
-          />
-        </UTooltip>
-        <UColorModeSwitch />
-        <UButton
-          v-if="authStore.authenticated"
-          :label="t('admin.logout')"
-          icon="i-lucide-log-out"
-          color="neutral"
-          variant="ghost"
-          :loading="loggingOut"
-          @click="logout()"
-        />
-        <UButton
-          v-else
-          :label="t('admin.login')"
-          icon="i-lucide-log-in"
-          color="neutral"
-          variant="ghost"
-          :to="{ name: 'login' }"
-        />
-      </template>
-
-      <template #body>
-        <UNavigationMenu :items="navItems" orientation="vertical" class="-mx-2.5" />
-      </template>
-    </UHeader>
-
-    <UMain class="min-h-0 flex-1" :class="{ 'lg:flex lg:flex-col': fillViewport }">
-      <!-- A full width page keeps the side padding of the container without its maximum width. -->
-      <div
-        v-if="fullWidth"
-        class="w-full px-4 pt-6 pb-2 sm:px-6 lg:px-8"
-        :class="{ 'lg:flex lg:min-h-0 lg:flex-1 lg:flex-col': fillViewport }"
-      >
-        <RouterView />
+    <template #footer="{ collapsed, close }">
+      <div class="flex w-full flex-col gap-2">
+        <div class="flex items-center gap-1" :class="collapsed ? 'flex-col' : ''">
+          <UTooltip
+            :text="authStore.authenticated ? t('admin.logout') : t('admin.login')"
+            :disabled="!collapsed"
+          >
+            <UButton
+              v-if="authStore.authenticated"
+              :label="collapsed ? undefined : t('admin.logout')"
+              :aria-label="t('admin.logout')"
+              icon="i-lucide-log-out"
+              color="neutral"
+              variant="ghost"
+              :loading="loggingOut"
+              @click="logout()"
+            />
+            <UButton
+              v-else
+              :label="collapsed ? undefined : t('admin.login')"
+              :aria-label="t('admin.login')"
+              icon="i-lucide-log-in"
+              color="neutral"
+              variant="ghost"
+              :to="loginTarget"
+              @click="close"
+            />
+          </UTooltip>
+          <UTooltip :text="t('admin.openScoreboard')">
+            <UButton
+              icon="i-lucide-external-link"
+              color="neutral"
+              variant="ghost"
+              :aria-label="t('admin.openScoreboard')"
+              :to="{ name: 'scoreboard' }"
+              target="_blank"
+              :class="collapsed ? '' : 'ms-auto'"
+            />
+          </UTooltip>
+          <UColorModeSwitch />
+        </div>
+        <div class="flex w-full items-center" :class="collapsed ? 'flex-col' : 'justify-between'">
+          <AppVersion v-if="!collapsed" :repository-url="REPOSITORY_URL">
+            <p class="text-muted text-sm">{{ t('admin.updateOverlays') }}</p>
+          </AppVersion>
+          <FooterLinks :links="footerLinks" :class="collapsed ? 'flex-col' : ''" />
+        </div>
       </div>
-      <UContainer
-        v-else
-        class="pt-6 pb-2"
-        :class="{ 'lg:flex lg:min-h-0 lg:flex-1 lg:flex-col': fillViewport }"
-      >
-        <RouterView />
-      </UContainer>
-    </UMain>
+    </template>
 
-    <UFooter :ui="{ container: 'py-1 lg:py-1', center: 'mt-0' }">
-      <div class="text-muted flex items-center justify-center gap-4">
-        <AppVersion />
-        <a :href="docsUrl()" target="_blank" class="flex items-center gap-1.5 text-xs">
-          <UIcon name="i-lucide-book-open" :size="12" />
-          {{ t('admin.docs') }}
-        </a>
-      </div>
-    </UFooter>
-  </div>
+    <div class="flex flex-col" :class="{ 'lg:min-h-0 lg:flex-1': fillViewport }">
+      <RouterView />
+    </div>
+  </DashboardFrame>
 </template>

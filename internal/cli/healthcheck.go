@@ -41,9 +41,7 @@ func newHealthcheckCommand() *cobra.Command {
 	return cmdline.SkipSetup(cmd)
 }
 
-// checkHealth requests the liveness endpoint of the application. An application listening on all interfaces
-// is reached over the loopback address. The certificate is not verified, since the check targets the own process,
-// which may use a self-signed certificate.
+// checkHealth requests the liveness endpoint of the application, over the loopback address for all interfaces.
 func checkHealth(ctx context.Context, cfg config.ServerConfig) error {
 	scheme := "http"
 	if cfg.SSLEnabled {
@@ -59,6 +57,7 @@ func checkHealth(ctx context.Context, cfg config.ServerConfig) error {
 		Timeout: healthcheckTimeout,
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{
+				// The check targets the own process, which may use a self-signed certificate
 				InsecureSkipVerify: true,
 			}, //nolint:gosec // the own process is checked
 		},

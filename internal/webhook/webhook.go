@@ -41,6 +41,9 @@ const (
 	generatedSecretBytes = 32
 	// messageIDPrefix starts the id of every message.
 	messageIDPrefix = "msg_"
+	// maxRetryAfter bounds the wait a target asks for, so a huge number of seconds cannot overflow the duration.
+	// The caller decides how much of it to honor.
+	maxRetryAfter = 24 * time.Hour
 )
 
 var (
@@ -87,8 +90,8 @@ type Options struct {
 type Target struct {
 	URL     string
 	Secrets []string
-	// SkipTLSVerify accepts any certificate of the target, such as a self-signed one in a local network.
-	// The signature still lets the target check the messages, but a man in the middle could read them.
+	// SkipTLSVerify accepts any certificate of the target, which still checks the signature,
+	// while a man in the middle could read the messages.
 	SkipTLSVerify bool
 }
 
@@ -186,7 +189,13 @@ func ParseSecret(secret string) ([]byte, error) {
 
 // NewPayload encodes a message of the given type with data under a new id, stamped with the current time.
 func NewPayload(typ string, data any) (Payload, error) {
-	id := messageIDPrefix + rand.Text()
+	return NewPayloadWithID(rand.Text(), typ, data)
+}
+
+// NewPayloadWithID encodes a message like NewPayload under the id that key names,
+// so every attempt to deliver the same message carries the same id, even across restarts. key must be unique per message.
+func NewPayloadWithID(key, typ string, data any) (Payload, error) {
+	id := messageIDPrefix + key
 	body, err := json.Marshal(message{
 		ID:        id,
 		Type:      typ,
@@ -202,9 +211,9 @@ func NewPayload(typ string, data any) (Payload, error) {
 	}, nil
 }
 
-// CheckURL reports whether a target URL can be delivered to: ErrInvalidURL for a malformed URL or a scheme other than
-// http and https, and ErrBlockedAddress for a literal address in a blocked network. A host name is resolved
-// and checked on every delivery, since its address can change.
+// CheckURL reports whether a target URL can be delivered to: ErrInvalidURL for a malformed URL or a scheme other than http and https,
+// and ErrBlockedAddress for a literal address in a blocked network.
+// A host name is resolved and checked on every delivery, since its address can change.
 func (c *Client) CheckURL(rawURL string) error {
 	target, err := url.Parse(rawURL)
 	if err != nil {
@@ -223,8 +232,8 @@ func (c *Client) CheckURL(rawURL string) error {
 	return nil
 }
 
-// Send delivers a payload to a target once and classifies the outcome. An invalid URL or secret
-// and a blocked address are rejected, while a failure of the network or a timeout is retried.
+// Send delivers a payload to a target once and classifies the outcome. An invalid URL or secret and a blocked address are rejected,
+// while a failure of the network or a timeout is retried.
 func (c *Client) Send(ctx context.Context, target Target, payload Payload) Result {
 	if err := c.CheckURL(target.URL); err != nil {
 		return Result{
@@ -342,8 +351,9 @@ func (c *Client) newHTTPClient(skipTLSVerify bool) *http.Client {
 	}
 }
 
-// checkDial rejects a connection to an address that is not allowed. It runs on the resolved address
-// right before the connection, so a host name that resolves to another address later is checked as well.
+// checkDial rejects a connection to an address that is not allowed.
+// It runs on the resolved address right before the connection,
+// so a host name that resolves to another address later is checked as well.
 func (c *Client) checkDial(_, address string, _ syscall.RawConn) error {
 	host, _, err := net.SplitHostPort(address)
 	if err != nil {
@@ -453,17 +463,18 @@ func classify(status int, retryAfterHeader string, now time.Time) (Outcome, time
 	}
 }
 
-// parseRetryAfter returns the wait a Retry-After header names in seconds or as a date, 0 if it names none.
+// parseRetryAfter returns the wait a Retry-After header names in seconds or as a date,
+// at most maxRetryAfter, and 0 if it names none.
 func parseRetryAfter(header string, now time.Time) time.Duration {
 	header = strings.TrimSpace(header)
 	if header == "" {
 		return 0
 	}
 	if seconds, err := strconv.Atoi(header); err == nil {
-		return time.Duration(max(seconds, 0)) * time.Second
+		return time.Duration(min(max(seconds, 0), int(maxRetryAfter/time.Second))) * time.Second
 	}
 	if date, err := http.ParseTime(header); err == nil {
-		return max(date.Sub(now), 0)
+		return min(max(date.Sub(now), 0), maxRetryAfter)
 	}
 	return 0
 }

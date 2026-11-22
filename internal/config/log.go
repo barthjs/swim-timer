@@ -78,8 +78,7 @@ func validateLog(cfg *LogConfig) error {
 	return p.Err()
 }
 
-// ResolveLogDir returns the writable directory of the log files, creating it if missing: log.path if set,
-// else the log directory of the system or the user (see appdirs.LogDir).
+// ResolveLogDir returns the configured or else the default directory of the log files and creates it if missing.
 func ResolveLogDir(cfg LogConfig) (string, error) {
 	if cfg.Path == "" {
 		dir, err := appdirs.LogDir(AppName)

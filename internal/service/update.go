@@ -99,8 +99,7 @@ func (s *UpdateService) Check(ctx context.Context) (UpdateCheck, error) {
 	}, nil
 }
 
-// Start marks an update as running, the caller then installs it with Run. It fails if an update already runs,
-// or with a validation error if this installation cannot replace itself.
+// Start marks an update as running for Run to install, and fails while one runs or where the installation cannot replace itself.
 func (s *UpdateService) Start() error {
 	if reason := unsupportedReason(s.updater.Supported()); reason != "" {
 		return apperr.NewValidationError("update", reason)

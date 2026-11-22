@@ -1,5 +1,5 @@
-// Package ws sends messages of the application to the connected WebSocket clients, to every client
-// or to the clients of a topic, with an optional snapshot message that brings a newly connected client up to date.
+// Package ws sends messages of the application to the connected WebSocket clients,
+// to every client or to the clients of a topic, with an optional snapshot message that brings a newly connected client up to date.
 //
 // The caller assigns the topics of a client when it connects, for example from the credentials of the request,
 // so a client never chooses what it receives.
@@ -35,9 +35,8 @@ const (
 // Option configures a Hub.
 type Option func(*Hub)
 
-// WithCheckOrigin sets the check of the Origin header of a connecting client. Without it every origin is accepted,
-// which only fits a hub whose messages are public. A hub that assigns topics from cookies must check the origin,
-// since a browser sends its cookies along with a connection opened by any other site.
+// WithCheckOrigin sets the check of the Origin header of a connecting client,
+// which a hub that assigns topics from cookies needs, since a browser sends them along from any other site.
 func WithCheckOrigin(check func(r *http.Request) bool) Option {
 	return func(h *Hub) {
 		h.upgrader.CheckOrigin = check
@@ -45,8 +44,6 @@ func WithCheckOrigin(check func(r *http.Request) bool) Option {
 }
 
 // WithPongWait sets how long a client may stay silent before it counts as disconnected.
-// Pings are sent at nine tenths of it, so a healthy client always answers in time.
-// Values of zero or less keep the default of one minute.
 func WithPongWait(d time.Duration) Option {
 	return func(h *Hub) {
 		if d > 0 {
@@ -105,6 +102,7 @@ func New(logger zerolog.Logger, snapshot SnapshotFunc, opts ...Option) *Hub {
 		upgrader: websocket.Upgrader{
 			ReadBufferSize:  1024,
 			WriteBufferSize: 1024,
+			// Accepting every origin only fits a hub whose messages are public
 			CheckOrigin: func(*http.Request) bool {
 				return true
 			},
@@ -122,15 +120,13 @@ func New(logger zerolog.Logger, snapshot SnapshotFunc, opts ...Option) *Hub {
 	return h
 }
 
-// Run is the main event loop of the Hub. It serializes registration, unregistration,
-// and the delivery of messages in one goroutine until ctx is canceled, then disconnects every client,
-// since an HTTP server shutdown does not close hijacked WebSocket connections.
-// It may only be called once per Hub, a second call logs an error and returns.
+// Run delivers the messages until ctx is canceled and then disconnects every client, once per Hub.
 func (h *Hub) Run(ctx context.Context) {
 	if !h.started.CompareAndSwap(false, true) {
 		h.logger.Error().Msg("websocket hub is already running")
 		return
 	}
+	// A shutdown of the HTTP server does not close hijacked WebSocket connections
 	defer func() {
 		h.closeAll()
 		close(h.done)
@@ -171,8 +167,7 @@ func (h *Hub) Publish(topic string, message []byte) {
 	})
 }
 
-// Disconnect queues the closing of every client of a topic, for example when the credentials behind it end.
-// It blocks while the outbound queue is full and returns immediately once the hub has stopped.
+// Disconnect queues the closing of every client of a topic, waiting while the outbound queue is full.
 func (h *Hub) Disconnect(topic string) {
 	h.enqueue(outbound{
 		topic:      topic,
@@ -180,9 +175,8 @@ func (h *Hub) Disconnect(topic string) {
 	})
 }
 
-// TryPublish queues a message for the clients of a topic like Publish, but reports false instead of blocking
-// while the outbound queue is full. A caller that must never wait, such as the reader of a message stream,
-// uses it and decides itself what a dropped message means.
+// TryPublish queues a message for the clients of a topic like Publish and reports false instead of waiting
+// while the outbound queue is full, for a caller that must never wait.
 func (h *Hub) TryPublish(topic string, message []byte) bool {
 	return h.tryEnqueue(outbound{
 		topic:   topic,
@@ -190,8 +184,8 @@ func (h *Hub) TryPublish(topic string, message []byte) bool {
 	})
 }
 
-// TryDisconnect queues the closing of the clients of a topic like Disconnect, but reports false instead of blocking
-// while the outbound queue is full.
+// TryDisconnect queues the closing of the clients of a topic like Disconnect,
+// but reports false instead of blocking while the outbound queue is full.
 func (h *Hub) TryDisconnect(topic string) bool {
 	return h.tryEnqueue(outbound{
 		topic:      topic,
@@ -308,8 +302,8 @@ func (h *Hub) disconnect(topic string) {
 	}
 }
 
-// fanOut passes a message to every client, or to the clients of the topic if it is not empty. A client whose
-// send channel is full is disconnected, so one slow connection cannot block all the others.
+// fanOut passes a message to every client, or to the clients of the topic if it is not empty.
+// A client whose send channel is full is disconnected, so one slow connection cannot block all the others.
 func (h *Hub) fanOut(topic string, message []byte) {
 	h.mu.RLock()
 	var slow []*client
@@ -342,10 +336,9 @@ func (h *Hub) recipients(topic string) iter.Seq[*client] {
 	return maps.Keys(h.topics[topic])
 }
 
-// drop removes a registered client from every client and from its topics and closes its send channel.
-// A client that is no longer registered is left alone, since its send channel is already closed.
-// The caller holds the lock.
+// drop removes a client from the hub and its topics and closes its send channel while the caller holds the lock.
 func (h *Hub) drop(c *client) {
+	// The send channel of a client that is no longer registered is already closed
 	if _, ok := h.clients[c]; !ok {
 		return
 	}

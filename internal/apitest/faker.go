@@ -13,9 +13,8 @@ import (
 // SeedEnv names the environment variable that fixes the faker seed, to repeat a failed run exactly.
 const SeedEnv = "APITEST_SEED"
 
-// Faker returns a faker for one test. Every test gets its own instance, so parallel tests do not share state,
-// and a random seed, so test data varies between runs. The seed is logged when the test fails,
-// and setting it in APITEST_SEED reproduces the same data.
+// Faker returns a faker of its own for one test with a random seed, which a failing test logs
+// and APITEST_SEED sets to reproduce the data.
 func Faker(t testing.TB) *gofakeit.Faker {
 	t.Helper()
 

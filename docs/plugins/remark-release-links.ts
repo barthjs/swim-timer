@@ -3,14 +3,14 @@ import { visit } from 'unist-util-visit';
 
 const RELEASE_VERSION = /^v\d+\.\d+\.\d+(?:-.+)?$/;
 
-/** RemarkReleaseLinksOptions holds the URL of the releases page and the version the documentation is built for. */
-export interface RemarkReleaseLinksOptions {
+/** Holds the URL of the releases page and the version the documentation is built for. */
+export type RemarkReleaseLinksOptions = {
   releases: string;
   version: string;
-}
+};
 
 /**
- * remarkReleaseLinks points the links to the latest release at the release the documentation is built for,
+ * Points the links to the latest release at the release the documentation is built for,
  * so the documentation of a version offers the downloads of that version. The pages link to the latest release,
  * which the repository and the documentation of main keep.
  */
@@ -22,7 +22,7 @@ export function remarkReleaseLinks(options: RemarkReleaseLinksOptions) {
   };
 }
 
-/** releaseUrl returns a link to the latest release or one of its downloads for the given release version. */
+/** Returns a link to the latest release or one of its downloads for the given release version. */
 export function releaseUrl(url: string, releases: string, version: string): string {
   if (!RELEASE_VERSION.test(version)) {
     return url;

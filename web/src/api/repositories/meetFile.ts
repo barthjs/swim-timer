@@ -1,16 +1,16 @@
-import { apiFetch, UPLOAD_TIMEOUT_MS } from '@/api/client';
-import type { MeetFile, MeetFileResponse, MeetFileUploadResponse } from '@/api/types';
+import { apiFetch, UPLOAD_TIMEOUT_MS } from '@/api/client/client';
+import type { MeetFile, MeetFileResponse, MeetFileUploadResponse } from '@/api/types/meetFile';
 
 export const meetFileRepository = {
-  /** list returns every meet file and whether it is stored. */
-  list(): Promise<MeetFileResponse[]> {
+  /** Returns every meet file and whether it is stored. */
+  async list(): Promise<MeetFileResponse[]> {
     return apiFetch('/meet/files', {
       method: 'GET',
     });
   },
 
-  /** save stores the content of one meet file. */
-  save(file: MeetFile, content: File): Promise<void> {
+  /** Stores the content of one meet file. */
+  async save(file: MeetFile, content: File): Promise<void> {
     const body = new FormData();
     body.append('file', content);
     return apiFetch(`/meet/files/${encodeURIComponent(file)}`, {
@@ -20,8 +20,8 @@ export const meetFileRepository = {
     });
   },
 
-  /** upload stores every file whose name matches a meet file and reports each one. */
-  upload(contents: File[]): Promise<MeetFileUploadResponse[]> {
+  /** Stores every file whose name matches a meet file and reports each one. */
+  async upload(contents: File[]): Promise<MeetFileUploadResponse[]> {
     const body = new FormData();
     for (const content of contents) {
       body.append('files', content);

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { meetFileRepository } from '@/api/repositories/meetFile';
-import { MeetFile } from '@/api/types';
+import { MeetFile } from '@/api/types/meetFile';
 import { jsonResponse, useFetchMock } from '@/test/fetchMock';
 
 describe('meetFileRepository', () => {

@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"runtime"
 	"strings"
+	"time"
 
 	"fyne.io/systray"
 	"github.com/rs/zerolog"
@@ -29,9 +30,6 @@ var supervisedEnv = strings.ToUpper(strings.ReplaceAll(config.AppName, "-", "_")
 var errUpdated = errors.New("update installed")
 
 // runServe starts the application and serves it until the process receives SIGINT or SIGTERM.
-// On a desktop, a tray icon offers to open the web interface and to quit.
-// After an installed update, the application stops and the process restarts into the new binary,
-// unless a signal or the tray asked it to quit before.
 func runServe(cmd *cobra.Command, s *state) error {
 	ctx, cancel := context.WithCancelCause(cmd.Context())
 	stop := func() { cancel(nil) }
@@ -68,11 +66,10 @@ func runServe(cmd *cobra.Command, s *state) error {
 	if desktopSession(runtime.GOOS, os.Getenv) {
 		language := string(s.cfg.App.Language)
 		tray := trayOptions{
-			Title:       s.cfg.App.Name,
-			URL:         srv.URL(),
-			OpenLabel:   texts.T(language, "tray.open", nil),
-			QuitLabel:   texts.T(language, "tray.quit", nil),
-			OpenOnStart: openOnStart(s.cfg.App.Env),
+			Title:     s.cfg.App.Name,
+			URL:       srv.URL(),
+			OpenLabel: texts.T(language, "tray.open", nil),
+			QuitLabel: texts.T(language, "tray.quit", nil),
 		}
 		go runTray(s.logger, tray, stop)
 	}
@@ -94,8 +91,8 @@ func runServe(cmd *cobra.Command, s *state) error {
 	return nil
 }
 
-// restartAfterUpdate reports whether the process restarts into an installed update. Only an update that ended
-// the serve context restarts it, and a signal that arrived since still ends the process instead.
+// restartAfterUpdate reports whether the process restarts into an installed update.
+// Only an update that ended the serve context restarts it, and a signal that arrived since still ends the process instead.
 func restartAfterUpdate(signals, serve context.Context) bool {
 	if signals.Err() != nil {
 		return false
@@ -104,8 +101,6 @@ func restartAfterUpdate(signals, serve context.Context) bool {
 }
 
 // desktopSession reports whether the process runs in a desktop session, which the tray icon and the browser need.
-// A process of a service manager has none. Otherwise Windows and macOS always have one, and Linux needs
-// an X11 or Wayland display.
 func desktopSession(goos string, getenv func(string) string) bool {
 	if getenv(supervisedEnv) != "" {
 		return false
@@ -116,12 +111,6 @@ func desktopSession(goos string, getenv func(string) string) bool {
 		return true
 	}
 	return getenv("DISPLAY") != "" || getenv("WAYLAND_DISPLAY") != ""
-}
-
-// openOnStart reports whether the web interface opens in the browser once the server runs in a desktop session,
-// which it only does in production.
-func openOnStart(env config.Environment) bool {
-	return env == config.EnvProduction
 }
 
 // serverOptions maps the server settings of the configuration to the server options.
@@ -136,38 +125,44 @@ func serverOptions(cfg config.ServerConfig) server.Options {
 	}
 }
 
+// trayDoubleClickInterval is the longest pause between the two clicks of a double click, the default of Windows.
+const trayDoubleClickInterval = 500 * time.Millisecond
+
 // trayOptions holds what the tray icon shows, in the language of the user interface.
 type trayOptions struct {
 	Title     string
 	URL       string
 	OpenLabel string
 	QuitLabel string
-	// OpenOnStart opens the web interface in the browser right away.
-	OpenOnStart bool
 }
 
 // runTray creates a system tray icon with a menu item to open and quit the application.
+// On Windows, a double click on the icon opens the application as well.
 func runTray(logger zerolog.Logger, options trayOptions, quit func()) {
+	open := func() {
+		if err := openURL(options.URL); err != nil {
+			logger.Error().Err(err).Msg("failed to open URL")
+		}
+	}
+
 	systray.Run(func() {
 		systray.SetIcon(logo.Icon)
 		systray.SetTitle(options.Title)
+
+		// Without a handler, every left click opens the menu, and the second click of a double click opens it again
+		// while the first is still open, which leaves the icon without a menu. macOS keeps its menu on the left click.
+		if runtime.GOOS == "windows" {
+			systray.SetOnTapped(doubleClick(time.Now, trayDoubleClickInterval, open))
+		}
 
 		mOpen := systray.AddMenuItem(options.URL, options.OpenLabel)
 		mQuit := systray.AddMenuItem(options.QuitLabel, options.QuitLabel)
 
 		go func() {
-			if options.OpenOnStart {
-				if err := openURL(options.URL); err != nil {
-					logger.Error().Err(err).Msg("failed to open URL")
-				}
-			}
-
 			for {
 				select {
 				case <-mOpen.ClickedCh:
-					if err := openURL(options.URL); err != nil {
-						logger.Error().Err(err).Msg("failed to open URL")
-					}
+					open()
 				case <-mQuit.ClickedCh:
 					systray.Quit()
 					quit()
@@ -199,9 +194,9 @@ func browserCommand(goos string, wsl func() bool, url string) (string, []string)
 	return "xdg-open", []string{url}
 }
 
-// startArgs returns the arguments of cmd that open url with start. The empty argument is the window title,
-// since start would otherwise take a quoted URL as the title.
+// startArgs returns the arguments of cmd that open url with start.
 func startArgs(url string) []string {
+	// The empty argument is the window title, since start would otherwise take a quoted URL as the title
 	return []string{"/c", "start", "", url}
 }
 
@@ -212,4 +207,19 @@ func isWSL() bool {
 		return false
 	}
 	return strings.Contains(strings.ToLower(string(releaseData)), "microsoft")
+}
+
+// doubleClick returns a click handler that calls fn on the second of two clicks within interval.
+// The clicks come from the message loop of the tray, one after another.
+func doubleClick(now func() time.Time, interval time.Duration, fn func()) func() {
+	var last time.Time
+	return func() {
+		clicked := now()
+		if !last.IsZero() && clicked.Sub(last) <= interval {
+			last = time.Time{}
+			fn()
+			return
+		}
+		last = clicked
+	}
 }

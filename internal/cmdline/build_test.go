@@ -42,15 +42,16 @@ func TestResolveArch(t *testing.T) {
 func TestVersionText(t *testing.T) {
 	t.Parallel()
 
-	t.Run("returns the build information", func(t *testing.T) {
+	t.Run("returns the build information with aligned values", func(t *testing.T) {
 		t.Parallel()
 
 		text := cmdline.VersionText(testBuild)
 
-		assert.Contains(t, text, "Demo\tv1.2.3\n")
-		assert.Contains(t, text, "Commit:\t\tabc1234\n")
-		assert.Contains(t, text, "Go Version:\t"+runtime.Version()+"\n")
-		assert.Contains(t, text, "OS/Arch:\t"+runtime.GOOS+"/"+runtime.GOARCH+"\n")
+		want := "Demo v1.2.3\n" +
+			"Commit:     abc1234\n" +
+			"Go Version: " + runtime.Version() + "\n" +
+			"OS/Arch:    " + runtime.GOOS + "/" + runtime.GOARCH + "\n"
+		assert.Equal(t, want, text)
 	})
 
 	t.Run("leaves out a missing commit", func(t *testing.T) {
@@ -68,18 +69,6 @@ func TestVersionText(t *testing.T) {
 
 func TestVersionCommand(t *testing.T) {
 	t.Parallel()
-
-	t.Run("prints the version as text", func(t *testing.T) {
-		t.Parallel()
-
-		root, stdout, _ := newTestRoot(t)
-		root.AddCommand(cmdline.VersionCommand(testBuild))
-
-		code := cmdline.Execute(root, []string{"version"})
-
-		require.Equal(t, 0, code)
-		assert.Equal(t, cmdline.VersionText(testBuild), stdout.String())
-	})
 
 	t.Run("prints the version as json", func(t *testing.T) {
 		t.Parallel()

@@ -24,7 +24,7 @@ type Source struct {
 	Name string
 }
 
-// String returns the source as shown to a person, such as "env LOG_LEVEL" or "default".
+// String returns the kind of the source followed by its origin, as shown to a person.
 func (s Source) String() string {
 	if s.Name == "" {
 		return string(s.Kind)
@@ -49,8 +49,7 @@ func Sources(appName string, flags *pflag.FlagSet, cfg any) (map[string]Source, 
 	return sources, nil
 }
 
-// PathSources reports the same sources as Sources, keyed by the JSON path of each setting, such as "log.maxAgeDays",
-// the way a configuration leaves the process as JSON. Settings without a JSON path are left out.
+// PathSources returns the sources of Sources keyed by JSON path, without the settings that have none.
 func PathSources(appName string, flags *pflag.FlagSet, cfg any) (map[string]Source, error) {
 	sources, err := Sources(appName, flags, cfg)
 	if err != nil {

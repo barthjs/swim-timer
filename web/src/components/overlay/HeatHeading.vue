@@ -2,9 +2,9 @@
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import type { LiveHeat } from '@/api/types';
-import { useHeatLabel } from '@/composables/useHeatLabel';
-import { finalPhaseName } from '@/lib/heat';
+import type { LiveHeat } from '@/api/types/live';
+import { useHeatLabel } from '@/composables/live/useHeatLabel';
+import { finalPhaseName } from '@/lib/live/heat';
 
 // Names the live heat in one line, with dividers sized for the surrounding text.
 // With showFinal, a final also names its phase.

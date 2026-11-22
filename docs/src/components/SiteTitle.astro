@@ -23,7 +23,7 @@ const version = process.env.DOCS_VERSION ?? 'dev';
 </div>
 
 <script>
-  import { mountVersionSelect } from '../lib/versionSelect.ts';
+  import { mountVersionSelect } from '@/lib/versionSelect.ts';
 
   // The dev server may leave out the trailing slash of the base
   const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');

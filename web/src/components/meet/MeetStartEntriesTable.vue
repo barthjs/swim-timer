@@ -3,10 +3,10 @@ import { computed, resolveComponent } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { TableColumn } from '@nuxt/ui';
 
-import type { CompetitorResponse } from '@/api/types';
+import type { CompetitorResponse } from '@/api/types/meet';
 import DataTable from '@/components/table/DataTable.vue';
 import TableEmpty from '@/components/table/TableEmpty.vue';
-import { useMeetLinks } from '@/composables/useMeetLinks';
+import { useMeetLinks } from '@/composables/meet/useMeetLinks';
 import { useTableView } from '@/composables/table/useTableView';
 import type { TableColumnState } from '@/lib/table/columns';
 import {
@@ -15,7 +15,7 @@ import {
   formatDay,
   type MeetFilters,
   type MeetStartEntryRow,
-} from '@/lib/meet';
+} from '@/lib/meet/meet';
 
 type StartRow = {
   row: MeetStartEntryRow;
@@ -25,13 +25,11 @@ type StartRow = {
   event: number;
   heat: number;
   lane: number;
-  // The position of the event in the program, so sorting by it follows the schedule, see eventPositions.
+  // The position of the event in the program, so sorting by it follows the schedule, see eventPositions
   schedule: number;
 };
 
-const SORTABLE = ['name', 'birthYear', 'club', 'event', 'heat', 'lane', 'schedule'] as const;
-
-// Every start entry of the meet that matches the filters.
+// Every start entry of the meet that matches the filters
 const props = defineProps<{
   rows: MeetStartEntryRow[];
   filters: MeetFilters;
@@ -47,6 +45,8 @@ const emit = defineEmits<{
   selectClub: [club: string];
   showHeat: [event: number, heat: number];
 }>();
+
+const SORTABLE = ['name', 'birthYear', 'club', 'event', 'heat', 'lane', 'schedule'] as const;
 
 const { t, locale } = useI18n();
 const { competitorLink, clubLink, eventLink } = useMeetLinks({
@@ -69,13 +69,16 @@ const data = computed<StartRow[]>(() =>
 
 const view = useTableView(data, {
   sortable: SORTABLE,
-  value: (row, id) => row[id as (typeof SORTABLE)[number]],
+  value: (row, id) => row[id],
   resetOn: () => props.filters,
 });
 
 const columns = computed<TableColumn<StartRow>[]>(() => [
   {
     accessorKey: 'name',
+    meta: {
+      grow: true,
+    },
     header: t('pages.meet.starts.name'),
     enableSorting: true,
     cell: ({ row }) => {
@@ -88,7 +91,6 @@ const columns = computed<TableColumn<StartRow>[]>(() => [
     accessorKey: 'birthYear',
     header: t('pages.meet.starts.birthYear'),
     enableSorting: true,
-    size: 120,
   },
   {
     accessorKey: 'club',
@@ -109,19 +111,16 @@ const columns = computed<TableColumn<StartRow>[]>(() => [
     accessorKey: 'heat',
     header: t('pages.meet.starts.heat'),
     enableSorting: true,
-    size: 90,
   },
   {
     accessorKey: 'lane',
     header: t('pages.meet.starts.lane'),
     enableSorting: true,
-    size: 90,
   },
   {
     accessorKey: 'schedule',
     header: t('pages.meet.starts.schedule'),
     enableSorting: true,
-    size: 170,
     cell: ({ row }) =>
       [formatDay(row.original.row.event.date, locale.value), row.original.row.event.time]
         .filter(Boolean)

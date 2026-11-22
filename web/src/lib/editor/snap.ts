@@ -7,30 +7,30 @@ import type { Gap } from '@/lib/editor/spacing';
  */
 export const SNAP_DISTANCE = 8;
 
-/** Segment is a straight line between two points, such as the edge of an item. */
+/** A straight line between two points. */
 export type Segment = [start: Point, end: Point];
 
-/** PointTargets are the corners and edges a dragged point can snap onto. */
+/** The corners and edges a dragged point can snap onto. */
 export type PointTargets = {
   corners: Point[];
   edges: Segment[];
 };
 
-/** AxisTargets are the vertical lines at x and the horizontal lines at y that edges and centers align to. */
+/** The vertical lines at x and the horizontal lines at y that edges and centers align to. */
 export type AxisTargets = {
   x: number[];
   y: number[];
 };
 
-/** SnapLine is a vertical line at a value of x or a horizontal line at a value of y. */
+/** A vertical line at a value of x or a horizontal line at a value of y. */
 export type SnapLine = {
   axis: 'x' | 'y';
   value: number;
 };
 
 /**
- * SnapFeedback is what the editor shows of a drag: the point snapped onto, the lines aligned to,
- * and the distances to the neighbors.
+ * What the editor shows of a drag: the point snapped onto,
+ * the lines aligned to, and the distances to the neighbors.
  */
 export type SnapFeedback = {
   point: Point | null;
@@ -38,16 +38,16 @@ export type SnapFeedback = {
   gaps: Gap[];
 };
 
-/** SnapResult is where a dragged point lands and what it snapped onto. */
+/** Where a dragged point lands and what it snapped onto. */
 export type SnapResult = {
-  // The position the dragged point snaps to, or the point itself without a target in reach.
+  // The position the dragged point snaps to, or the point itself without a target in reach
   point: Point;
-  // The corner or the point on an edge it snapped to, or null.
+  // The corner or the point on an edge it snapped to, or null
   target: Point | null;
   distance: number;
 };
 
-/** noSnap returns the feedback of a drag that snapped to nothing. */
+/** Returns the feedback of a drag that snapped to nothing. */
 export function noSnap(): SnapFeedback {
   return {
     point: null,
@@ -57,7 +57,7 @@ export function noSnap(): SnapFeedback {
 }
 
 /**
- * boundsTargets collects the edges and centers of the given bounds and of the content,
+ * Collects the edges and centers of the given bounds and of the content,
  * so items can be aligned with each other and with the middle and the border of the content.
  */
 export function boundsTargets(list: readonly Bounds[], content: Size): AxisTargets {
@@ -77,7 +77,7 @@ export function boundsTargets(list: readonly Bounds[], content: Size): AxisTarge
   };
 }
 
-/** mergeTargets combines the lines of several sources of targets. */
+/** Combines the lines of several sources of targets. */
 export function mergeTargets(...sources: readonly AxisTargets[]): AxisTargets {
   return {
     x: sources.flatMap((source) => source.x),
@@ -85,7 +85,7 @@ export function mergeTargets(...sources: readonly AxisTargets[]): AxisTargets {
   };
 }
 
-/** closestPointOnSegment projects a point onto a segment, clamped to its ends. */
+/** Projects a point onto a segment, clamped to its ends. */
 export function closestPointOnSegment(point: Point, [start, end]: Segment): Point {
   const dx = end.x - start.x;
   const dy = end.y - start.y;
@@ -101,9 +101,8 @@ export function closestPointOnSegment(point: Point, [start, end]: Segment): Poin
 }
 
 /**
- * snapPoint moves a point onto the nearest target corner within reach. Without one, it moves the point
- * onto the nearest edge within reach. Corners take precedence, so two items meet exactly at their corners
- * instead of anywhere along an edge.
+ * Moves a point onto the nearest target corner within reach, or else onto the nearest edge,
+ * so two items touch exactly at their corners.
  */
 export function snapPoint(point: Point, targets: PointTargets, maxDistance: number): SnapResult {
   let best: SnapResult = {
@@ -139,7 +138,7 @@ export function snapPoint(point: Point, targets: PointTargets, maxDistance: numb
 }
 
 /**
- * snapOffset finds the shift that snaps the closest of several points moved together onto a target.
+ * Finds the shift that snaps the closest of several points moved together onto a target.
  * It returns no shift without a target in reach.
  */
 export function snapOffset(
@@ -177,7 +176,7 @@ export function snapOffset(
 }
 
 /**
- * snapValue finds the shift that moves the closest of several values moved together onto a target line.
+ * Finds the shift that moves the closest of several values moved together onto a target line.
  * It returns no shift and no line without a target in reach.
  */
 export function snapValue(
@@ -206,8 +205,8 @@ export function snapValue(
 }
 
 /**
- * snapBounds finds the shift that aligns the left edge, the center, or the right edge of moved bounds
- * with a vertical line, and the top edge, the middle, or the bottom edge with a horizontal line.
+ * Finds the shift that aligns the left edge, the center, or the right edge of moved bounds with a vertical line,
+ * and the top edge, the middle, or the bottom edge with a horizontal line.
  * Where both axes snap, the lines cross at the point the feedback marks.
  */
 export function snapBounds(
@@ -235,7 +234,7 @@ export function snapBounds(
 }
 
 /**
- * snapPointToAxes moves a point onto the vertical and the horizontal line within reach,
+ * Moves a point onto the vertical and the horizontal line within reach,
  * so a point can be aligned with edges and centers it does not touch.
  */
 export function snapPointToAxes(
@@ -254,7 +253,7 @@ export function snapPointToAxes(
   };
 }
 
-/** axisFeedback shows the lines a drag aligned to, with the point where they cross if both axes snapped. */
+/** Shows the lines a drag aligned to, with the point where they cross if both axes snapped. */
 export function axisFeedback(x: number | null, y: number | null): SnapFeedback {
   const lines: SnapLine[] = [];
   if (x !== null) {
@@ -282,7 +281,7 @@ export function axisFeedback(x: number | null, y: number | null): SnapFeedback {
   };
 }
 
-/** distanceBetween returns the distance between two points. */
+/** Returns the distance between two points. */
 function distanceBetween(a: Point, b: Point): number {
   return Math.hypot(a.x - b.x, a.y - b.y);
 }

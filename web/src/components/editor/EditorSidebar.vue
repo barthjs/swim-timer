@@ -3,19 +3,19 @@ import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useLocalStorage } from '@vueuse/core';
 
-import { usePointerDrag } from '@/composables/usePointerDrag';
+import { usePointerDrag } from '@/composables/editor/usePointerDrag';
 
-// The width range of the sidebar in pixels of the screen, and the width it starts with.
-const MIN_WIDTH = 280;
-const MAX_WIDTH = 640;
-const DEFAULT_WIDTH = 352;
-
-// The panels beside the canvas of an editor. From lg up, the handle on its left edge changes its width, which the
-// browser keeps under storageKey, and a double click on the handle restores the default width. Below lg,
-// the sidebar stacks under the canvas at full width.
+// The panels beside the canvas of an editor. From lg up, the handle on its left edge changes its width,
+// which the browser keeps under storageKey, and a double click on the handle restores the default width.
+// Below lg, the sidebar stacks under the canvas at full width.
 const props = defineProps<{
   storageKey: string;
 }>();
+
+// The width range of the sidebar in pixels of the screen, and the width it starts with
+const MIN_WIDTH = 280;
+const MAX_WIDTH = 640;
+const DEFAULT_WIDTH = 352;
 
 const { t } = useI18n();
 const width = useLocalStorage(`${props.storageKey}.sidebarWidth`, DEFAULT_WIDTH);
@@ -35,19 +35,19 @@ const style = computed(() => ({
   '--sidebar-width': `${clampWidth(width.value)}px`,
 }));
 
-/** onHandleDown starts changing the width with the primary pointer button. */
+/** Starts changing the width with the primary pointer button. */
 function onHandleDown(event: PointerEvent): void {
   if (event.button !== 0) return;
   event.preventDefault();
   drag.start(event);
 }
 
-/** resetWidth restores the default width. */
+/** Restores the default width. */
 function resetWidth(): void {
   width.value = DEFAULT_WIDTH;
 }
 
-/** clampWidth keeps a width within the range of the sidebar. */
+/** Keeps a width within the range of the sidebar. */
 function clampWidth(value: number): number {
   return Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, value));
 }

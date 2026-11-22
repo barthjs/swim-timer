@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"path/filepath"
 	"sync"
 	"time"
 
@@ -23,10 +22,8 @@ import (
 	"github.com/barthjs/swim-timer/internal/media"
 	"github.com/barthjs/swim-timer/internal/omega"
 	"github.com/barthjs/swim-timer/internal/ratelimiter"
-	"github.com/barthjs/swim-timer/internal/recording"
 	"github.com/barthjs/swim-timer/internal/serial"
 	"github.com/barthjs/swim-timer/internal/service"
-	"github.com/barthjs/swim-timer/internal/session"
 	"github.com/barthjs/swim-timer/internal/store"
 	"github.com/barthjs/swim-timer/internal/webhook"
 	"github.com/barthjs/swim-timer/internal/ws"
@@ -35,25 +32,25 @@ import (
 // rateLimitCleanupInterval is how often expired rate limit entries are removed.
 const rateLimitCleanupInterval = 15 * time.Minute
 
-// Deps holds what New cannot derive from the configuration. Every field is optional,
-// and a zero value selects the production default.
+// Deps holds what New cannot derive from the configuration, where a zero field selects the production default.
 type Deps struct {
-	// Version is reported by the health endpoints and the public metadata.
-	Version string
 	// ConfigFilePath is where a saved configuration is written, empty if no config file was found.
 	ConfigFilePath string
 	// ConfigSources reports by JSON path where each setting was loaded from, see structconf.PathSources.
 	ConfigSources map[string]structconf.Source
-
-	// Storage replaces the storage selected by the configuration. The recordings are still written below
-	// the local path of the configuration, so a replacement must use the same root to list them.
-	Storage media.Storage
-	// Device replaces the timing device selected by the configuration.
-	Device service.TimingDevice
-	// Updater installs newer releases. Nil builds one for Version, see NewUpdater.
-	Updater service.Updater
 	// OnUpdated runs once a newer release is installed, to restart into it.
 	OnUpdated func()
+	// Version is reported by the health endpoints and the public metadata.
+	Version string
+
+	// Device replaces the timing device selected by the configuration.
+	Device service.TimingDevice
+	// Storage replaces the storage selected by the configuration.
+	// The recordings are still written below the local path of the configuration,
+	// so a replacement must use the same root to list them.
+	Storage media.Storage
+	// Updater installs newer releases. Nil builds one for Version, see NewUpdater.
+	Updater service.Updater
 }
 
 // App is the assembled application.
@@ -75,8 +72,8 @@ type App struct {
 	closeOnce sync.Once
 }
 
-// New assembles the application. It loads the meet data, but starts no background work, see Start.
-// If it fails, it closes what it opened so far.
+// New assembles the application and loads its data without starting background work, see Start,
+// and closes what it opened when it fails.
 func New(ctx context.Context, logger zerolog.Logger, cfg config.Config, deps Deps) (_ *App, err error) {
 	a := &App{
 		logger: logger,
@@ -87,16 +84,13 @@ func New(ctx context.Context, logger zerolog.Logger, cfg config.Config, deps Dep
 		}
 	}()
 
-	storage := deps.Storage
-	if storage == nil {
-		built, err := NewStorage(logger, cfg)
-		if err != nil {
-			return nil, err
-		}
-		storage = built
+	in, err := a.newInfra(logger, cfg, deps)
+	if err != nil {
+		return nil, err
 	}
+	a.rateLimiter = in.RateLimiter
 
-	stores := NewStores(ctx, logger, storage)
+	stores := NewStores(ctx, logger, in.Storage)
 	meetStore := stores.Meet
 	presetStore := stores.Preset
 	recordingStore := stores.Recording
@@ -110,23 +104,6 @@ func New(ctx context.Context, logger zerolog.Logger, cfg config.Config, deps Dep
 		device = built
 	}
 
-	recorder := newRecorder(logger, cfg, deps.Version)
-
-	rateLimiter, err := ratelimiter.New()
-	if err != nil {
-		return nil, fmt.Errorf("initializing rate limiter: %w", err)
-	}
-	a.rateLimiter = rateLimiter
-
-	sessions, err := session.New(cfg.Server.SSLEnabled)
-	if err != nil {
-		return nil, fmt.Errorf("initializing session manager: %w", err)
-	}
-	a.closers = append(a.closers, closerFunc(func() error {
-		session.StopCleanup(sessions)
-		return nil
-	}))
-
 	// The preview of a webhook sends the current data of its event, which the services below hold
 	var timing *service.TimingService
 	var meetService *service.MeetService
@@ -138,7 +115,7 @@ func New(ctx context.Context, logger zerolog.Logger, cfg config.Config, deps Dep
 	// while the timing service broadcasts through the hub, so the snapshot is resolved lazily.
 	// Clients can only connect once the application runs, after the timing service is assigned.
 	a.hub = ws.New(logger, func() ([]byte, error) { return timing.Snapshot() })
-	timing = service.NewTimingService(logger, timingOptions(cfg.Timing), a.hub, device, recorder, meetStore, func(heat *domain.LiveHeat) {
+	timing = service.NewTimingService(logger, timingOptions(cfg.Timing), a.hub, device, in.Recorder, meetStore, func(heat *domain.LiveHeat) {
 		a.webhooks.Publish(domain.WebhookEventHeatUpdated, func() any { return heat })
 	})
 	a.timing = timing
@@ -149,11 +126,6 @@ func New(ctx context.Context, logger zerolog.Logger, cfg config.Config, deps Dep
 		a.webhooks.Publish(domain.WebhookEventMeetReloaded, func() any { return api.ToMeetResponse(meetService.GetOverview()) })
 	})
 
-	updater := deps.Updater
-	if updater == nil {
-		updater = NewUpdater(deps.Version)
-	}
-
 	a.handler = api.New(ctx, api.Deps{
 		Options: apiOptions(cfg),
 		Logger:  logger,
@@ -163,19 +135,19 @@ func New(ctx context.Context, logger zerolog.Logger, cfg config.Config, deps Dep
 		// so a missing device degrades the application instead of making it unavailable.
 		Health:      health.NewChecker(deps.Version, nil, health.WithOptional("timing", device)),
 		Hub:         a.hub,
-		RateLimiter: rateLimiter,
-		Session:     sessions,
+		RateLimiter: in.RateLimiter,
+		Session:     in.Session,
 
-		AuthService: service.NewAuthService(authOptions(cfg.App), sessions),
+		AuthService: service.NewAuthService(authOptions(cfg.App), in.Session),
 		ConfigService: service.NewConfigService(cfg, service.ConfigOptions{
 			FilePath: deps.ConfigFilePath,
 			Sources:  deps.ConfigSources,
 		}),
 		PresetService:    service.NewPresetService(presetStore),
 		MeetService:      meetService,
-		RecordingService: service.NewRecordingService(recordingOptions(cfg.Timing), recorder, recordingStore),
+		RecordingService: service.NewRecordingService(recordingOptions(cfg.Timing), in.Recorder, recordingStore),
 		TimingService:    timing,
-		UpdateService:    service.NewUpdateService(logger, updater, deps.OnUpdated),
+		UpdateService:    service.NewUpdateService(logger, in.Updater, deps.OnUpdated),
 		WebhookService:   a.webhooks,
 	}).Routes()
 
@@ -212,8 +184,8 @@ func (a *App) Close() error {
 	return errors.Join(errs...)
 }
 
-// newDevice opens the configured serial port. With the simulator or a replay enabled, it opens a virtual port
-// instead and prepares the simulator to write into it, so simulated frames take the path of real ones.
+// newDevice opens the configured serial port. With the simulator or a replay enabled, it opens a virtual port instead
+// and prepares the simulator to write into it, so simulated frames take the path of real ones.
 func (a *App) newDevice(
 	logger zerolog.Logger,
 	cfg config.TimingConfig,
@@ -258,28 +230,6 @@ type closerFunc func() error
 // Close calls the function.
 func (f closerFunc) Close() error {
 	return f()
-}
-
-// newRecorder returns the writer of the recordings in recordings/ of the local storage, or nil if the recording
-// is off. A replay is not recorded, since it would copy the replayed recording. The s3 driver records nothing,
-// since a recording grows while it runs and only the local driver can append to a file. A storage path that cannot
-// be resolved switches the recording off with a warning, since the recording must not stop the timing.
-func newRecorder(logger zerolog.Logger, cfg config.Config, version string) *recording.Writer {
-	if !cfg.Timing.Recording || cfg.Timing.ReplayPath != "" {
-		return nil
-	}
-	if cfg.Storage.Driver != media.DriverLocal {
-		logger.Info().Msg("the recording is off, since only the local storage driver can record the timing data")
-		return nil
-	}
-
-	options, err := StorageOptions(cfg.Storage)
-	if err != nil {
-		logger.Warn().Err(err).Msg("the recording is off, since the storage path cannot be resolved")
-		return nil
-	}
-	dir := filepath.Join(options.LocalPath, store.RecordingsFolder)
-	return recording.NewWriter(logger, recorderOptions(cfg.Timing, dir, version))
 }
 
 // webhookSample returns the data a webhook receives with an event, as it is now.

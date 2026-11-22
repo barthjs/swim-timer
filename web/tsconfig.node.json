@@ -1,19 +1,20 @@
 {
   "extends": "@tsconfig/node24/tsconfig.json",
-  "include": [
-    "vite.config.*",
-    "ui.config.*",
-    "vitest.config.*",
-    "cypress.config.*",
-    "playwright.config.*",
-    "eslint.config.*"
-  ],
+  "include": ["vite.config.*", "ui.config.*", "vitest.config.*", "eslint.config.*"],
   "compilerOptions": {
     "module": "preserve",
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
     "types": ["node"],
     "noEmit": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "allowUnreachableCode": false,
+    "erasableSyntaxOnly": true,
     "paths": {
       "#build/ui": ["./node_modules/.nuxt-ui/ui"]
     },

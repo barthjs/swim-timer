@@ -12,7 +12,9 @@ const props = defineProps<{
   filtered?: boolean;
 }>();
 
-const emit = defineEmits<{ reset: [] }>();
+const emit = defineEmits<{
+  reset: [];
+}>();
 
 const { t } = useI18n();
 
@@ -38,5 +40,6 @@ const actions = computed<ButtonProps[]>(() =>
     :actions="actions"
     variant="naked"
     size="sm"
+    class="sticky left-0 w-(--table-viewport-width) max-w-full py-6"
   />
 </template>

@@ -12,6 +12,7 @@ linters:
     - sqlclosecheck
 
     - exhaustive
+    - modernize
     - usestdlibvars
 
     - godot

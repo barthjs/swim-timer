@@ -6,8 +6,8 @@ import { withSetup } from '@/test/withSetup';
 import { useEditorSelection } from '@/composables/editor/useEditorSelection';
 import { marqueeBounds, useMarqueeSelection } from '@/composables/editor/useMarqueeSelection';
 
-// Three items stacked from top to bottom, each 100 wide and 50 high with a gap of 50.
-const ITEMS: Array<[string, Bounds]> = [
+// Three items stacked from top to bottom, each 100 wide and 50 high with a gap of 50
+const ITEMS: [string, Bounds][] = [
   [
     'a',
     {
@@ -66,7 +66,7 @@ describe('useMarqueeSelection', () => {
 
   afterEach(() => unmount());
 
-  /** mount creates the marquee selection over the three items, with client pixels as content units. */
+  /** Creates the marquee selection over the three items, with client pixels as content units. */
   function mount() {
     const mounted = withSetup(() => {
       const selection = useEditorSelection(() => ITEMS.map(([key]) => key));
@@ -87,7 +87,7 @@ describe('useMarqueeSelection', () => {
     return mounted.result;
   }
 
-  /** drag draws a marquee from one point to another and keeps the pointer pressed. */
+  /** Draws a marquee from one point to another and keeps the pointer pressed. */
   function drag(
     marquee: ReturnType<typeof mount>['marquee'],
     from: Point,

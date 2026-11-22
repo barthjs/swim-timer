@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 
-import type { Lane } from '@/api/types';
-import { formatName } from '@/lib/names';
-import { type HeatRun, createSplitTracker, heatRun } from '@/lib/splits';
-import { formatSwimtime } from '@/lib/time';
+import type { Lane } from '@/api/types/live';
+import { formatName } from '@/lib/live/names';
+import { type HeatRun, createSplitTracker, heatRun } from '@/lib/live/splits';
+import { formatSwimtime } from '@/lib/live/time';
 import { useLiveStore } from '@/stores/live';
 
-// How long a split stays visible before it slides out.
+// How long a split stays visible before it slides out
 const DISPLAY_DURATION_MS = 7_000;
 
 type DisplayLane = Lane & {
@@ -22,7 +22,7 @@ const displayedLanes = ref<DisplayLane[]>([]);
 
 const timedLanes = computed<Lane[]>(() => {
   const state = liveStore.state;
-  if (!state || !state.status) return [];
+  if (!state?.status) return [];
   return Object.values(state.lanes)
     .filter((lane) => lane.time > 0)
     .sort((a, b) => a.time - b.time);
@@ -30,7 +30,7 @@ const timedLanes = computed<Lane[]>(() => {
 
 const currentRun = computed<HeatRun | null>(() => {
   const state = liveStore.state;
-  if (!state || !state.status) return null;
+  if (!state?.status) return null;
   return heatRun(state.event, state.heat, state.startTime);
 });
 
@@ -38,7 +38,7 @@ const lanesSignature = computed(() =>
   timedLanes.value.map((lane) => `${lane.number}:${lane.time}:${lane.meter}`).join('|'),
 );
 
-/** show appends a lane at the bottom for a fixed duration, replacing it if it is still visible. */
+/** Appends a lane at the bottom for a fixed duration, replacing it if it is still visible. */
 function show(lane: Lane): void {
   const existingIndex = displayedLanes.value.findIndex((shown) => shown.number === lane.number);
   const existing = displayedLanes.value[existingIndex];

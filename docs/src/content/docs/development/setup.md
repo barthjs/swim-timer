@@ -51,6 +51,8 @@ make run
 
 A change to the backend needs a restart of `make run`.
 
+With `key.pem` and `cert.pem` in `web/.certs/`, Vite serves the web interface over HTTPS, see the README in that folder.
+
 Without a timing system, set a [simulated event](../guides/simulator-and-recordings.md#simulator) to get live heats.
 
 The documentation has its own development server at `http://localhost:4321/docs/`:
@@ -61,10 +63,12 @@ npm run dev --prefix docs
 
 ## Building
 
-| Command          | What it builds                                                                                                      |
-| ---------------- | ------------------------------------------------------------------------------------------------------------------- |
-| `make build`     | The binary for the current platform with GoReleaser into `bin/`, including the web interface and the documentation. |
-| `make build-all` | The archives and packages of every platform, as a release does.                                                     |
+| Command               | What it builds                                                                                 |
+| --------------------- | ---------------------------------------------------------------------------------------------- |
+| `make build`          | The binary for the current platform into `bin/`, with the web interface and the documentation. |
+| `make build-<target>` | The binary for one platform with GoReleaser, such as `make build-linux-arm64`.                 |
+| `make build-all`      | The archives and packages of every platform, as a release does.                                |
 
-Both install only the build tools in `web/` and `docs/` with `npm ci --omit=dev`.
-Run `npm ci` there again afterward to get the development tools back.
+`make build` uses the installed packages in `web/` and `docs/` and gives the binary the version of the latest Git tag.
+The GoReleaser targets install only the build tools there with `npm ci --omit=dev`,
+so run `npm ci` in both folders again afterward to get the development tools back.

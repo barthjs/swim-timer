@@ -62,8 +62,7 @@ type Mode struct {
 	StopBits StopBits
 }
 
-// open opens the port with the given name for reading. Canceling ctx aborts a pending connection.
-// The caller must close the returned reader.
+// open opens the named port for reading until ctx aborts a pending connection, and the caller closes the reader.
 func open(ctx context.Context, name string, mode Mode) (io.ReadCloser, error) {
 	switch driverFor(name) {
 	case driverTCP:
@@ -75,11 +74,9 @@ func open(ctx context.Context, name string, mode Mode) (io.ReadCloser, error) {
 	}
 }
 
-// driverFor selects the driver for a port name. A name in host:port form addresses a serial-over-IP bridge,
-// such as ser2net or a Moxa device server, which is also how OpenVirtual exposes its port on Windows.
-// Everything else is a local device. A name with a path separator is always a device,
-// since persistent Linux device paths such as /dev/serial/by-path/pci-0000:00:14.0-usb-0:2:1.0-port0 contain colons as well.
+// driverFor selects the serial-over-IP bridge for a name in host:port form and a local device for every other name.
 func driverFor(name string) driver {
+	// Persistent Linux device paths contain colons as well
 	if strings.ContainsAny(name, `/\`) {
 		return driverDevice
 	}

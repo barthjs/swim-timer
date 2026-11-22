@@ -14,9 +14,7 @@ import (
 // fileExtensions are the config file formats, in the order FindFile prefers them.
 var fileExtensions = []string{"yaml", "yml", "json", "toml"}
 
-// FindFile reports the config file path Load reads: the --config flag, else the CONFIG_FILE environment variable,
-// else the first existing config file in the config directories of appName (see appdirs.ConfigSearchDirs).
-// It returns an empty path if there is none, in which case Write picks a location itself.
+// FindFile returns the path of the config file Load reads, or an empty path for Write to pick a location.
 func FindFile(appName string, flags *pflag.FlagSet) string {
 	if explicit := explicitFile(flags); explicit != "" {
 		return explicit
@@ -42,9 +40,8 @@ func SearchPaths(appName string) []string {
 	return paths
 }
 
-// Write replaces the config file at path with the settings of the struct cfg points to and returns the path.
-// The file is written to a temporary file first and then renamed, so a reader never sees half a file.
-// An empty path selects the first writable config directory of appName (see appdirs.ConfigWriteDirs).
+// Write replaces the config file at path, or at a new path in a config directory of appName for an empty one,
+// with the settings of cfg and returns the path.
 func Write(appName, path string, cfg any) (string, error) {
 	if path == "" {
 		var err error
@@ -62,6 +59,7 @@ func Write(appName, path string, cfg any) (string, error) {
 	v := viper.New()
 	eachLeafValue(cfg, func(key string, value any) { v.Set(key, value) })
 
+	// A temporary file renamed over the old one keeps a reader from seeing half a file.
 	// WriteConfigAs infers the file format (YAML, JSON, TOML) from the target's extension,
 	// so the temp file must share path's extension.
 	tmp, err := os.CreateTemp(dir, fileName+"-*"+filepath.Ext(path))

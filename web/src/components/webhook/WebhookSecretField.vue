@@ -1,16 +1,11 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n';
-import { useToast } from '@nuxt/ui/composables';
-import { useClipboard } from '@vueuse/core';
 
-import { generateWebhookSecret } from '@/lib/webhook';
+import { useCopy } from '@/composables/ui/useCopy';
+import { generateWebhookSecret } from '@/lib/webhook/webhook';
 
 // The secret of a webhook in monospace with a button that copies it. An editable field also offers a button
 // that fills in a new random secret. The legacy copy also works in the local network without https.
-const model = defineModel<string>({
-  required: true,
-});
-
 withDefaults(
   defineProps<{
     readonly?: boolean;
@@ -24,23 +19,19 @@ withDefaults(
   },
 );
 
-const { t } = useI18n();
-const toast = useToast();
-const { copy, isSupported } = useClipboard({
-  legacy: true,
+const model = defineModel<string>({
+  required: true,
 });
 
-/** copySecret copies the secret to the clipboard. */
+const { t } = useI18n();
+const { copy } = useCopy();
+
+/** Copies the secret to the clipboard. */
 async function copySecret(): Promise<void> {
-  await copy(model.value);
-  toast.add({
-    title: t('pages.config.webhook.secretCopied'),
-    icon: 'i-lucide-clipboard-check',
-    color: 'success',
-  });
+  await copy(model.value, t('webhook.secretCopied'));
 }
 
-/** generateSecret fills in a new random secret. */
+/** Fills in a new random secret. */
 function generateSecret(): void {
   model.value = generateWebhookSecret();
 }
@@ -56,22 +47,22 @@ function generateSecret(): void {
       autocomplete="off"
       class="w-full font-mono"
     />
-    <UTooltip v-if="isSupported" :text="t('pages.config.webhook.copySecret')">
+    <UTooltip :text="t('webhook.copySecret')">
       <UButton
         icon="i-lucide-copy"
         color="neutral"
         variant="outline"
-        :aria-label="t('pages.config.webhook.copySecret')"
+        :aria-label="t('webhook.copySecret')"
         :disabled="!model"
         @click="copySecret"
       />
     </UTooltip>
-    <UTooltip v-if="!readonly" :text="t('pages.config.webhook.generateSecret')">
+    <UTooltip v-if="!readonly" :text="t('webhook.generateSecret')">
       <UButton
         icon="i-lucide-refresh-cw"
         color="neutral"
         variant="outline"
-        :aria-label="t('pages.config.webhook.generateSecret')"
+        :aria-label="t('webhook.generateSecret')"
         @click="generateSecret"
       />
     </UTooltip>

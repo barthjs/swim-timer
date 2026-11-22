@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { faker } from '@faker-js/faker';
 
 import { useValidationMessages } from '@/composables/form/useValidationMessages';
 
@@ -12,7 +13,7 @@ const messages: Record<string, string> = {
   'validation.invalid': '{field} is invalid',
 };
 
-/** format returns the message of a key with its parameters filled in. */
+/** Returns the message of a key with its parameters filled in. */
 function format(key: string, params: Record<string, string | number> = {}): string {
   let text = messages[key] ?? key;
   for (const [name, value] of Object.entries(params)) {
@@ -63,7 +64,7 @@ describe('useValidationMessages', () => {
 
       const errors = mapFieldErrors(fields, {
         account: {
-          password: 'short',
+          password: faker.lorem.word(),
         },
       });
 
@@ -113,7 +114,9 @@ describe('useValidationMessages', () => {
           ],
         },
         {
-          origins: ['a', 'b', 'c'],
+          origins: faker.helpers.multiple(() => faker.lorem.word(), {
+            count: 3,
+          }),
         },
       );
 
@@ -142,7 +145,9 @@ describe('useValidationMessages', () => {
           ],
         },
         {
-          origins: ['a', 'b', 'c', 'd', 'e'],
+          origins: faker.helpers.multiple(() => faker.lorem.word(), {
+            count: 5,
+          }),
         },
       );
 
@@ -202,23 +207,23 @@ describe('useValidationMessages', () => {
 
       const errors = mapFieldErrors(
         {
-          'lanes[0]': [
+          'entries[0]': [
             {
               tag: 'invalid',
             },
           ],
         },
         {
-          lanes: {
-            0: 'a',
+          entries: {
+            0: faker.lorem.word(),
           },
         },
       );
 
       expect(errors).toEqual([
         {
-          name: 'lanes[0]',
-          message: 'lanes[0] is invalid',
+          name: 'entries[0]',
+          message: 'entries[0] is invalid',
         },
       ]);
     });

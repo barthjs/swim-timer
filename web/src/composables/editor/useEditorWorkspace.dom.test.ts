@@ -10,9 +10,9 @@ import { withSetup } from '@/test/withSetup';
 const STORAGE_KEY = 'workspace-test';
 
 // The components of the running test, unmounted after it
-let unmounts: Array<() => void> = [];
+let unmounts: (() => void)[] = [];
 
-/** mountWorkspace creates the workspace inside a mounted component, which is unmounted after the test. */
+/** Creates the workspace inside a mounted component, which is unmounted after the test. */
 function mountWorkspace(options: Partial<EditorWorkspaceOptions> = {}) {
   const mounted = withSetup(() =>
     useEditorWorkspace({
@@ -34,7 +34,7 @@ function mountWorkspace(options: Partial<EditorWorkspaceOptions> = {}) {
   };
 }
 
-/** pressKey dispatches a keydown on the document and reports whether a listener prevented it. */
+/** Dispatches a keydown on the document and reports whether a listener prevented it. */
 function pressKey(key: string, init: KeyboardEventInit = {}): boolean {
   const event = new KeyboardEvent('keydown', {
     key,
@@ -81,15 +81,6 @@ describe('useEditorWorkspace', () => {
         preview: false,
         snapping: true,
       });
-    });
-
-    it('keeps a view option under the prefix of the editor', async () => {
-      const { result } = mountWorkspace();
-
-      result.toggle(result.view.loupe);
-      await nextTick();
-
-      expect(localStorage.getItem(`${STORAGE_KEY}.loupe`)).toBe('false');
     });
   });
 

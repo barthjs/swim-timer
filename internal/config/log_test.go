@@ -179,11 +179,6 @@ func TestNormalizeLogLevel(t *testing.T) {
 			level: "error",
 			want:  zerolog.ErrorLevel,
 		},
-		{
-			name:  "selects warn for an unknown level",
-			level: "trace",
-			want:  zerolog.WarnLevel,
-		},
 	}
 
 	for _, tt := range tests {

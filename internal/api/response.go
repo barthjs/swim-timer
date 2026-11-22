@@ -6,7 +6,11 @@ import (
 	"maps"
 	"mime"
 	"net/http"
+	"time"
 )
+
+// downloadTimeout gives large downloads more time than the default request timeout, for slow connections.
+const downloadTimeout = 10 * time.Minute
 
 // writeJSON writes a JSON response and, if encoding fails, reports it as a server error.
 func (a *API) writeJSON(w http.ResponseWriter, r *http.Request, status int, data any, headers http.Header) {
@@ -39,6 +43,23 @@ func writeText(w http.ResponseWriter, status int, data string, headers http.Head
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(status)
 	_, _ = w.Write([]byte(data))
+}
+
+// downloadWriter sets the download headers with the first write, so a failure before it still gets an error response.
+type downloadWriter struct {
+	writer      http.ResponseWriter
+	contentType string
+	filename    string
+	started     bool
+}
+
+// Write sets the download headers before the first bytes and writes p.
+func (d *downloadWriter) Write(p []byte) (int, error) {
+	if !d.started {
+		writeDownloadHeaders(d.writer, d.contentType, d.filename)
+		d.started = true
+	}
+	return d.writer.Write(p)
 }
 
 // writeDownloadHeaders marks the response as a file download with the given content type and file name.

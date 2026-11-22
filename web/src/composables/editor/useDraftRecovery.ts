@@ -1,41 +1,37 @@
 import { onScopeDispose, toRaw, watch, type Ref } from 'vue';
 
-// How long changes rest before the browser keeps them as a draft.
+// How long changes rest before the browser keeps them as a draft
 const SAVE_DELAY_MS = 1000;
 
 export type DraftRecoveryOptions<T> = {
-  // The prefix of the keys the browser keeps the drafts under, such as "editor".
+  // The prefix of the keys the browser keeps the drafts under, such as "editor"
   storageKey: string;
   // The saved document the draft belongs to. A document that is not saved yet keeps no draft.
   document: () => string | null;
   state: T;
-  // Whether the state has changes that are not saved.
+  // Whether the state has changes that are not saved
   dirty: Ref<boolean>;
-  // Asks whether to restore a draft, which offer calls before it restores one.
+  // Asks whether to restore a draft, which offer calls before it restores one
   confirm: () => Promise<boolean>;
 };
 
-/**
- * useDraftRecovery keeps the unsaved changes of a saved document in the browser while they are made,
- * so they survive a reload or a crash. Opening the document again offers the draft. Saving or discarding
- * the changes deletes it.
- */
+/** Keeps the unsaved changes of a saved document in the browser until they are saved or discarded. */
 export function useDraftRecovery<T extends object>(options: DraftRecoveryOptions<T>) {
   let pending: ReturnType<typeof setTimeout> | null = null;
 
-  /** keyOf returns the key the draft of a document is kept under. */
+  /** Returns the key the draft of a document is kept under. */
   function keyOf(name: string): string {
     return `${options.storageKey}.draft.${name}`;
   }
 
-  /** cancelPending drops the scheduled save of the draft. */
+  /** Drops the scheduled save of the draft. */
   function cancelPending(): void {
     if (pending === null) return;
     clearTimeout(pending);
     pending = null;
   }
 
-  /** save keeps the current state as the draft of the open document, or deletes the draft without changes. */
+  /** Keeps the current state as the draft of the open document, or deletes the draft without changes. */
   function save(): void {
     pending = null;
     const name = options.document();
@@ -51,10 +47,7 @@ export function useDraftRecovery<T extends object>(options: DraftRecoveryOptions
     }
   }
 
-  /**
-   * offer restores the draft of the open document after asking, if one is kept and differs from the state.
-   * It reports whether it restored one. A declined draft is deleted.
-   */
+  /** Asks to restore a kept draft that differs from the state, deletes a declined one, and reports whether it restored it. */
   async function offer(): Promise<boolean> {
     const name = options.document();
     if (name === null) return false;
@@ -80,7 +73,7 @@ export function useDraftRecovery<T extends object>(options: DraftRecoveryOptions
     return true;
   }
 
-  /** discard deletes the draft of a document, such as after it was saved or deleted. */
+  /** Deletes the draft of a document. */
   function discard(name: string): void {
     cancelPending();
     try {

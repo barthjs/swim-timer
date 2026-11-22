@@ -85,8 +85,8 @@ func fileFallback(channel Channel, stdout io.Writer) io.Writer {
 	return stdout
 }
 
-// logWriter assembles the output for the channel and format. The console format's color codes only make sense
-// on a terminal, so a file never gets them, otherwise the log file fills up with raw escape sequences.
+// logWriter assembles the output for the channel and format. The console format's color codes only make sense on a terminal,
+// so a file never gets them, otherwise the log file fills up with raw escape sequences.
 func logWriter(options Options, stdout io.Writer, file io.Writer) io.Writer {
 	format := func(w io.Writer, noColor bool) io.Writer {
 		if options.Format != FormatConsole {

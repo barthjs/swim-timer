@@ -2,12 +2,12 @@ import { defineStore } from 'pinia';
 import { computed, ref, shallowRef, watch } from 'vue';
 
 import { meetRepository } from '@/api/repositories/meet';
-import type { MeetResponse } from '@/api/types';
-import { buildMeetIndex } from '@/lib/meet';
+import type { MeetResponse } from '@/api/types/meet';
+import { buildMeetIndex } from '@/lib/meet/meet';
 import { useLiveStore } from '@/stores/live';
 
 /**
- * useMeetStore holds the loaded meet. It loads again whenever the websocket announces a reload of the meet data
+ * Holds the loaded meet. It loads again whenever the websocket announces a reload of the meet data
  * or reconnects, since a reload may have been missed while the connection was lost.
  */
 export const useMeetStore = defineStore('meet', () => {
@@ -22,7 +22,7 @@ export const useMeetStore = defineStore('meet', () => {
 
   const index = computed(() => (meet.value ? buildMeetIndex(meet.value) : null));
 
-  /** load reads the meet from the server. An answer that arrives after a later load started is dropped. */
+  /** Reads the meet from the server. An answer that arrives after a later load started is dropped. */
   async function load(): Promise<void> {
     const current = ++latestLoad;
     loading.value = true;
@@ -46,7 +46,7 @@ export const useMeetStore = defineStore('meet', () => {
     () => void load(),
   );
 
-  /** start loads the meet and keeps it current. It also opens the websocket for the live heat. */
+  /** Loads the meet and keeps it current. It also opens the websocket for the live heat. */
   function start(): void {
     liveStore.connect();
     if (!meet.value) void load();

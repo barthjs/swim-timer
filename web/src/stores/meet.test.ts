@@ -3,7 +3,7 @@ import { effectScope, nextTick } from 'vue';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { meetRepository } from '@/api/repositories/meet';
-import type { MeetResponse } from '@/api/types';
+import type { MeetResponse } from '@/api/types/meet';
 import { useMeetStore } from '@/stores/meet';
 
 const get = vi.hoisted(() => vi.fn<typeof meetRepository.get>());
@@ -66,7 +66,7 @@ const meet: MeetResponse = {
   ],
 };
 
-/** flush waits for pending promises and the watchers they trigger. */
+/** Waits for pending promises and the watchers they trigger. */
 async function flush(): Promise<void> {
   await Promise.resolve();
   await nextTick();
@@ -125,7 +125,7 @@ describe('useMeetStore', () => {
       };
       let resolveOlder: (value: MeetResponse) => void = () => {};
       get.mockImplementationOnce(
-        () =>
+        async () =>
           new Promise<MeetResponse>((resolve) => {
             resolveOlder = resolve;
           }),

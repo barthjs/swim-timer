@@ -2,11 +2,11 @@
 import { useI18n } from 'vue-i18n';
 
 import HelpHint from '@/components/form/HelpHint.vue';
-import { usePresetForm } from '@/composables/usePresetForm';
-import { useShortcutLabels } from '@/composables/useShortcutLabels';
+import { usePresetForm } from '@/composables/preset/usePresetForm';
+import { useShortcutLabels } from '@/composables/ui/useShortcutLabels';
 import { shortcutKeys } from '@/lib/editor/shortcuts';
-import { PRESET_EDITOR_SHORTCUTS } from '@/lib/presetEditorShortcuts';
-import { CORNERS } from '@/lib/lanes';
+import { PRESET_EDITOR_SHORTCUTS } from '@/lib/preset/presetEditorShortcuts';
+import { CORNERS } from '@/lib/preset/lanes';
 
 // Pixel coordinates show at most two decimal places, which only appear after the reference resolution changed.
 // Typed values snap to whole pixels.
@@ -30,7 +30,7 @@ const { keyLabels } = useShortcutLabels();
   >
     <div class="flex items-center justify-between">
       <div class="flex items-center gap-1">
-        <h3 class="text-highlighted font-semibold">
+        <h3 class="text-highlighted heading-card">
           {{ t('pages.editor.lane', { number: presetForm.editor.selection.active.value }) }}
         </h3>
         <HelpHint :text="t('pages.editor.help.lane')" />
@@ -55,7 +55,7 @@ const { keyLabels } = useShortcutLabels();
 
     <div
       v-if="!presetForm.activeLane.value.locked"
-      class="grid grid-cols-[auto_1fr_1fr] items-center gap-x-2 gap-y-1"
+      class="grid-cols-label-2 grid items-center gap-x-2 gap-y-1"
     >
       <span></span>
       <span class="text-toned text-center text-xs font-medium">

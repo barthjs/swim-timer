@@ -16,7 +16,7 @@ func SerialMode(baudRate int) serial.Mode {
 	}
 }
 
-// Frame structure constants for the Omega transmission protocol (see docs/omega-transmission-protocol.md).
+// Frame structure constants for the Omega transmission protocol, see the page omega-transmission-protocol.
 // A complete frame consists of two parts (41 bytes total), each terminated by EOT:
 //
 //	Part 1 (20 bytes): [SOH][STX][HOME] A B C DD EE FFF GG ¬¬ HH [EOT]
@@ -70,7 +70,7 @@ const (
 	offsetPart1EOT     = 19
 )
 
-// Part 2 byte offsets (relative to combined frame, i.e., offset + framePart1Size).
+// Part 2 byte offsets, relative to the combined frame.
 const (
 	offsetPart2SOH  = 20
 	offsetPart2STX  = 21

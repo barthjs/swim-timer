@@ -10,7 +10,7 @@ or generates heats of its own, so the overlays can be set up and checked without
 
 ## Simulator
 
-The simulator is set up in the Timing tab of the configuration page and requires Linux or Windows.
+The simulator is set up in the Timing section of the configuration page and requires Linux or Windows.
 
 - With a simulated event and no recording, it plays the heats of that event from the loaded start list
   with random times in a loop.
@@ -24,5 +24,5 @@ The replay uses the loaded meet data. Upload the meet files of the recorded meet
 Swim-Timer records the data of the timing system by default, one file per day in the folder `recordings`
 of the storage. The recording only works with the local storage and never delays the overlays.
 
-The Timing tab of the configuration page lists the recordings. A recording can be uploaded, chosen for the replay,
+The Timing section of the configuration page lists the recordings. A recording can be uploaded, chosen for the replay,
 downloaded as it is or as a [table for analysis](../reference/recordings.md#table-for-analysis), and deleted.

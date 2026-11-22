@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { setAuthenticationRequiredHandler } from '@/api/client';
+import { setAuthenticationRequiredHandler } from '@/api/client/client';
 import { authRepository } from '@/api/repositories/auth';
-import type { AuthLoginRequest } from '@/api/types';
+import type { AuthLoginRequest } from '@/api/types/auth';
 import { jsonResponse, useFetchMock } from '@/test/fetchMock';
 
 describe('authRepository', () => {

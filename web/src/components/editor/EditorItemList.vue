@@ -4,7 +4,6 @@ import { useI18n } from 'vue-i18n';
 
 import { isAdditiveSelect } from '@/composables/editor/useEditorSelection';
 
-/** EditorListItem is an item of an editor as its list shows it. */
 export type EditorListItem<K> = {
   key: K;
   label: string;
@@ -34,27 +33,27 @@ const { t } = useI18n();
 const draggedIndex = ref<number | null>(null);
 const overIndex = ref<number | null>(null);
 
-/** onDragStart remembers the dragged item. */
+/** Remembers the dragged item. */
 function onDragStart(event: DragEvent, index: number): void {
   draggedIndex.value = index;
   event.dataTransfer?.setData('text/plain', String(index));
 }
 
-/** onDragOver marks the item a dragged one would take the place of. */
+/** Marks the item a dragged one would take the place of. */
 function onDragOver(event: DragEvent, index: number): void {
   if (draggedIndex.value === null) return;
   event.preventDefault();
   overIndex.value = index;
 }
 
-/** onDrop moves the dragged item to the place of the item it was dropped on. */
+/** Moves the dragged item to the place of the item it was dropped on. */
 function onDrop(index: number): void {
   const from = draggedIndex.value;
   onDragEnd();
   if (from !== null && from !== index) emit('move', from, index);
 }
 
-/** onDragEnd forgets the dragged item. */
+/** Forgets the dragged item. */
 function onDragEnd(): void {
   draggedIndex.value = null;
   overIndex.value = null;
@@ -93,25 +92,29 @@ function onDragEnd(): void {
         {{ item.label }}
       </button>
       <UTooltip :text="item.hidden ? t('editor.items.show') : t('editor.items.hide')">
-        <UButton
+        <UToggle
+          :model-value="item.hidden"
           :icon="item.hidden ? 'i-lucide-eye-off' : 'i-lucide-eye'"
           size="xs"
           color="neutral"
           variant="ghost"
+          active-color="neutral"
+          active-variant="ghost"
           :aria-label="item.hidden ? t('editor.items.show') : t('editor.items.hide')"
-          :aria-pressed="item.hidden"
-          @click="emit('toggleHidden', item.key)"
+          @update:model-value="emit('toggleHidden', item.key)"
         />
       </UTooltip>
       <UTooltip :text="item.locked ? t('editor.items.unlock') : t('editor.items.lock')">
-        <UButton
+        <UToggle
+          :model-value="item.locked"
           :icon="item.locked ? 'i-lucide-lock' : 'i-lucide-lock-open'"
           size="xs"
-          :color="item.locked ? 'primary' : 'neutral'"
+          color="neutral"
           variant="ghost"
+          active-color="primary"
+          active-variant="ghost"
           :aria-label="item.locked ? t('editor.items.unlock') : t('editor.items.lock')"
-          :aria-pressed="item.locked"
-          @click="emit('toggleLock', item.key)"
+          @update:model-value="emit('toggleLock', item.key)"
         />
       </UTooltip>
     </li>

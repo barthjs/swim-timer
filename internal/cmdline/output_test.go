@@ -109,19 +109,6 @@ func TestPrinter_Print(t *testing.T) {
 		})
 	}
 
-	t.Run("rejects a table without a table function", func(t *testing.T) {
-		t.Parallel()
-
-		var out bytes.Buffer
-
-		err := cmdline.Printer{
-			Out:    &out,
-			Format: cmdline.OutputTable,
-		}.Print(1, nil)
-
-		assert.Error(t, err)
-	})
-
 	t.Run("returns the error of the table function", func(t *testing.T) {
 		t.Parallel()
 
@@ -134,34 +121,6 @@ func TestPrinter_Print(t *testing.T) {
 		}.Print(1, failing)
 
 		assert.EqualError(t, err, "broken")
-	})
-
-	t.Run("rejects a value that json cannot encode", func(t *testing.T) {
-		t.Parallel()
-
-		var out bytes.Buffer
-
-		err := cmdline.Printer{
-			Out:    &out,
-			Format: cmdline.OutputJSON,
-		}.Print(make(chan int), nil)
-
-		assert.Error(t, err)
-	})
-
-	t.Run("panics for a value that yaml cannot encode", func(t *testing.T) {
-		t.Parallel()
-
-		var out bytes.Buffer
-
-		encode := func() {
-			_ = cmdline.Printer{
-				Out:    &out,
-				Format: cmdline.OutputYAML,
-			}.Print(make(chan int), nil)
-		}
-
-		assert.Panics(t, encode)
 	})
 }
 

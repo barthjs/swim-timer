@@ -111,10 +111,3 @@ func TestFilePath(t *testing.T) {
 		}
 	})
 }
-
-// invalidFileNames returns names that would leave the folder of a store
-// or whose file name with the extension would exceed the file name limit.
-func invalidFileNames(extension string) []string {
-	tooLong := strings.Repeat("a", maxFileNameBytes-len(extension)+1)
-	return []string{"", " ", ".", "..", "../escape", "a/b", `a\b`, "/absolute", tooLong}
-}

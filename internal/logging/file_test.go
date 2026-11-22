@@ -115,14 +115,6 @@ func TestOpenFile(t *testing.T) {
 
 		assert.Len(t, backups(t, dir, "app.log"), 1)
 	})
-
-	t.Run("rejects a missing filename", func(t *testing.T) {
-		t.Parallel()
-
-		_, err := logging.OpenFile(logging.FileOptions{})
-
-		require.ErrorIs(t, err, logging.ErrNoFilename)
-	})
 }
 
 func TestFile_Write(t *testing.T) {

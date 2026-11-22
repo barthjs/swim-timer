@@ -16,8 +16,7 @@ const (
 	PhaseReswim = 5
 )
 
-// Phase represents a phase of an event (from LSTROUND.TXT), such as heats or final.
-// The file is a fixed catalog of the timing software, the same for every meet.
+// Phase represents a phase of an event from LSTROUND.TXT, a fixed catalog of the timing software.
 type Phase struct {
 	ID           int    `csv:"idRound"`    // see Event.PhaseID
 	Name         string `csv:"TITLE"`      // display name, e.g. "Final"

@@ -18,7 +18,7 @@ const (
 	KindButton
 )
 
-// String returns the name of the kind in lower case, for example "intermediate".
+// String returns the name of the kind in lower case.
 func (k Kind) String() string {
 	switch k {
 	case KindUnknown:
@@ -95,9 +95,7 @@ var frameStructure = map[int]byte{
 	offsetPart2EOT:    byteEOT,
 }
 
-// Kind returns the frame's classification. Load and official frames carry a space as message kind,
-// running frames distinguish start, intermediate, and finish times, and a button frame carries the time
-// of a button pressed at the finish for a lane and lap. Every other combination is KindUnknown.
+// Kind returns the classification of the frame by its message type and kind, or KindUnknown.
 func (f Frame) Kind() Kind {
 	msgType, msgKind := f.raw[offsetMsgType], f.raw[offsetMsgKind]
 
@@ -154,29 +152,24 @@ func (f Frame) Heat() (int, error) {
 	return f.requiredNumber("heat", offsetHeat, offsetHeatEnd)
 }
 
-// Lane returns the single-digit lane number (J) and whether the field holds one.
-// It reports false for an empty or invalid field. The field has room for one digit,
-// so a lane 10 arrives as 0, which is a valid lane number.
+// Lane returns the single-digit lane number (J) and whether the field holds one, where lane 10 arrives as 0.
 func (f Frame) Lane() (int, bool) {
 	return f.number(offsetLane, offsetLaneEnd)
 }
 
-// Lap returns the number of the lap the time was taken at (KK), counted from 1,
-// and whether the field holds one. It reports false for an empty or invalid field.
-// A start frame carries 0.
+// Lap returns the number of the lap the time was taken at (KK), counted from 1 and 0 at the start,
+// and whether the field holds one.
 func (f Frame) Lap() (int, bool) {
 	return f.number(offsetLap, offsetLapEnd)
 }
 
-// Rank returns the rank of the swimmer at the lap of this time (HH) and whether the field holds one.
-// It reports false for an empty or invalid field. A start frame carries 0.
+// Rank returns the rank of the swimmer at the lap of this time (HH), 0 at the start, and whether the field holds one.
 func (f Frame) Rank() (int, bool) {
 	return f.number(offsetRank, offsetRankEnd)
 }
 
-// TimeMS returns the transmitted time in milliseconds and whether the field holds a valid time.
-// Running frames carry the elapsed time of the heat, a start frame carries the device's time of day at the start.
-// An empty field, a reaction time with its sign, and a malformed or out-of-range time report false.
+// TimeMS returns the elapsed time of the heat in milliseconds, or the time of day of the device in a start frame,
+// and whether the field holds a valid time, which a reaction time with its sign does not.
 func (f Frame) TimeMS() (int, bool) {
 	return parseTimeMS(string(f.raw[offsetTime:offsetTimeEnd]))
 }
@@ -207,8 +200,8 @@ func (f Frame) Hex() string {
 	return hexes.String()
 }
 
-// requiredNumber parses the field between start and end as a number and returns an error naming the field
-// if it is empty or invalid.
+// requiredNumber parses the field between start and end as a number
+// and returns an error naming the field if it is empty or invalid.
 func (f Frame) requiredNumber(name string, start, end int) (int, error) {
 	value, ok := f.number(start, end)
 	if !ok {
@@ -229,10 +222,10 @@ func (f Frame) text(start, end int) string {
 }
 
 // parseTimeMS converts a time field in the format Hh:Mm:Ss.dc to milliseconds and reports whether it is valid.
-// Leading fields without a value are spaces together with their separator,
-// a field after a present one has both digits, and seconds, tenths, and hundredths are always present.
-// The hours range from 0 to 23, minutes and seconds from 0 to 59.
 func parseTimeMS(t string) (int, bool) {
+	// Leading fields without a value are spaces together with their separator,
+	// a field after a present one has both digits, and seconds, tenths, and hundredths are always present.
+	// The hours range from 0 to 23, minutes and seconds from 0 to 59.
 	if len(t) != timeLength || t[timeOffsetPoint] != '.' {
 		return 0, false
 	}
@@ -268,9 +261,8 @@ type timeValue struct {
 }
 
 // timeComponent parses a leading component of the time field with the separator that follows it.
-// An absent component is two spaces followed by a space, a present one is a number followed by a colon.
-// After a present component, the next one must be present with both digits.
 func timeComponent(field string, separator byte, previousPresent bool) (timeValue, bool) {
+	// An absent component is two spaces followed by a space and only allowed before the first present one
 	if field == "  " && separator == ' ' && !previousPresent {
 		return timeValue{}, true
 	}

@@ -1,4 +1,4 @@
-/** RULER_THICKNESS is the thickness of a ruler on the screen, in pixels. */
+/** The thickness of a ruler on the screen, in pixels. */
 export const RULER_THICKNESS = 20;
 
 /** The smallest distance on the screen between two labeled ticks and between two ticks at all. */
@@ -14,18 +14,17 @@ const MINOR_TICK = 4;
 const SUBDIVISIONS = [10, 5, 2, 1];
 
 export type RulerTick = {
-  // The position on the screen along the ruler, in pixels from its start.
+  // The position on the screen along the ruler, in pixels from its start
   position: number;
-  // The length of the tick on the screen.
+  // The length of the tick on the screen
   size: number;
-  // The value written next to a labeled tick, or null.
+  // The value written next to a labeled tick, or null
   label: string | null;
 };
 
 /**
- * rulerTicks returns the ticks of a ruler of the given length on the screen. A value v of the content lies
- * at offset + v * scale on the screen. The steps between the labeled ticks are 1, 2, or 5 times a power of ten,
- * chosen so the labels keep a readable distance at every zoom.
+ * Returns the ticks of a ruler of the given length on the screen, where a value v of the content
+ * lies at offset + v * scale, labeled in steps of 1, 2, or 5 times a power of ten.
  */
 export function rulerTicks(length: number, offset: number, scale: number): RulerTick[] {
   if (length <= 0 || scale <= 0) return [];
@@ -65,7 +64,7 @@ export function rulerTicks(length: number, offset: number, scale: number): Ruler
   return ticks;
 }
 
-/** majorStep returns the smallest step of 1, 2, or 5 times a power of ten that keeps labels apart. */
+/** Returns the smallest step of 1, 2, or 5 times a power of ten that keeps labels apart. */
 function majorStep(scale: number): number {
   const minimum = LABEL_SPACING_MIN / scale;
   let power = 10 ** Math.floor(Math.log10(minimum));

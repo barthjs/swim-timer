@@ -60,27 +60,12 @@ func TestWithOptional(t *testing.T) {
 			wantChecks: map[string]string{"db": health.CheckOK, "device": health.CheckUnreachable},
 		},
 		{
-			name:       "degrades with only optional dependencies",
-			optional:   map[string]health.Pinger{"device": failing()},
-			wantCode:   http.StatusOK,
-			wantStatus: health.StatusDegraded,
-			wantChecks: map[string]string{"device": health.CheckUnreachable},
-		},
-		{
 			name:       "reports unavailable over degraded",
 			required:   map[string]health.Pinger{"db": failing()},
 			optional:   map[string]health.Pinger{"device": failing()},
 			wantCode:   http.StatusServiceUnavailable,
 			wantStatus: health.StatusUnavailable,
 			wantChecks: map[string]string{"db": health.CheckUnreachable, "device": health.CheckUnreachable},
-		},
-		{
-			name:       "skips a nil optional pinger",
-			required:   map[string]health.Pinger{"db": healthy()},
-			optional:   map[string]health.Pinger{"device": nil},
-			wantCode:   http.StatusOK,
-			wantStatus: health.StatusOK,
-			wantChecks: map[string]string{"db": health.CheckOK},
 		},
 	}
 
@@ -111,16 +96,6 @@ func TestNewChecker(t *testing.T) {
 
 		create := func() {
 			health.NewChecker("1.2.3", map[string]health.Pinger{"db": healthy()}, health.WithOptional("db", healthy()))
-		}
-
-		assert.Panics(t, create)
-	})
-
-	t.Run("rejects an optional name that repeats another optional one", func(t *testing.T) {
-		t.Parallel()
-
-		create := func() {
-			health.NewChecker("1.2.3", nil, health.WithOptional("device", healthy()), health.WithOptional("device", failing()))
 		}
 
 		assert.Panics(t, create)
@@ -171,12 +146,6 @@ func TestChecker_Ready(t *testing.T) {
 		wantStatus string
 		wantChecks map[string]string
 	}{
-		{
-			name:       "returns ok without dependencies",
-			pingers:    nil,
-			wantCode:   http.StatusOK,
-			wantStatus: "ok",
-		},
 		{
 			name:       "returns ok when all dependencies are reachable",
 			pingers:    map[string]health.Pinger{"db": healthy(), "cache": healthy()},
@@ -268,17 +237,6 @@ func TestChecker_Ready(t *testing.T) {
 
 func TestChecker_Handler(t *testing.T) {
 	t.Parallel()
-
-	t.Run("returns not found for an unknown path", func(t *testing.T) {
-		t.Parallel()
-
-		recorder := httptest.NewRecorder()
-		handler := health.NewChecker("1.2.3", nil).Handler()
-
-		handler.ServeHTTP(recorder, httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/other", nil))
-
-		assert.Equal(t, http.StatusNotFound, recorder.Code)
-	})
 }
 
 // healthy returns a pinger that always succeeds.

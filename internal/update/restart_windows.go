@@ -9,9 +9,8 @@ import (
 	"golang.org/x/sys/windows/svc"
 )
 
-// Restart starts the binary Apply has updated with the arguments of the running process.
-// The caller exits afterward. A Windows service, or a process a supervisor restarts once it exits,
-// is restarted from outside instead, so Restart starts nothing there.
+// Restart starts the binary Apply has updated with the arguments of the running process, unless it is supervised,
+// and the caller exits afterward.
 func (u *Updater) Restart(supervised bool) error {
 	if supervised {
 		return nil

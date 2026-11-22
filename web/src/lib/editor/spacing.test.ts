@@ -7,7 +7,7 @@ const content = {
   height: 100,
 };
 
-// An item from 40 to 60 on both axes, with a neighbor on the left and one on the right.
+// An item from 40 to 60 on both axes, with a neighbor on the left and one on the right
 const moved = {
   minX: 40,
   maxX: 60,

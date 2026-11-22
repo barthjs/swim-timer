@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { isAdditiveSelect, useEditorSelection } from '@/composables/editor/useEditorSelection';
 
-/** setup creates a selection over three items. */
+/** Creates a selection over three items. */
 function setup() {
   return useEditorSelection(() => ['a', 'b', 'c']);
 }

@@ -1,8 +1,7 @@
 package domain
 
-// StartEntry represents a single entry in the start list (from LSTSTART.TXT).
-// On long distances, two entries can share a lane of the same heat.
-// Such heats are timed by hand, and the lane shows the entry read last.
+// StartEntry represents a single entry in the start list from LSTSTART.TXT,
+// where two entries of a hand-timed long distance can share a lane.
 type StartEntry struct {
 	Event        int         `csv:"event"`  // see Event.Number
 	PhaseID      int         `csv:"round"`  // see Event.PhaseID

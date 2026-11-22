@@ -3,6 +3,7 @@ package cli
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 
@@ -165,26 +166,6 @@ func TestDesktopSession(t *testing.T) {
 	}
 }
 
-func TestOpenOnStart(t *testing.T) {
-	t.Parallel()
-
-	t.Run("opens the browser in production", func(t *testing.T) {
-		t.Parallel()
-
-		got := openOnStart(config.EnvProduction)
-
-		assert.True(t, got)
-	})
-
-	t.Run("keeps the browser closed in development", func(t *testing.T) {
-		t.Parallel()
-
-		got := openOnStart(config.EnvDevelopment)
-
-		assert.False(t, got)
-	})
-}
-
 func TestServerOptions(t *testing.T) {
 	t.Parallel()
 
@@ -264,6 +245,56 @@ func TestBrowserCommand(t *testing.T) {
 
 			assert.Equal(t, tt.wantName, name)
 			assert.Equal(t, tt.wantArgs, args)
+		})
+	}
+}
+
+func TestDoubleClick(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name      string
+		pauses    []time.Duration
+		wantCalls int
+	}{
+		{
+			name: "calls the function on the second click within the interval",
+			pauses: []time.Duration{
+				trayDoubleClickInterval / 2,
+			},
+			wantCalls: 1,
+		},
+		{
+			name: "ignores two clicks with a longer pause",
+			pauses: []time.Duration{
+				trayDoubleClickInterval * 2,
+			},
+			wantCalls: 0,
+		},
+		{
+			name: "starts over after a double click",
+			pauses: []time.Duration{
+				trayDoubleClickInterval / 2,
+				trayDoubleClickInterval / 2,
+			},
+			wantCalls: 1,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			clock := time.Now()
+			calls := 0
+			click := doubleClick(func() time.Time { return clock }, trayDoubleClickInterval, func() { calls++ })
+
+			click()
+			for _, pause := range tt.pauses {
+				clock = clock.Add(pause)
+				click()
+			}
+
+			assert.Equal(t, tt.wantCalls, calls)
 		})
 	}
 }

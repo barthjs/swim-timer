@@ -1,4 +1,3 @@
-/* The fonts and the semantic colors of the Nuxt UI theme. fonts.css loads the font files. */
 @theme {
   --font-sans:
     'Poppins', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
@@ -8,14 +7,62 @@
 
   /*
   Text on solid colored surfaces such as buttons and badges, set in the Nuxt UI options.
-  Nuxt UI uses its inverted text there, which turns black in dark mode.
+  It is white in light mode and dark in dark mode, where the surfaces use lighter shades.
   */
   --color-on-accent: #fff;
+
+  /* A confirmation stays above every other dialog, including one opened from a dialog. */
+  --z-index-confirm: 100;
+
+  /* The image viewer covers the page, and a dialog opened from it stays above it. */
+  --z-index-viewer: 60;
+  --z-index-viewer-dialog: 70;
+
+  /* A dialog that holds a table keeps a fixed height, so the table scrolls inside it. */
+  --height-dialog: 85dvh;
+
+  /* A list that scrolls on its own fills the window below the header and the title. */
+  --height-panel: max(24rem, calc(100dvh - 12rem));
+
+  /* Labels inside drawings, below the smallest text size of Tailwind. */
+  --text-2xs: 0.625rem;
+  --text-3xs: 0.5625rem;
+}
+
+/* The surface around the content, set per color mode below. */
+@theme inline {
+  --background-color-chrome: var(--ui-bg-chrome);
 }
 
 /*
-Nuxt UI uses the light 400 shades with black text in dark mode and the 500 shades in light mode.
-Both modes use darker shades instead, so white text stays readable on them. The doubled selectors
+The three levels of headings: the title of a page, the title of a section or panel,
+and the title of a card or a group inside a section. The color stays with the heading.
+*/
+@utility heading-page {
+  @apply text-xl font-semibold;
+}
+
+@utility heading-section {
+  @apply text-lg font-semibold;
+}
+
+@utility heading-card {
+  @apply text-sm font-semibold;
+}
+
+/* A label column sized to its content beside one or two columns that share the rest. */
+@utility grid-cols-label {
+  grid-template-columns: auto 1fr;
+}
+
+@utility grid-cols-label-2 {
+  grid-template-columns: auto 1fr 1fr;
+}
+
+/*
+Nuxt UI uses the 500 shades in light mode and the 400 shades in dark mode. Light mode uses darker shades instead,
+so white text stays readable on them, and dark mode uses the 500 shades with dark text,
+which also stay readable as text on the dark background. The doubled selectors
 outrank the variables Nuxt UI injects at runtime.
 
 The text, background, and border shades sit one step further from the background than in Nuxt UI,
@@ -37,6 +84,7 @@ such as solid neutral badges and tooltips, use the primary color instead of blac
 
   --ui-bg-muted: var(--ui-color-neutral-100);
   --ui-bg-elevated: var(--ui-color-neutral-200);
+  --ui-bg-chrome: var(--ui-color-neutral-100);
   --ui-bg-accented: var(--ui-color-neutral-300);
   --ui-bg-inverted: var(--ui-color-primary-900);
 
@@ -47,6 +95,8 @@ such as solid neutral badges and tooltips, use the primary color instead of blac
 }
 
 :root.dark {
+  --color-on-accent: var(--ui-color-neutral-950);
+
   --ui-primary: var(--ui-color-primary-500);
   --ui-secondary: var(--ui-color-secondary-500);
   --ui-success: var(--ui-color-success-600);
@@ -65,6 +115,7 @@ such as solid neutral badges and tooltips, use the primary color instead of blac
   --ui-bg-elevated: var(--ui-color-neutral-800);
   --ui-bg-accented: var(--ui-color-neutral-700);
   --ui-bg-inverted: var(--ui-color-primary-200);
+  --ui-bg-chrome: var(--ui-color-neutral-950);
 
   --ui-border: var(--ui-color-neutral-700);
   --ui-border-muted: var(--ui-color-neutral-800);

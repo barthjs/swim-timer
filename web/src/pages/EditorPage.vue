@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, useTemplateRef, watch } from 'vue';
+import { computed, onMounted, useTemplateRef, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { onBeforeRouteLeave } from 'vue-router';
 import type { Form, FormSchema } from '@nuxt/ui';
@@ -11,24 +11,23 @@ import PresetCanvas from '@/components/preset-editor/PresetCanvas.vue';
 import PresetHelpModal from '@/components/preset-editor/PresetHelpModal.vue';
 import PresetPicker from '@/components/preset-editor/PresetPicker.vue';
 import PresetSettings from '@/components/preset-editor/PresetSettings.vue';
-import DocsLink from '@/components/system/DocsLink.vue';
 import { useEditorShortcuts } from '@/composables/editor/useEditorShortcuts';
 import { useEditorWorkspace } from '@/composables/editor/useEditorWorkspace';
 import { useFormValidation } from '@/composables/form/useFormValidation';
-import { providePresetForm } from '@/composables/usePresetForm';
+import { providePresetForm } from '@/composables/preset/usePresetForm';
 import { useSaveShortcut } from '@/composables/form/useSaveShortcut';
-import { useUnloadGuard } from '@/composables/useUnloadGuard';
-import { shortcutDefinition } from '@/lib/editor/shortcuts';
+import { useUnloadGuard } from '@/composables/ui/useUnloadGuard';
 import { FORM_VALIDATE_ON } from '@/lib/form/validation';
-import { PRESET_COMMENT_MAX, PRESET_NAME_MAX, type EditorPreset } from '@/lib/lanes';
-import { PRESET_EDITOR_SHORTCUTS } from '@/lib/presetEditorShortcuts';
+import { PRESET_DESCRIPTION_MAX, PRESET_NAME_MAX, type EditorPreset } from '@/lib/preset/lanes';
+import { PRESET_EDITOR_SHORTCUTS } from '@/lib/preset/presetEditorShortcuts';
+import { shortcutDefinition } from '@/lib/ui/shortcuts';
 import { useLiveStore } from '@/stores/live';
 
-// How far the arrow keys move the selected lanes, in pixels of the reference resolution.
+// How far the arrow keys move the selected lanes, in pixels of the reference resolution
 const NUDGE_STEP = 1;
 const NUDGE_STEP_LARGE = 10;
 
-// The zoom factor of one click on the zoom buttons.
+// The zoom factor of one click on the zoom buttons
 const ZOOM_STEP = 1.25;
 
 const { t } = useI18n();
@@ -50,10 +49,10 @@ const workspace = useEditorWorkspace({
 });
 const { sidebarOpen, viewMode, helpOpen, fullscreen, whenEditing } = workspace;
 
-// The hidden file input that picks the background image of the preset.
+// The hidden file input that picks the background image of the preset
 const imageInput = useTemplateRef<HTMLInputElement>('imageInput');
 
-// The rules repeat the required fields and maximum lengths the server checks for a preset.
+// The rules repeat the required fields and maximum lengths the server checks for a preset
 const { validate } = useFormValidation<EditorPreset>(() => ({
   name: {
     required: 'required',
@@ -71,8 +70,8 @@ const { validate } = useFormValidation<EditorPreset>(() => ({
   textAnchor: {
     required: 'required',
   },
-  comment: {
-    max: PRESET_COMMENT_MAX,
+  description: {
+    max: PRESET_DESCRIPTION_MAX,
   },
 }));
 
@@ -82,9 +81,10 @@ watch(
   () => canvas.value?.resetZoom(),
 );
 
-/** onImageChange shows the chosen file as the background image and keeps it for the preset. */
+/** Shows the chosen file as the background image and keeps it for the preset. */
 function onImageChange(event: Event): void {
-  const input = event.target as HTMLInputElement;
+  const input = event.target;
+  if (!(input instanceof HTMLInputElement)) return;
   const file = input.files?.[0] ?? null;
   // Reset the input so choosing the same file again triggers another change
   input.value = '';
@@ -104,7 +104,7 @@ onMounted(async () => {
   }
 });
 
-// The digit keys select a lane, 0 selects lane 10.
+// The digit keys select a lane, 0 selects lane 10
 const laneShortcuts = Object.fromEntries(
   ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'].map((digit) => [
     digit,
@@ -120,7 +120,7 @@ useEditorShortcuts({
     if (presetForm.loaded.value) selection.selectAll();
   },
   pickImage: () => imageInput.value?.click(),
-  nudge: presetForm.nudge,
+  nudge: presetForm.nudgeLanes,
   nudgeStep: NUDGE_STEP,
   nudgeStepLarge: NUDGE_STEP_LARGE,
   extra: {
@@ -130,41 +130,49 @@ useEditorShortcuts({
   },
 });
 
-// Ctrl+S also saves while a field of the cards has the focus.
+// Ctrl+S also saves while a field of the cards has the focus
 const { kbds: saveKbds } = useSaveShortcut(form);
+
+// Saving a draft creates the preset, so the button names that
+const saveLabel = computed(() =>
+  presetForm.isDraft.value ? t('common.create') : t('common.save'),
+);
 
 useUnloadGuard(() => presetForm.isDirty.value || presetForm.isDraft.value);
 
-onBeforeRouteLeave(() => presetForm.confirmDiscard());
+onBeforeRouteLeave(async () => presetForm.confirmDiscard());
 </script>
 
 <template>
   <!--
-    From lg up, the admin layout gives the page the height between header and footer, so the canvas size follows
+    From lg up, the admin layout gives the page the height of its panel, so the canvas size follows
     the layout and not the scroll position. Below lg, the canvas and the cards stack and the page scrolls.
   -->
   <div class="flex flex-col gap-3 lg:min-h-0 lg:flex-1">
     <input ref="imageInput" type="file" accept="image/*" class="hidden" @change="onImageChange" />
 
-    <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
-      <div class="flex items-center gap-1">
-        <PresetPicker />
-        <DocsLink page="editor" />
-      </div>
+    <!--
+      The controls of the picker share the row of the container, so on narrow screens the menu takes its own row,
+      and the buttons below show only their icons.
+    -->
+    <div class="flex flex-wrap items-center gap-2">
+      <PresetPicker />
       <div class="ml-auto flex items-center gap-2">
         <UButton
           v-if="presetForm.isDirty.value"
           :label="t('common.reset')"
+          :aria-label="t('common.reset')"
           icon="i-lucide-rotate-ccw"
           color="neutral"
           variant="outline"
+          :ui="{ label: 'hidden sm:inline' }"
           @click="presetForm.resetPreset"
         />
-        <UTooltip :text="t('common.save')" :kbds="saveKbds">
+        <UTooltip :text="saveLabel" :kbds="saveKbds">
           <UButton
             type="submit"
             form="preset-form"
-            :label="t('common.save')"
+            :label="saveLabel"
             icon="i-lucide-save"
             :loading="presetForm.saving.value"
             :disabled="!presetForm.loaded.value"
@@ -217,10 +225,10 @@ onBeforeRouteLeave(() => presetForm.confirmDiscard());
       <!-- The cards stay mounted while hidden, since the save button submits their form. -->
       <EditorSidebar v-show="sidebarOpen" storage-key="editor">
         <UForm
-          :validate-on="FORM_VALIDATE_ON"
           v-if="presetForm.loaded.value"
           id="preset-form"
           ref="form"
+          :validate-on="FORM_VALIDATE_ON"
           :state="presetForm.preset"
           :validate="validate"
           class="flex flex-col gap-3 lg:min-h-full"

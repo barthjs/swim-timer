@@ -3,16 +3,17 @@ import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 
 import { presetRepository } from '@/api/repositories/preset';
-import { HeatStatus, type Lane, type PresetResponse } from '@/api/types';
+import { HeatStatus, type Lane } from '@/api/types/live';
+import type { PresetResponse } from '@/api/types/preset';
 import ArLaneContent from '@/components/overlay/ArLaneContent.vue';
-import { useRetry } from '@/composables/useRetry';
+import { useRetry } from '@/composables/ui/useRetry';
 import {
   heatLaneNumber,
   laneStyle,
   liveFirstLane,
   presetLaneCount,
   toPixelLane,
-} from '@/lib/lanes';
+} from '@/lib/preset/lanes';
 import { useLiveStore } from '@/stores/live';
 
 const route = useRoute();
@@ -26,7 +27,7 @@ const presetName = computed(() =>
 // The overlay runs unattended in the streaming software, so it stays empty instead of showing an error
 // and loads the preset again until it arrives, at once when the websocket reconnects.
 const presetLoad = useRetry(
-  () => presetRepository.get(presetName.value),
+  async () => presetRepository.get(presetName.value),
   (result) => {
     preset.value = result;
   },
@@ -60,7 +61,7 @@ const windowSize = reactive({
   height: window.innerHeight,
 });
 
-/** onResize stores the current size of the window. */
+/** Stores the current size of the window. */
 function onResize(): void {
   windowSize.width = window.innerWidth;
   windowSize.height = window.innerHeight;
@@ -75,15 +76,15 @@ onUnmounted(() => {
   window.removeEventListener('resize', onResize);
 });
 
-// Maps each lane drawn in the editor to its heat lane, see heatLaneNumber.
+// Maps each lane drawn in the editor to its heat lane, see heatLaneNumber
 const activeLanes = computed(() => {
   const state = liveStore.state;
-  if (!preset.value || !state || !state.status) return [];
+  if (!preset.value || !state?.status) return [];
 
   const current = preset.value;
   const laneCount = presetLaneCount(current.lanes);
   const firstLane = liveFirstLane(state);
-  const result: Array<{ lane: Lane; style: Record<string, string> }> = [];
+  const result: { lane: Lane; style: Record<string, string> }[] = [];
 
   for (const [presetLaneKey, presetLane] of Object.entries(current.lanes)) {
     const heatLane = heatLaneNumber(

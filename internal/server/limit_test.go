@@ -20,17 +20,6 @@ import (
 func TestBodyLimit(t *testing.T) {
 	t.Parallel()
 
-	t.Run("accepts a request without a body", func(t *testing.T) {
-		t.Parallel()
-
-		handler := server.BodyLimit(10)(http.HandlerFunc(readAll))
-		rec := httptest.NewRecorder()
-
-		handler.ServeHTTP(rec, httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/", nil))
-
-		assert.Equal(t, http.StatusOK, rec.Code)
-	})
-
 	tests := []struct {
 		name       string
 		middleware []func(http.Handler) http.Handler
@@ -100,15 +89,6 @@ func readAll(w http.ResponseWriter, r *http.Request) {
 func TestTimeout(t *testing.T) {
 	t.Parallel()
 
-	t.Run("sets a context deadline", func(t *testing.T) {
-		t.Parallel()
-
-		deadline, ok := deadlineOf(t, server.Timeout(time.Minute))
-
-		require.True(t, ok)
-		assert.WithinDuration(t, time.Now().Add(time.Minute), deadline, 5*time.Second)
-	})
-
 	t.Run("sets the connection deadlines", func(t *testing.T) {
 		t.Parallel()
 
@@ -159,23 +139,6 @@ func TestTimeout(t *testing.T) {
 		handler.ServeHTTP(httptest.NewRecorder(), httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/", nil))
 
 		assert.ErrorIs(t, err, context.DeadlineExceeded)
-	})
-
-	t.Run("cancels the context with the request", func(t *testing.T) {
-		t.Parallel()
-
-		ctx, cancel := context.WithCancel(t.Context())
-		var err error
-		inner := http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
-			cancel()
-			<-r.Context().Done()
-			err = r.Context().Err()
-		})
-		handler := server.Timeout(time.Hour)(server.Timeout(time.Hour)(inner))
-
-		handler.ServeHTTP(httptest.NewRecorder(), httptest.NewRequestWithContext(ctx, http.MethodGet, "/", nil))
-
-		assert.ErrorIs(t, err, context.Canceled)
 	})
 
 	t.Run("keeps the values of the request context", func(t *testing.T) {

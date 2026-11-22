@@ -12,6 +12,18 @@ import (
 func TestValidateStorage(t *testing.T) {
 	t.Parallel()
 
+	t.Run("trims and cleans the path", func(t *testing.T) {
+		t.Parallel()
+
+		cfg := testConfig(t)
+		cfg.Storage.Path = " data/../storage/ "
+
+		err := Validate(&cfg)
+
+		require.NoError(t, err)
+		assert.Equal(t, "storage", cfg.Storage.Path)
+	})
+
 	t.Run("keeps a blank path empty", func(t *testing.T) {
 		t.Parallel()
 

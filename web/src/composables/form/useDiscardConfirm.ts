@@ -3,10 +3,7 @@ import { useI18n } from 'vue-i18n';
 
 import { useConfirm } from '@/composables/ui/useConfirm';
 
-/**
- * useDiscardGuard asks for confirmation before unsaved changes are dropped, such as when a page is left
- * or another item is opened.
- */
+/** Asks for confirmation before unsaved changes are dropped. */
 export function useDiscardGuard(
   isDirty: Ref<boolean> | ComputedRef<boolean>,
   skipConfirm?: Ref<boolean> | ComputedRef<boolean>,
@@ -14,7 +11,7 @@ export function useDiscardGuard(
   const { t } = useI18n();
   const { confirm } = useConfirm();
 
-  /** confirmDiscard resolves to true once the changes may be dropped, after asking first while there are any. */
+  /** Resolves to true once the changes may be dropped, after asking first while there are any. */
   async function confirmDiscard(): Promise<boolean> {
     if (!isDirty.value || (skipConfirm?.value ?? false)) return true;
     return confirm({
@@ -32,7 +29,7 @@ export function useDiscardGuard(
 }
 
 /**
- * useDiscardConfirm wraps a modal's open state, so every way of closing it asks for confirmation
+ * Wraps a modal's open state, so every way of closing it asks for confirmation
  * while the form has unsaved changes.
  */
 export function useDiscardConfirm(
@@ -42,7 +39,7 @@ export function useDiscardConfirm(
 ) {
   const { confirmDiscard } = useDiscardGuard(isDirty, skipConfirm);
 
-  /** attemptClose closes the modal, after asking first while the form has unsaved changes. */
+  /** Closes the modal, after asking first while the form has unsaved changes. */
   async function attemptClose(): Promise<void> {
     if (!(await confirmDiscard())) return;
     open.value = false;

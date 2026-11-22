@@ -41,8 +41,7 @@ const (
 // Session describes the application that wrote a session.
 type Session struct {
 	// Format is the version of the recording format.
-	Format int `json:"format"`
-	// Version is the version of the application.
+	Format  int    `json:"format"`
 	Version string `json:"version"`
 	// Source is where the data came from.
 	Source Source `json:"source"`
@@ -54,7 +53,7 @@ type Session struct {
 
 // MeetFile is one meet file with its content as it was loaded.
 type MeetFile struct {
-	// Name is the name of the file without its extension, such as LSTSTART.
+	// Name is the name of the file without its extension.
 	Name string `json:"name"`
 	// SHA256 is the hex encoded hash of the content.
 	SHA256 string `json:"sha256"`
@@ -95,8 +94,7 @@ type Entry struct {
 	DroppedBytes int64 `json:"droppedBytes,omitempty"`
 }
 
-// HexBytes is a byte slice that is written as space-separated upper-case hex bytes, such as "01 02 1E",
-// so the raw data of a recording stays readable.
+// HexBytes is a byte slice that is written as space-separated upper-case hex bytes, so the raw data stays readable.
 type HexBytes []byte
 
 // MarshalText returns the bytes as space-separated hex bytes.

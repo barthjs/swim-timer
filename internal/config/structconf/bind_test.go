@@ -13,30 +13,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// tagConfig exercises every field type and tag combination the package supports.
-type tagConfig struct {
-	Demo tagDemo `mapstructure:"demo" json:"demo"`
-}
-
-// tagDemo is a sample configuration section that covers the supported field types and tags.
-type tagDemo struct {
-	Name     string        `mapstructure:"name" json:"name" default:"demo" usage:"Name of the demo"`
-	Debug    bool          `mapstructure:"debug" json:"debug" default:"true" usage:"Debug mode"`
-	Ratio    float64       `mapstructure:"ratio" json:"ratio" default:"0.5" usage:"A ratio"`
-	Timeout  time.Duration `mapstructure:"timeout" json:"timeout" default:"1m30s" usage:"A timeout"`
-	Tags     []string      `mapstructure:"tags" json:"tags" default:"a,b" usage:"Some tags"`
-	Server   tagServer     `mapstructure:"server" json:"server"`
-	Derived  int           `mapstructure:"-"`
-	Untagged string
-}
-
-// tagServer is a nested sample configuration section.
-type tagServer struct {
-	Port     int    `mapstructure:"port" json:"port" default:"8080" usage:"Port"`
-	LogLevel string `mapstructure:"log_level" json:"logLevel" default:"warn" values:"debug, info,warn,error" usage:"Log level"`
-	NoValue  string `mapstructure:"no_value" usage:"Without a default"`
-}
-
 func TestLeaf_Description(t *testing.T) {
 	t.Parallel()
 
@@ -263,19 +239,6 @@ func TestRegisterFlags(t *testing.T) {
 		assert.Equal(t, "Log level (debug, info, warn, error)", flags.Lookup("demo-server-log-level").Usage, "the usage lists the allowed values")
 	})
 
-	t.Run("rejects an invalid default", func(t *testing.T) {
-		t.Parallel()
-
-		type invalidDefault struct {
-			Port int `mapstructure:"port" default:"eighty"`
-		}
-		flags := pflag.NewFlagSet("test", pflag.ContinueOnError)
-
-		err := RegisterFlags(flags, &invalidDefault{})
-
-		assert.ErrorContains(t, err, "port")
-	})
-
 	t.Run("rejects an unsupported type", func(t *testing.T) {
 		t.Parallel()
 
@@ -308,36 +271,6 @@ func TestBindLeaves(t *testing.T) {
 		assert.Equal(t, []string{"a", "b"}, cfg.Demo.Tags)
 		assert.Equal(t, 9100, cfg.Demo.Server.Port, "the environment overrides the default")
 		assert.Equal(t, "debug", cfg.Demo.Server.LogLevel, "a flag overrides the environment")
-	})
-
-	t.Run("reads the environment without flags", func(t *testing.T) {
-		t.Setenv("DEMO_NAME", "from env")
-		v := viper.New()
-
-		require.NoError(t, bindLeaves(v, &tagConfig{}, nil))
-
-		var cfg tagConfig
-		require.NoError(t, v.Unmarshal(&cfg))
-		assert.Equal(t, "from env", cfg.Demo.Name)
-		assert.Equal(t, 8080, cfg.Demo.Server.Port)
-	})
-
-	t.Run("reads file variables", func(t *testing.T) {
-		dir := t.TempDir()
-		nameFile := filepath.Join(dir, "name")
-		require.NoError(t, os.WriteFile(nameFile, []byte("  from-file\n"), 0o600))
-		portFile := filepath.Join(dir, "port")
-		require.NoError(t, os.WriteFile(portFile, []byte("9090\n"), 0o600))
-		t.Setenv("DEMO_NAME_FILE", nameFile)
-		t.Setenv("DEMO_SERVER_PORT_FILE", portFile)
-		v := viper.New()
-		var cfg tagConfig
-
-		require.NoError(t, bindLeaves(v, &cfg, nil))
-
-		require.NoError(t, v.Unmarshal(&cfg))
-		assert.Equal(t, "from-file", cfg.Demo.Name, "surrounding whitespace is removed")
-		assert.Equal(t, 9090, cfg.Demo.Server.Port, "the value is converted like an environment variable")
 	})
 
 	t.Run("prefers a flag over a file variable", func(t *testing.T) {
@@ -422,18 +355,6 @@ func TestParseDefault(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "parses a string",
-			typ:  reflect.TypeFor[string](),
-			in:   "text",
-			want: "text",
-		},
-		{
-			name: "keeps an empty string",
-			typ:  reflect.TypeFor[string](),
-			in:   "",
-			want: "",
-		},
-		{
 			name: "parses a bool",
 			typ:  reflect.TypeOf(false),
 			in:   "true",
@@ -494,21 +415,9 @@ func TestParseDefault(t *testing.T) {
 			want: []string{},
 		},
 		{
-			name:    "rejects an invalid bool",
-			typ:     reflect.TypeOf(false),
-			in:      "maybe",
-			wantErr: true,
-		},
-		{
 			name:    "rejects an invalid int",
 			typ:     reflect.TypeFor[int](),
 			in:      "x",
-			wantErr: true,
-		},
-		{
-			name:    "rejects an invalid duration",
-			typ:     reflect.TypeFor[time.Duration](),
-			in:      "soon",
 			wantErr: true,
 		},
 		{

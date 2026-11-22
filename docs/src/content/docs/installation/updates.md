@@ -6,7 +6,7 @@ sidebar:
 ---
 
 Swim-Timer checks for a new release only when asked, with the update button next to the version at the bottom
-of the web interface or with `swim-timer update check`. The button is shown after the login.
+of the sidebar or with `swim-timer update check`. The button is shown after the login.
 
 ## Installing an update
 

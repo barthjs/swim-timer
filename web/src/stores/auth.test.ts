@@ -1,7 +1,7 @@
 import { createPinia, setActivePinia } from 'pinia';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { ApiError } from '@/api/errors';
+import { ApiError } from '@/api/client/errors';
 import { authRepository } from '@/api/repositories/auth';
 import { useAuthStore } from '@/stores/auth';
 
@@ -16,7 +16,7 @@ vi.mock('@/api/repositories/auth', () => ({
 const getStatus = vi.mocked(authRepository.getStatus);
 const logout = vi.mocked(authRepository.logout);
 
-/** failures are the errors of a session request that leave the session unknown. */
+/** The errors of a session request that leave the session unknown. */
 const failures = [
   {
     name: 'a server error',

@@ -5,7 +5,7 @@ import { useEditorGuides, type GuideView } from '@/composables/editor/useEditorG
 import { pointer } from '@/test/pointer';
 import { withSetup } from '@/test/withSetup';
 
-// A canvas whose area and content share their coordinates, with a 100 x 100 content.
+// A canvas whose area and content share their coordinates, with a 100 x 100 content
 const VIEW: GuideView = {
   content: {
     width: 100,
@@ -30,7 +30,7 @@ describe('useEditorGuides', () => {
     unmount();
   });
 
-  /** mount creates the guides of a document whose name the test can change. */
+  /** Creates the guides of a document whose name the test can change. */
   function mount(name: string | null = 'first') {
     const document = ref<string | null>(name);
     const mounted = withSetup(() =>
@@ -46,7 +46,7 @@ describe('useEditorGuides', () => {
     };
   }
 
-  /** place presses on a ruler at a point and drags the new guide to another point. */
+  /** Presses on a ruler at a point and drags the new guide to another point. */
   function place(
     guides: ReturnType<typeof mount>['guides'],
     ruler: 'horizontal' | 'vertical',

@@ -11,7 +11,7 @@ in the local network.
 
 ## Setting up a webhook
 
-Webhooks are managed in the Webhooks tab of the configuration page and take effect right away. A webhook has:
+Webhooks are managed in the Webhooks section of the configuration page and take effect right away. A webhook has:
 
 | Field                  | Content                                                                                                   |
 | ---------------------- | --------------------------------------------------------------------------------------------------------- |
@@ -21,6 +21,8 @@ Webhooks are managed in the Webhooks tab of the configuration page and take effe
 | Secret                 | Signs every message, so the receiver can check that it comes from Swim-Timer. Generated on save if empty. |
 | Accept any certificate | For a receiver with a self-signed certificate.                                                            |
 
+- The secret is shown once after a webhook is created, so it has to be entered at the receiver then.
+  A lost secret is replaced by entering a new one when editing the webhook.
 - Show example shows the message a webhook would receive right now, without sending it.
 - Send test delivers a test message and reports the answer of the receiver.
 - A webhook may only send to a private or local network that is listed in the allowed networks of the tab.

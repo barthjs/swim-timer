@@ -14,13 +14,16 @@ import {
   type TableSort,
 } from '@/lib/table/view';
 import type { TableSorting } from '@/lib/table/columns';
+import { isOneOf } from '@/lib/types/guards';
+import { replaceRouteQuery } from '@/lib/ui/routeQuery';
 
-export type TableViewOptions<T> = {
-  // The ids of the columns that can be sorted.
-  sortable: readonly string[];
-  // The value a row is sorted by for a column id.
-  value: (row: T, id: string) => unknown;
-  // A change of these, for example the filters, returns to the first page.
+/** Configures the view of a table that searches, sorts, and pages on the client. */
+export type TableViewOptions<T, K extends string> = {
+  // The ids of the columns that can be sorted
+  sortable: readonly K[];
+  // The value a row is sorted by for a column id
+  value: (row: T, id: K) => unknown;
+  // A change of these, for example the filters, returns to the first page
   resetOn?: WatchSource;
   // Whether the view is kept in the URL, true by default. A table in a dialog keeps it in memory,
   // so it leaves the view of the table on the page below alone.
@@ -28,39 +31,36 @@ export type TableViewOptions<T> = {
 };
 
 /**
- * useTableView sorts and pages the rows of a table the client holds as a whole and keeps the sorting, the page,
- * and the page size in the URL, so a view can be shared as a link and survives a reload. Sorting and paging happen
- * here instead of in the table component, so a caller can find the page of a row and jump to it.
+ * Sorts and pages the rows of a table the client holds as a whole and keeps the view in the URL,
+ * outside the table component, so a caller can find the page of a row and jump to it.
  */
-export function useTableView<T>(
+export function useTableView<T, K extends string>(
   rows: MaybeRefOrGetter<readonly T[]>,
-  options: TableViewOptions<T>,
+  options: TableViewOptions<T, K>,
 ) {
   const route = useRoute();
   const router = useRouter();
   const inUrl = options.inUrl ?? true;
   const memory = reactive<Record<string, string | undefined>>({});
 
-  /** readQuery returns a parameter of the view from the URL, or from memory for a view outside the URL. */
+  /** Returns a parameter of the view from the URL, or from memory for a view outside the URL. */
   function readQuery(key: string): unknown {
     return inUrl ? route.query[key] : memory[key];
   }
 
-  /** setQuery replaces parameters of the view, in the URL without adding a history entry. */
+  /** Replaces parameters of the view, in the URL without adding a history entry. */
   function setQuery(values: Record<string, string | undefined>): void {
     if (!inUrl) {
       Object.assign(memory, values);
       return;
     }
-    void router.replace({
-      query: {
-        ...route.query,
-        ...values,
-      },
-    });
+    void replaceRouteQuery(route, router, (query) => ({
+      ...query,
+      ...values,
+    }));
   }
 
-  const sort = computed<TableSort | null>({
+  const sort = computed<TableSort<K> | null>({
     get: () => parseSort(readQuery('sort'), options.sortable),
     set: (value) =>
       setQuery({
@@ -73,7 +73,14 @@ export function useTableView<T>(
   const sorting = computed<TableSorting>({
     get: () => (sort.value ? [sort.value] : []),
     set: (value) => {
-      sort.value = value[0] ?? null;
+      const first = value[0];
+      sort.value =
+        first !== undefined && isOneOf(options.sortable, first.id)
+          ? {
+              id: first.id,
+              desc: first.desc,
+            }
+          : null;
     },
   });
 
@@ -106,9 +113,7 @@ export function useTableView<T>(
     });
   }
 
-  /**
-   * goTo switches to the page that holds the first row matching the predicate. It reports whether one does.
-   */
+  /** Switches to the page that holds the first row matching the predicate. It reports whether one does. */
   function goTo(predicate: (row: T) => boolean): boolean {
     const target = pageOf(sorted.value, pageSize.value, predicate);
     if (target === null) return false;

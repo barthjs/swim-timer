@@ -4,18 +4,17 @@ import { useI18n } from 'vue-i18n';
 import { useToast } from '@nuxt/ui/composables';
 
 import { recordingRepository } from '@/api/repositories/recording';
-import type { RecordingResponse } from '@/api/types';
+import type { RecordingResponse } from '@/api/types/recording';
 import ConfigFieldHint from '@/components/config/ConfigFieldHint.vue';
-import HelpHint from '@/components/form/HelpHint.vue';
-import { useApiError } from '@/composables/useApiError';
-import { CONFIG_LIMITS, useConfigForm } from '@/composables/useConfigForm';
+import { useApiError } from '@/composables/form/useApiError';
+import { CONFIG_LIMITS, useConfigForm } from '@/composables/config/useConfigForm';
 import { useMutation } from '@/composables/form/useMutation';
 import { countLabel } from '@/lib/form/validation';
 
-// The transmission speeds the timing devices support.
+// The transmission speeds the timing devices support
 const BAUD_RATES = [9600, 19200, 38400, 57600, 115200];
 
-// The connection to the timing device, the simulator that replaces it, and the recordings it can replay.
+// The connection to the timing device, the simulator that replaces it, and the recordings it can replay
 const { t } = useI18n();
 const toast = useToast();
 const { messageFor } = useApiError();
@@ -25,23 +24,19 @@ const recordings = ref<RecordingResponse[]>([]);
 const fileInput = useTemplateRef<HTMLInputElement>('fileInput');
 
 // A configured recording that is not listed, such as one set in the environment, shows the name in its path
-const selectedRecordingName = computed(
-  () =>
-    recordings.value.find((recording) => recording.path === state.timing.replayPath)?.name ??
-    state.timing.replayPath.split('/').pop(),
-);
+const replayFileName = computed(() => state.timing.replayPath.split('/').pop());
 
-/** clearRecording replays no recording. */
+/** Replays no recording. */
 function clearRecording(): void {
   state.timing.replayPath = '';
 }
 
-/** selectRecording replays the recording stored at the given path. */
+/** Replays the recording stored at the given path. */
 function selectRecording(path: string): void {
   state.timing.replayPath = path;
 }
 
-/** loadRecordings reads the stored recordings. */
+/** Reads the stored recordings. */
 async function loadRecordings(): Promise<void> {
   try {
     recordings.value = await recordingRepository.list();
@@ -57,8 +52,9 @@ async function loadRecordings(): Promise<void> {
 onMounted(loadRecordings);
 
 const { mutate: uploadRecording, pending: uploading } = useMutation(
-  (file: File) => recordingRepository.create(file),
+  async (file: File) => recordingRepository.create(file),
   {
+    loading: () => t('pages.config.timing.recordingUploading'),
     onSuccess: async (recording) => {
       await loadRecordings();
       state.timing.replayPath = recording.path;
@@ -67,8 +63,9 @@ const { mutate: uploadRecording, pending: uploading } = useMutation(
 );
 
 const { mutate: deleteRecording } = useMutation(
-  (name: string) => recordingRepository.delete(name),
+  async (name: string) => recordingRepository.delete(name),
   {
+    key: (name) => name,
     onSuccess: async (_result, name) => {
       if (state.timing.replayPath.endsWith(`/${name}`)) {
         state.timing.replayPath = '';
@@ -78,9 +75,10 @@ const { mutate: deleteRecording } = useMutation(
   },
 );
 
-/** onRecordingFileChange uploads the chosen file and resets the input, so the same file can be chosen again. */
+/** Uploads the chosen file and resets the input, so the same file can be chosen again. */
 function onRecordingFileChange(event: Event): void {
-  const input = event.target as HTMLInputElement;
+  const input = event.target;
+  if (!(input instanceof HTMLInputElement)) return;
   const file = input.files?.[0];
   input.value = '';
   if (file) void uploadRecording(file);
@@ -88,7 +86,7 @@ function onRecordingFileChange(event: Event): void {
 </script>
 
 <template>
-  <UCard variant="subtle" class="mt-4">
+  <UCard variant="subtle">
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
       <UFormField :label="t('fields.timing.serialPort')" name="timing.serialPort">
         <template #hint>
@@ -174,13 +172,13 @@ function onRecordingFileChange(event: Event): void {
               @click.stop="clearRecording"
             />
           </template>
-          <template #default="{ ui }">
+          <template #default="{ item, ui }">
             <span
-              v-if="selectedRecordingName"
+              v-if="item?.name ?? replayFileName"
               data-slot="value"
               :class="ui.value?.({ class: undefined })"
             >
-              {{ selectedRecordingName }}
+              {{ item?.name ?? replayFileName }}
             </span>
             <span v-else data-slot="placeholder" :class="ui.placeholder?.({ class: undefined })">
               {{ t('pages.config.timing.recordingNone') }}
@@ -189,92 +187,104 @@ function onRecordingFileChange(event: Event): void {
         </USelectMenu>
       </UFormField>
       <UFormField :label="t('fields.timing.recording')" name="timing.recording">
-        <template #hint>
-          <ConfigFieldHint path="timing.recording" :help="t('pages.config.timing.recordingHint')" />
+        <template #label="{ label }">
+          <span class="inline-flex items-center gap-1.5">
+            {{ label }}
+            <ConfigFieldHint
+              path="timing.recording"
+              :help="t('pages.config.timing.recordingHint')"
+            />
+          </span>
         </template>
         <USwitch v-model="state.timing.recording" v-bind="fieldProps('timing.recording')" />
       </UFormField>
     </div>
 
-    <UCard :ui="{ body: 'flex flex-col gap-3' }" class="mt-4">
-      <template #header>
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-1.5">
-            <span class="text-highlighted font-medium">
-              {{ t('pages.config.timing.recordingLibrary') }}
-            </span>
-            <HelpHint :text="t('pages.config.timing.recordingLibraryHint')" />
-          </div>
-          <UButton
-            :label="t('pages.config.timing.uploadRecording')"
-            icon="i-lucide-upload"
-            size="sm"
-            :loading="uploading"
-            @click="fileInput?.click()"
-          />
-          <input
-            ref="fileInput"
-            type="file"
-            accept=".jsonl"
-            class="hidden"
-            @change="onRecordingFileChange"
-          />
+    <!-- The library is a group of the section, its recordings a list without a box of their own -->
+    <div class="mt-6 flex flex-col gap-3">
+      <div class="flex items-center justify-between gap-2">
+        <div class="flex items-center gap-1.5">
+          <h3 class="text-highlighted heading-card">
+            {{ t('pages.config.timing.recordingLibrary') }}
+          </h3>
         </div>
-      </template>
+        <UButton
+          :label="t('pages.config.timing.uploadRecording')"
+          icon="i-lucide-upload"
+          size="sm"
+          color="neutral"
+          variant="outline"
+          :loading="uploading"
+          @click="fileInput?.click()"
+        />
+        <input
+          ref="fileInput"
+          type="file"
+          accept=".jsonl"
+          class="hidden"
+          @change="onRecordingFileChange"
+        />
+      </div>
 
       <p v-if="!recordings.length" class="text-muted text-sm">
         {{ t('pages.config.timing.recordingEmpty') }}
       </p>
-      <div
-        v-for="recording in recordings"
-        :key="recording.path"
-        class="border-default flex items-center justify-between gap-2 rounded-md border px-3 py-2"
-      >
-        <span class="truncate text-sm">{{ recording.name }}</span>
-        <div class="flex shrink-0 items-center gap-2">
-          <UBadge v-if="recording.current" color="neutral" variant="outline">
-            {{ t('pages.config.timing.recordingCurrent') }}
-          </UBadge>
-          <UBadge v-if="state.timing.replayPath === recording.path" color="primary" variant="solid">
-            {{ t('pages.config.timing.recordingActive') }}
-          </UBadge>
-          <UButton
-            v-else
-            :label="t('pages.config.timing.recordingSelect')"
-            size="xs"
-            color="neutral"
-            variant="outline"
-            @click="selectRecording(recording.path)"
-          />
-          <UButton
-            icon="i-lucide-download"
-            size="xs"
-            color="neutral"
-            variant="ghost"
-            :to="recordingRepository.downloadUrl(recording.name)"
-            target="_blank"
-            :aria-label="t('pages.config.timing.recordingDownload')"
-          />
-          <UButton
-            icon="i-lucide-file-spreadsheet"
-            size="xs"
-            color="neutral"
-            variant="ghost"
-            :to="recordingRepository.exportUrl(recording.name)"
-            target="_blank"
-            :aria-label="t('pages.config.timing.recordingExport')"
-          />
-          <UButton
-            v-if="!recording.current"
-            icon="i-lucide-trash-2"
-            size="xs"
-            color="error"
-            variant="ghost"
-            :aria-label="t('pages.config.timing.recordingDelete')"
-            @click="deleteRecording(recording.name)"
-          />
+      <div v-else class="border-default divide-default divide-y rounded-md border">
+        <div
+          v-for="recording in recordings"
+          :key="recording.path"
+          class="flex items-center justify-between gap-2 px-3 py-2"
+        >
+          <span class="truncate text-sm">{{ recording.name }}</span>
+          <div class="flex shrink-0 items-center gap-2">
+            <UBadge v-if="recording.current" color="neutral" variant="outline">
+              {{ t('pages.config.timing.recordingCurrent') }}
+            </UBadge>
+            <UBadge
+              v-if="state.timing.replayPath === recording.path"
+              color="primary"
+              variant="solid"
+            >
+              {{ t('pages.config.timing.recordingActive') }}
+            </UBadge>
+            <UButton
+              v-else
+              :label="t('pages.config.timing.recordingSelect')"
+              size="xs"
+              color="neutral"
+              variant="outline"
+              @click="selectRecording(recording.path)"
+            />
+            <UButton
+              icon="i-lucide-download"
+              size="xs"
+              color="neutral"
+              variant="ghost"
+              :to="recordingRepository.downloadUrl(recording.name)"
+              target="_blank"
+              :aria-label="t('pages.config.timing.recordingDownload')"
+            />
+            <UButton
+              icon="i-lucide-file-spreadsheet"
+              size="xs"
+              color="neutral"
+              variant="ghost"
+              :to="recordingRepository.exportUrl(recording.name)"
+              target="_blank"
+              :aria-label="t('pages.config.timing.recordingExport')"
+            />
+            <UButton
+              v-if="!recording.current"
+              icon="i-lucide-trash-2"
+              size="xs"
+              color="error"
+              variant="ghost"
+              :aria-label="t('pages.config.timing.recordingDelete')"
+              @click="deleteRecording(recording.name)"
+            />
+          </div>
         </div>
       </div>
-    </UCard>
+    </div>
   </UCard>
 </template>

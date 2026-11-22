@@ -7,19 +7,18 @@ import { DEFAULT_MAX_ZOOM, useCanvasViewport } from '@/composables/editor/useCan
 
 type Rect = { left: number; top: number; width: number; height: number };
 
-/** areaElement creates an element that reports the given position and size. */
+/** Creates an element that reports the given position and size. */
 function areaElement(rect: Rect): { element: HTMLElement; resize: (next: Rect) => void } {
   const element = document.createElement('div');
   let current = rect;
-  element.getBoundingClientRect = () =>
-    ({
-      ...current,
-      x: current.left,
-      y: current.top,
-      right: current.left + current.width,
-      bottom: current.top + current.height,
-      toJSON: () => ({}),
-    }) as DOMRect;
+  element.getBoundingClientRect = () => ({
+    ...current,
+    x: current.left,
+    y: current.top,
+    right: current.left + current.width,
+    bottom: current.top + current.height,
+    toJSON: () => ({}),
+  });
   return {
     element,
     resize: (next) => {
@@ -41,7 +40,7 @@ type WheelInit = {
 };
 
 /**
- * wheel creates a wheel event with a position and modifier keys, which the WheelEvent of happy-dom leaves out.
+ * Creates a wheel event with a position and modifier keys, which the WheelEvent of happy-dom leaves out.
  */
 function wheel(init: WheelInit) {
   const event = new WheelEvent('wheel', {
@@ -72,7 +71,7 @@ function wheel(init: WheelInit) {
   return event;
 }
 
-/** key creates a keyboard event for a key code. */
+/** Creates a keyboard event for a key code. */
 function key(type: 'keydown' | 'keyup', code: string): KeyboardEvent {
   return new KeyboardEvent(type, {
     code,
@@ -86,7 +85,7 @@ describe('useCanvasViewport', () => {
 
   afterEach(() => unmount());
 
-  /** mount creates a viewport over an area of the given size and unmounts it after the test. */
+  /** Creates a viewport over an area of the given size and unmounts it after the test. */
   function mount(rect: Rect, contentWidth = 1920, contentHeight = 1080, padding = 0) {
     const area = areaElement(rect);
     const width = ref(contentWidth);

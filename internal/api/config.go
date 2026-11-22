@@ -26,17 +26,16 @@ func (a *API) configGetHandler(w http.ResponseWriter, r *http.Request) {
 	a.writeConfig(w, r)
 }
 
-// ConfigResponse is the effective configuration without its secrets, with the default and the source of every setting.
-// Secrets reports which secrets are set, since their values never leave the backend.
 type ConfigResponse struct {
 	ConfigSettings
-	Secrets  map[string]bool         `json:"secrets"`
-	Defaults ConfigSettings          `json:"defaults"`
-	Sources  map[string]ConfigSource `json:"sources"`
-	File     ConfigFile              `json:"file"`
+	// Secrets reports by path whether each secret is set, since their values never leave the backend.
+	Secrets  map[string]bool `json:"secrets"`
+	Defaults ConfigSettings  `json:"defaults"`
+	// Sources names by path where each setting comes from.
+	Sources map[string]ConfigSource `json:"sources"`
+	File    ConfigFile              `json:"file"`
 }
 
-// ConfigSettings are the sections of the configuration.
 type ConfigSettings struct {
 	App     AppSettings     `json:"app"`
 	Log     LogSettings     `json:"log"`
@@ -47,35 +46,33 @@ type ConfigSettings struct {
 	Webhook WebhookSettings `json:"webhook"`
 }
 
-// ConfigSource is where the value of a setting comes from. A flag or an environment variable
-// overrides the config file, so a change saved to the file has no effect on such a setting.
 type ConfigSource struct {
+	// Kind is the source of the value, where a flag or an environment variable overrides the config file,
+	// so a change saved to the file has no effect on such a setting.
 	Kind string `json:"kind" enums:"default,file,env,flag"`
 	// Name is the flag, the environment variable, or the file path, empty for the default.
 	Name string `json:"name"`
 }
 
-// ConfigFile is the config file a save writes to. Path is empty if none was found at startup,
-// a save then creates one. Exists is false until the file at Path is created.
 type ConfigFile struct {
-	Path   string `json:"path"`
-	Exists bool   `json:"exists"`
+	// Path is empty when a save creates a new config file.
+	Path string `json:"path"`
+	// Exists is false until the file at Path is created.
+	Exists bool `json:"exists"`
 }
 
-// AppSettings is the app section of the configuration.
 type AppSettings struct {
 	Name     string `json:"name" validate:"max=100"`
 	Env      string `json:"env" enums:"development,staging,production"`
-	Language string `json:"language" validate:"oneof=en de" enums:"en,de"`
+	Language string `json:"language" validate:"oneof=en de"`
 	Secret   string `json:"secret"`
 }
 
-// LogSettings is the log section of the configuration.
 type LogSettings struct {
 	Level      string `json:"level"`
-	Channel    string `json:"channel" validate:"oneof=stdout file both" enums:"stdout,file,both"`
+	Channel    string `json:"channel" validate:"oneof=stdout file both"`
 	Path       string `json:"path" validate:"max=1024"`
-	Format     string `json:"format" validate:"oneof=json console" enums:"json,console"`
+	Format     string `json:"format" validate:"oneof=json console"`
 	MaxSizeMB  int    `json:"maxSizeMb" validate:"min=0"`
 	MaxAgeDays int    `json:"maxAgeDays" validate:"min=-1"`
 	Compress   bool   `json:"compress"`
@@ -92,6 +89,25 @@ type ServerSettings struct {
 	SSLEnabled           bool     `json:"sslEnabled"`
 	SSLCertFile          string   `json:"sslCertFile" validate:"required_with=SSLKeyFile,max=1024"`
 	SSLKeyFile           string   `json:"sslKeyFile" validate:"required_with=SSLCertFile,max=1024"`
+}
+
+// init registers the rules of the configuration DTOs with the validator.
+func init() {
+	// A required_if tag only sees sibling fields, but the fields of StorageSettings.S3 depend on the driver one level up.
+	// A struct-level validation checks across that boundary,
+	// so a missing field is reported as a field error of the 422 like any other.
+	v.RegisterStructValidation(validateStorageSettings, StorageSettings{})
+
+	// The validator has no rule for a comma-separated list of networks, which the network settings are written as
+	if err := v.RegisterValidation("networks", validateNetworks); err != nil {
+		panic(err)
+	}
+
+	// The origins and the credentials of CORS follow the rules of the config package, see ServerSettings
+	if err := v.RegisterValidation("origin", validateOrigin); err != nil {
+		panic(err)
+	}
+	v.RegisterStructValidation(validateServerSettings, ServerSettings{})
 }
 
 // validateNetworks reports whether a text lists networks as the config package reads them. It is the "networks" tag,
@@ -125,14 +141,12 @@ func validateServerSettings(sl validator.StructLevel) {
 	}
 }
 
-// StorageSettings is the storage section of the configuration.
 type StorageSettings struct {
-	Driver string     `json:"driver" validate:"oneof=local s3" enums:"local,s3"`
+	Driver string     `json:"driver" validate:"oneof=local s3"`
 	Path   string     `json:"path" validate:"max=1024"`
 	S3     S3Settings `json:"s3"`
 }
 
-// S3Settings are the settings of the S3 storage.
 type S3Settings struct {
 	Endpoint     string `json:"endpoint"`
 	Region       string `json:"region"`
@@ -162,7 +176,6 @@ func validateStorageSettings(sl validator.StructLevel) {
 	}
 }
 
-// ThemeSettings is the theme section of the configuration.
 type ThemeSettings struct {
 	Primary   string `json:"primary" validate:"omitempty,hexcolor"`
 	Secondary string `json:"secondary" validate:"omitempty,hexcolor"`
@@ -173,7 +186,6 @@ type ThemeSettings struct {
 	Neutral   string `json:"neutral" validate:"omitempty,hexcolor"`
 }
 
-// TimingSettings is the timing section of the configuration.
 type TimingSettings struct {
 	SerialPort    string `json:"serialPort" validate:"max=255"`
 	BaudRate      int    `json:"baudRate" validate:"oneof=9600 19200 38400 57600 115200"`
@@ -183,12 +195,10 @@ type TimingSettings struct {
 	Recording     bool   `json:"recording"`
 }
 
-// WebhookSettings is the webhook section of the configuration.
 type WebhookSettings struct {
 	AllowedNetworks string `json:"allowedNetworks" validate:"max=1024,networks"`
 }
 
-// ConfigSaveRequest is the configuration to save. Its sections are the same as in ConfigResponse.
 type ConfigSaveRequest struct {
 	App     AppSettings     `json:"app"`
 	Log     LogSettings     `json:"log"`
@@ -201,9 +211,8 @@ type ConfigSaveRequest struct {
 	ClearSecrets []string `json:"clearSecrets" validate:"max=50,dive,max=255"`
 }
 
-// configSaveHandler validates and writes the application configuration to the config file that was loaded at startup.
-// It never applies to the running process. Every service reads its configuration once at startup,
-// so a restart is required to apply it.
+// configSaveHandler validates and writes the application configuration to its config file,
+// which takes effect after a restart, since every service reads its configuration once at startup.
 //
 //	@Summary		Save config
 //	@Description	Validates the submitted configuration and writes it to the config file. Does not apply to the running process, a restart is required (Admin only).
@@ -236,7 +245,7 @@ func (a *API) configSaveHandler(w http.ResponseWriter, r *http.Request) {
 func (a *API) writeConfig(w http.ResponseWriter, r *http.Request) {
 	view, err := a.configService.View()
 	if err != nil {
-		a.serverErrorResponse(w, r, err)
+		a.respondError(w, r, err)
 		return
 	}
 	a.writeJSON(w, r, http.StatusOK, toConfigResponse(view), nil)
@@ -384,8 +393,7 @@ func (r ConfigSaveRequest) toConfig() config.Config {
 	}
 }
 
-// configStorageTestHandler builds the submitted storage configuration and verifies it is reachable,
-// without saving it. A saved configuration only takes effect after a restart.
+// configStorageTestHandler verifies that the submitted storage configuration is reachable without saving it.
 //
 //	@Summary		Test storage config
 //	@Description	Builds the submitted storage configuration and verifies it is reachable, without saving it (Admin only).
@@ -408,9 +416,8 @@ func (a *API) configStorageTestHandler(w http.ResponseWriter, r *http.Request) {
 	a.writeTestResult(w, r, a.configService.TestStorage(r.Context(), req.toConfig()))
 }
 
-// ConfigTestResponse reports whether a driver connection check succeeded.
-// A failure is reported with OK false rather than an HTTP error status,
-// since an unreachable destination is an expected, actionable outcome of the check.
+// ConfigTestResponse reports a failed check with OK false rather than an HTTP error status,
+// since an unreachable destination is an expected outcome of the check.
 type ConfigTestResponse struct {
 	OK      bool   `json:"ok"`
 	Message string `json:"message,omitempty"`

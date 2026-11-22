@@ -110,6 +110,34 @@ func TestRecordingListHandler(t *testing.T) {
 	})
 }
 
+func TestRecordingGetHandler(t *testing.T) {
+	t.Parallel()
+
+	t.Run("downloads the recording as it is stored", func(t *testing.T) {
+		t.Parallel()
+		h := newHarness(t)
+		created := h.storeRecording()
+		stored, err := media.ReadAll(t.Context(), h.Storage, created.Path)
+		require.NoError(t, err)
+
+		response := h.asAdmin().GET(recordingPath(created.Name))
+
+		response.AssertOK().
+			AssertHeader("Content-Type", "application/jsonl").
+			AssertHeader("Content-Disposition", "attachment; filename="+created.Name)
+		assert.Equal(t, stored, response.Body)
+	})
+
+	t.Run("returns not found for an unknown recording", func(t *testing.T) {
+		t.Parallel()
+		h := newHarness(t)
+
+		response := h.asAdmin().GET(recordingPath(h.Faker.LetterN(8) + ".jsonl"))
+
+		response.AssertNotFound().AssertJSONPath("code", "not_found")
+	})
+}
+
 func TestRecordingCreateHandler(t *testing.T) {
 	t.Parallel()
 
@@ -263,34 +291,6 @@ func TestRecordingDeleteHandler(t *testing.T) {
 		response := h.asAdmin().DELETE(recordingPath(current.Name))
 
 		response.AssertStatus(http.StatusConflict).AssertJSONPath("code", "conflict")
-	})
-}
-
-func TestRecordingDownloadHandler(t *testing.T) {
-	t.Parallel()
-
-	t.Run("downloads the recording as it is stored", func(t *testing.T) {
-		t.Parallel()
-		h := newHarness(t)
-		created := h.storeRecording()
-		stored, err := media.ReadAll(t.Context(), h.Storage, created.Path)
-		require.NoError(t, err)
-
-		response := h.asAdmin().GET(recordingPath(created.Name))
-
-		response.AssertOK().
-			AssertHeader("Content-Type", "application/jsonl").
-			AssertHeader("Content-Disposition", "attachment; filename="+created.Name)
-		assert.Equal(t, stored, response.Body)
-	})
-
-	t.Run("returns not found for an unknown recording", func(t *testing.T) {
-		t.Parallel()
-		h := newHarness(t)
-
-		response := h.asAdmin().GET(recordingPath(h.Faker.LetterN(8) + ".jsonl"))
-
-		response.AssertNotFound().AssertJSONPath("code", "not_found")
 	})
 }
 

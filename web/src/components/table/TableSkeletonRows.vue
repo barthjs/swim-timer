@@ -15,7 +15,7 @@ withDefaults(
 
 const WIDTHS = ['60%', '85%', '45%', '70%'];
 
-/** widthFor returns the width of a placeholder bar, varied by its position. */
+/** Returns the width of a placeholder bar, varied by its position. */
 function widthFor(row: number, column: number): string {
   return WIDTHS[(row + column) % WIDTHS.length] ?? '60%';
 }

@@ -1,14 +1,14 @@
 // Package i18n provides a small, JSON-backed translation catalog for the strings the backend produces.
 //
-// Catalogs are embedded at build time, one JSON file per locale under locales/. Nested objects are flattened
-// into dotted keys ("section.key"), and values may contain text/template placeholders ("{{.Name}}") rendered per call.
+// Catalogs are embedded at build time, one JSON file per locale under locales/.
+// Nested objects are flattened into dotted keys ("section.key"),
+// and values may contain text/template placeholders ("{{.Name}}") rendered per call.
 // A placeholder without a value renders as nothing, see BlankMissing.
 //
 // A message that depends on a number has one key per CLDR plural category of the locale, nested under the message key,
 // for example {"items": {"one": "{{.Count}} item", "other": "{{ number .Count }} items"}}.
-// TN picks the category for the count, English and German use "one" and "other", other languages may also need "zero",
-// "two", "few", or "many". Every message can format with the functions number, date, and datetime,
-// which follow the conventions of the catalog's locale.
+// TN picks the category for the count, English and German use "one" and "other", other languages may also need "zero", "two", "few", or "many".
+// Every message can format with the functions number, date, and datetime, which follow the conventions of the catalog's locale.
 //
 // WithMissingKeyHandler reports keys a locale does not translate, for example as a warning in development.
 package i18n
@@ -19,7 +19,9 @@ import (
 	"encoding/json/v2"
 	"fmt"
 	"io/fs"
+	"maps"
 	"path/filepath"
+	"slices"
 	"strings"
 	"text/template"
 )
@@ -52,9 +54,8 @@ type options struct {
 	missing func(locale, key string)
 }
 
-// WithMissingKeyHandler calls handle whenever a message is requested in a locale
-// that has no translation for it, also when the default locale provides the text.
-// Use it to log missing translations during development. It may be called concurrently.
+// WithMissingKeyHandler calls handle, possibly concurrently, for every message a locale does not translate,
+// also when the default locale provides the text.
 func WithMissingKeyHandler(handle func(locale, key string)) Option {
 	return func(o *options) {
 		o.missing = handle
@@ -66,9 +67,8 @@ func New(opts ...Option) (*Bundle, error) {
 	return NewFS(localeFS, opts...)
 }
 
-// NewFS creates a Bundle from only the locale catalogs under the "locales" directory of fsys,
-// one JSON file per locale named after it, such as "locales/en.json", without the embedded catalogs.
-// Tests use it to start from catalogs of their own, for example a fstest.MapFS.
+// NewFS creates a Bundle from the catalogs in the "locales" directory of fsys instead of the embedded ones,
+// one JSON file named after each locale.
 func NewFS(fsys fs.FS, opts ...Option) (*Bundle, error) {
 	var o options
 	for _, opt := range opts {
@@ -156,9 +156,13 @@ func compile(messages map[string]map[string]string) (*Bundle, error) {
 	return bundle, nil
 }
 
-// T returns the localized message for a key, rendering placeholders with the optional data argument.
-// It falls back to the default locale when the key is missing for the requested locale and returns
-// the key itself when no translation exists at all, so missing strings stay visible rather than silent.
+// Locales returns the locales of the loaded catalogs in sorted order, the default locale included.
+func (b *Bundle) Locales() []string {
+	return slices.Sorted(maps.Keys(b.messages))
+}
+
+// T returns the message for a key in the locale or the default locale, rendered with the optional data,
+// and the key itself when no locale translates it, so a missing text stays visible.
 func (b *Bundle) T(locale, key string, data any) string {
 	found, ok := b.lookup(locale, key)
 	if !ok {
@@ -167,13 +171,12 @@ func (b *Bundle) T(locale, key string, data any) string {
 	return found.render(data)
 }
 
-// TN returns the localized message for a key that depends on count, choosing the CLDR plural category of the locale,
-// such as key "items" with count 1 rendering "items.one" in English. It falls back to the category "other"
-// and then to the default locale like T, and returns the key when nothing matches. The count is added
-// to map data under CountKey, see withCount.
+// TN returns the message for the CLDR plural category of count below the key like T,
+// with the count added to map data under CountKey.
 func (b *Bundle) TN(locale, key string, count int, data any) string {
 	data = withCount(data, count)
 
+	// The category "other" stands in for a missing category before the default locale does
 	candidates := []struct{ locale, key string }{
 		{
 			locale: locale,

@@ -13,7 +13,7 @@ import {
 // A menu that lines up the selected items at an edge or a center line, or spaces them evenly.
 // Several items align with each other, a single item with the content.
 const props = defineProps<{
-  // The number of selected items that can move.
+  // The number of selected items that can move
   count: number;
 }>();
 
@@ -52,7 +52,7 @@ const items = computed<DropdownMenuItem[][]>(() => [
   ],
 ]);
 
-/** alignItem builds the menu entry that aligns at an edge. */
+/** Builds the menu entry that aligns at an edge. */
 function alignItem(edge: AlignEdge): DropdownMenuItem {
   return {
     label: t(`editor.align.${edge}`),

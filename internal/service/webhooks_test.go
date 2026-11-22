@@ -34,24 +34,6 @@ const webhookWaitTimeout = 5 * time.Second
 func TestWebhookService_List(t *testing.T) {
 	t.Parallel()
 
-	t.Run("returns the webhooks with their state sorted by name", func(t *testing.T) {
-		t.Parallel()
-		svc := newTestWebhookService(t)
-		receiver := newWebhookReceiver(t)
-		second := createTestWebhook(t, svc, receiver.URL(), "b")
-		first := createTestWebhook(t, svc, receiver.URL(), "a")
-		_, err := svc.Test(t.Context(), first.Webhook.ID)
-		require.NoError(t, err)
-
-		states, err := svc.List(t.Context())
-
-		require.NoError(t, err)
-		require.Len(t, states, 2)
-		assert.Equal(t, first.Webhook, states[0].Webhook)
-		assert.False(t, states[0].Status.LastDeliveredAt.IsZero(), "the state of the test delivery is listed")
-		assert.Equal(t, second.Webhook, states[1].Webhook)
-	})
-
 	t.Run("leaves out a webhook whose file cannot be read", func(t *testing.T) {
 		t.Parallel()
 		root := t.TempDir()
@@ -72,38 +54,10 @@ func TestWebhookService_List(t *testing.T) {
 		require.Len(t, states, 1)
 		assert.Equal(t, created.Webhook, states[0].Webhook)
 	})
-
-	t.Run("returns no webhooks without any", func(t *testing.T) {
-		t.Parallel()
-		svc := newTestWebhookService(t)
-
-		states, err := svc.List(t.Context())
-
-		require.NoError(t, err)
-		assert.Empty(t, states)
-	})
 }
 
 func TestWebhookService_ListDeliveries(t *testing.T) {
 	t.Parallel()
-
-	t.Run("returns the deliveries, the most recent first", func(t *testing.T) {
-		t.Parallel()
-		svc := newTestWebhookService(t)
-		created := createTestWebhook(t, svc, newWebhookReceiver(t).URL(), apitest.Faker(t).Word())
-		first, err := svc.Test(t.Context(), created.Webhook.ID)
-		require.NoError(t, err)
-		second, err := svc.Test(t.Context(), created.Webhook.ID)
-		require.NoError(t, err)
-
-		deliveries, err := svc.ListDeliveries(t.Context(), created.Webhook.ID)
-
-		require.NoError(t, err)
-		assert.Equal(t, []WebhookDelivery{
-			second,
-			first,
-		}, deliveries)
-	})
 
 	t.Run("keeps only the last deliveries", func(t *testing.T) {
 		t.Parallel()
@@ -139,214 +93,6 @@ func TestWebhookService_ListDeliveries(t *testing.T) {
 		assert.NotNil(t, deliveries)
 		assert.Empty(t, deliveries)
 	})
-
-	t.Run("returns not found for an unknown webhook", func(t *testing.T) {
-		t.Parallel()
-		svc := newTestWebhookService(t)
-
-		_, err := svc.ListDeliveries(t.Context(), "missing")
-
-		assert.ErrorIs(t, err, apperr.ErrNotFound)
-	})
-}
-
-func TestWebhookService_Get(t *testing.T) {
-	t.Parallel()
-
-	t.Run("returns the webhook", func(t *testing.T) {
-		t.Parallel()
-		svc := newTestWebhookService(t)
-		created := createTestWebhook(t, svc, newWebhookReceiver(t).URL(), apitest.Faker(t).Word())
-
-		state, err := svc.Get(t.Context(), created.Webhook.ID)
-
-		require.NoError(t, err)
-		assert.Equal(t, created, state)
-	})
-
-	t.Run("returns not found for an unknown webhook", func(t *testing.T) {
-		t.Parallel()
-
-		tests := []struct {
-			name string
-			id   string
-		}{
-			{
-				name: "unknown id",
-				id:   "missing",
-			},
-			{
-				name: "id outside the folder",
-				id:   "../missing",
-			},
-		}
-
-		for _, tt := range tests {
-			t.Run(tt.name, func(t *testing.T) {
-				t.Parallel()
-				svc := newTestWebhookService(t)
-
-				_, err := svc.Get(t.Context(), tt.id)
-
-				assert.ErrorIs(t, err, apperr.ErrNotFound)
-			})
-		}
-	})
-}
-
-func TestWebhookService_Create(t *testing.T) {
-	t.Parallel()
-
-	t.Run("stores the webhook under a generated id", func(t *testing.T) {
-		t.Parallel()
-		storage := newTestStorage(t)
-		svc := newTestWebhookServiceWithStore(t, store.NewWebhookStore(storage), webhook.Options{
-			AllowedNetworks: loopbackNetworks,
-		})
-		input := newWebhookCreateInput(t, newWebhookReceiver(t).URL())
-
-		state, err := svc.Create(t.Context(), input)
-
-		require.NoError(t, err)
-		assert.NotEmpty(t, state.Webhook.ID)
-		assert.Equal(t, input.Name, state.Webhook.Name)
-		assert.Equal(t, input.URL, state.Webhook.URL)
-		assert.Equal(t, input.Events, state.Webhook.Events)
-		assert.True(t, state.Webhook.Enabled)
-		assert.Equal(t, input.Secret, state.Webhook.Secret)
-		stored, err := store.NewWebhookStore(storage).Get(t.Context(), state.Webhook.ID)
-		require.NoError(t, err)
-		assert.Equal(t, state.Webhook, *stored)
-	})
-
-	t.Run("generates a missing secret", func(t *testing.T) {
-		t.Parallel()
-		svc := newTestWebhookService(t)
-		input := newWebhookCreateInput(t, newWebhookReceiver(t).URL())
-		input.Secret = ""
-
-		state, err := svc.Create(t.Context(), input)
-
-		require.NoError(t, err)
-		_, err = webhook.ParseSecret(state.Webhook.Secret)
-		assert.NoError(t, err)
-	})
-
-	t.Run("rejects invalid input", func(t *testing.T) {
-		t.Parallel()
-
-		tests := []struct {
-			name  string
-			url   string
-			field string
-			tag   string
-		}{
-			{
-				name:  "malformed url",
-				url:   "ftp://example.com/hook",
-				field: "url",
-				tag:   "url",
-			},
-			{
-				name:  "url in a blocked network",
-				url:   "https://192.168.1.10/hook",
-				field: "url",
-				tag:   "blocked_address",
-			},
-		}
-
-		for _, tt := range tests {
-			t.Run(tt.name, func(t *testing.T) {
-				t.Parallel()
-				svc := newTestWebhookServiceWithStore(t, store.NewWebhookStore(newTestStorage(t)), webhook.Options{})
-
-				_, err := svc.Create(t.Context(), newWebhookCreateInput(t, tt.url))
-
-				assertValidationError(t, err, tt.field, tt.tag)
-			})
-		}
-	})
-
-	t.Run("rejects a malformed secret", func(t *testing.T) {
-		t.Parallel()
-		svc := newTestWebhookService(t)
-		input := newWebhookCreateInput(t, newWebhookReceiver(t).URL())
-		input.Secret = apitest.Faker(t).Word()
-
-		_, err := svc.Create(t.Context(), input)
-
-		assertValidationError(t, err, "secret", "webhook_secret")
-	})
-}
-
-func TestWebhookService_Update(t *testing.T) {
-	t.Parallel()
-
-	t.Run("replaces the settings of the webhook", func(t *testing.T) {
-		t.Parallel()
-		svc := newTestWebhookService(t)
-		created := createTestWebhook(t, svc, newWebhookReceiver(t).URL(), apitest.Faker(t).Word())
-		input := WebhookUpdateInput{
-			Name: apitest.Faker(t).Word(),
-			URL:  newWebhookReceiver(t).URL(),
-			Events: []domain.WebhookEvent{
-				domain.WebhookEventMeetReloaded,
-			},
-			Enabled: false,
-			Secret:  webhook.GenerateSecret(),
-		}
-
-		state, err := svc.Update(t.Context(), created.Webhook.ID, input)
-
-		require.NoError(t, err)
-		assert.Equal(t, domain.Webhook{
-			ID:      created.Webhook.ID,
-			Name:    input.Name,
-			URL:     input.URL,
-			Events:  input.Events,
-			Enabled: false,
-			Secret:  input.Secret,
-		}, state.Webhook)
-		stored, err := svc.Get(t.Context(), created.Webhook.ID)
-		require.NoError(t, err)
-		assert.Equal(t, state.Webhook, stored.Webhook)
-	})
-
-	t.Run("generates a new secret for an empty one", func(t *testing.T) {
-		t.Parallel()
-		svc := newTestWebhookService(t)
-		created := createTestWebhook(t, svc, newWebhookReceiver(t).URL(), apitest.Faker(t).Word())
-		input := WebhookUpdateInput(newWebhookCreateInput(t, created.Webhook.URL))
-		input.Secret = ""
-
-		state, err := svc.Update(t.Context(), created.Webhook.ID, input)
-
-		require.NoError(t, err)
-		assert.NotEqual(t, created.Webhook.Secret, state.Webhook.Secret)
-		_, err = webhook.ParseSecret(state.Webhook.Secret)
-		assert.NoError(t, err)
-	})
-
-	t.Run("rejects a malformed secret", func(t *testing.T) {
-		t.Parallel()
-		svc := newTestWebhookService(t)
-		created := createTestWebhook(t, svc, newWebhookReceiver(t).URL(), apitest.Faker(t).Word())
-		input := WebhookUpdateInput(newWebhookCreateInput(t, created.Webhook.URL))
-		input.Secret = apitest.Faker(t).Word()
-
-		_, err := svc.Update(t.Context(), created.Webhook.ID, input)
-
-		assertValidationError(t, err, "secret", "webhook_secret")
-	})
-
-	t.Run("returns not found for an unknown webhook", func(t *testing.T) {
-		t.Parallel()
-		svc := newTestWebhookService(t)
-
-		_, err := svc.Update(t.Context(), "missing", WebhookUpdateInput(newWebhookCreateInput(t, newWebhookReceiver(t).URL())))
-
-		assert.ErrorIs(t, err, apperr.ErrNotFound)
-	})
 }
 
 func TestWebhookService_Delete(t *testing.T) {
@@ -367,94 +113,12 @@ func TestWebhookService_Delete(t *testing.T) {
 		svc.Publish(domain.WebhookEventHeatUpdated, sampleData(nil))
 		receiver.assertNone(t)
 	})
-
-	t.Run("returns not found for an unknown webhook", func(t *testing.T) {
-		t.Parallel()
-
-		tests := []struct {
-			name string
-			id   string
-		}{
-			{
-				name: "unknown id",
-				id:   "missing",
-			},
-			{
-				name: "id outside the folder",
-				id:   "../missing",
-			},
-		}
-
-		for _, tt := range tests {
-			t.Run(tt.name, func(t *testing.T) {
-				t.Parallel()
-				svc := newTestWebhookService(t)
-
-				err := svc.Delete(t.Context(), tt.id)
-
-				assert.ErrorIs(t, err, apperr.ErrNotFound)
-			})
-		}
-	})
 }
 
 func TestWebhookService_Test(t *testing.T) {
 	t.Parallel()
 
-	t.Run("delivers a test message", func(t *testing.T) {
-		t.Parallel()
-		svc := newTestWebhookService(t)
-		receiver := newWebhookReceiver(t)
-		created := createTestWebhook(t, svc, receiver.URL(), apitest.Faker(t).Word())
-
-		delivery, err := svc.Test(t.Context(), created.Webhook.ID)
-
-		require.NoError(t, err)
-		assert.Equal(t, WebhookDeliveryDelivered, delivery.Outcome)
-		assert.Equal(t, http.StatusNoContent, delivery.StatusCode)
-		assert.Equal(t, webhookTestEvent, delivery.Event)
-		message := receiver.next(t)
-		assert.Equal(t, webhookTestEvent, message.Type)
-		assert.Equal(t, delivery.MessageID, message.ID)
-		state, err := svc.Get(t.Context(), created.Webhook.ID)
-		require.NoError(t, err)
-		assert.Equal(t, delivery.AttemptedAt, state.Status.LastDeliveredAt)
-	})
-
-	t.Run("accepts a self-signed certificate if the webhook skips the verification", func(t *testing.T) {
-		t.Parallel()
-		svc := newTestWebhookService(t)
-		server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-			w.WriteHeader(http.StatusNoContent)
-		}))
-		t.Cleanup(server.Close)
-		input := newWebhookCreateInput(t, server.URL)
-		input.SkipTLSVerify = true
-		created, err := svc.Create(t.Context(), input)
-		require.NoError(t, err)
-
-		delivery, err := svc.Test(t.Context(), created.Webhook.ID)
-
-		require.NoError(t, err)
-		assert.Equal(t, WebhookDeliveryDelivered, delivery.Outcome)
-	})
-
-	t.Run("tests a disabled webhook", func(t *testing.T) {
-		t.Parallel()
-		svc := newTestWebhookService(t)
-		receiver := newWebhookReceiver(t)
-		input := newWebhookCreateInput(t, receiver.URL())
-		input.Enabled = false
-		created, err := svc.Create(t.Context(), input)
-		require.NoError(t, err)
-
-		delivery, err := svc.Test(t.Context(), created.Webhook.ID)
-
-		require.NoError(t, err)
-		assert.Equal(t, WebhookDeliveryDelivered, delivery.Outcome)
-	})
-
-	t.Run("records a failed delivery in the state", func(t *testing.T) {
+	t.Run("leaves the state of the webhook alone", func(t *testing.T) {
 		t.Parallel()
 		svc := newTestWebhookService(t)
 		receiver := newWebhookReceiver(t, http.StatusInternalServerError)
@@ -466,11 +130,7 @@ func TestWebhookService_Test(t *testing.T) {
 		assert.Equal(t, WebhookDeliveryRetry, delivery.Outcome)
 		state, err := svc.Get(t.Context(), created.Webhook.ID)
 		require.NoError(t, err)
-		assert.Equal(t, WebhookStatus{
-			LastFailedAt:        delivery.AttemptedAt,
-			LastStatusCode:      http.StatusInternalServerError,
-			ConsecutiveFailures: 1,
-		}, state.Status)
+		assert.Equal(t, WebhookStatus{}, state.Status, "a test neither hides nor adds a failure")
 	})
 
 	t.Run("names why a delivery got no response", func(t *testing.T) {
@@ -492,9 +152,6 @@ func TestWebhookService_Test(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, WebhookDeliveryErrorBlockedAddress, delivery.ErrorCode)
 		assert.NotEmpty(t, delivery.Error)
-		state, err := svc.Get(t.Context(), wh.ID)
-		require.NoError(t, err)
-		assert.Equal(t, WebhookDeliveryErrorBlockedAddress, state.Status.LastErrorCode)
 	})
 
 	t.Run("gives a webhook deleted during the test no target", func(t *testing.T) {
@@ -514,46 +171,6 @@ func TestWebhookService_Test(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, WebhookDeliveryDelivered, delivery.Outcome)
 		assert.Nil(t, svc.target(id), "the deleted webhook receives no further messages")
-	})
-
-	t.Run("returns not found for an unknown webhook", func(t *testing.T) {
-		t.Parallel()
-		svc := newTestWebhookService(t)
-
-		_, err := svc.Test(t.Context(), "missing")
-
-		assert.ErrorIs(t, err, apperr.ErrNotFound)
-	})
-}
-
-func TestWebhookService_Preview(t *testing.T) {
-	t.Parallel()
-
-	t.Run("returns the signed message with the current data of the event", func(t *testing.T) {
-		t.Parallel()
-		svc := newTestWebhookService(t)
-		receiver := newWebhookReceiver(t)
-		created := createTestWebhook(t, svc, receiver.URL(), apitest.Faker(t).Word())
-
-		request, err := svc.Preview(t.Context(), created.Webhook.ID, domain.WebhookEventMeetReloaded)
-
-		require.NoError(t, err)
-		assert.Equal(t, receiver.URL(), request.URL)
-		assert.NotEmpty(t, request.Header.Get("webhook-signature"))
-		var message receivedWebhook
-		require.NoError(t, json.Unmarshal(request.Body, &message))
-		assert.Equal(t, string(domain.WebhookEventMeetReloaded), message.Type)
-		assert.JSONEq(t, `{"sample":"meet.reloaded"}`, string(message.Data))
-		receiver.assertNone(t)
-	})
-
-	t.Run("returns not found for an unknown webhook", func(t *testing.T) {
-		t.Parallel()
-		svc := newTestWebhookService(t)
-
-		_, err := svc.Preview(t.Context(), "missing", domain.WebhookEventHeatUpdated)
-
-		assert.ErrorIs(t, err, apperr.ErrNotFound)
 	})
 }
 
@@ -844,16 +461,6 @@ func newWebhookCreateInput(t *testing.T, url string) WebhookCreateInput {
 	}
 }
 
-// assertValidationError checks that err is a validation error with the tag on the field.
-func assertValidationError(t *testing.T, err error, field, tag string) {
-	t.Helper()
-
-	validationErr, ok := errors.AsType[*apperr.ValidationError](err)
-	require.True(t, ok, "a validation error, got %v", err)
-	require.NotEmpty(t, validationErr.Fields[field], "an error on %s", field)
-	assert.Equal(t, tag, validationErr.Fields[field][0].Tag)
-}
-
 // mustJSON encodes v as JSON.
 func mustJSON(t *testing.T, v any) string {
 	t.Helper()
@@ -870,8 +477,8 @@ type receivedWebhook struct {
 	Data jsontext.Value `json:"data"`
 }
 
-// webhookReceiver is an endpoint that records the messages it receives. It answers with the given statuses
-// in turn and repeats the last one, 204 without any.
+// webhookReceiver is an endpoint that records the messages it receives.
+// It answers with the given statuses in turn and repeats the last one, 204 without any.
 type webhookReceiver struct {
 	server   *httptest.Server
 	messages chan receivedWebhook

@@ -3,16 +3,15 @@ import AdminLayout from '@/layouts/AdminLayout.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 
 declare module 'vue-router' {
+  // eslint-disable-next-line @typescript-eslint/consistent-type-definitions -- augmentation merges into the interface of the library
   interface RouteMeta {
     titleKey?: string;
-    // Resolves the interpolation values of the title from the route.
+    // Resolves the interpolation values of the title from the route
     titleParams?: (route: RouteLocationNormalizedLoaded) => Record<string, string>;
     requiresAuth?: boolean;
     requiresGuest?: boolean;
-    // The page uses the whole width of the main area instead of the container width.
-    fullWidth?: boolean;
-    // From lg up, the page fills the height between header and footer instead of scrolling,
-    // for a page with tabs only while the route names a tab that needs it.
+    // From lg up, the page fills the height of the panel instead of scrolling,
+    // for a page with sections only while the route names a section that needs it.
     fillViewport?: boolean | ((route: RouteLocationNormalizedLoaded) => boolean);
   }
 }
@@ -29,7 +28,7 @@ export const routes: RouteRecordRaw[] = [
           titleKey: 'pages.login.title',
           requiresGuest: true,
         },
-        component: () => import('@/pages/LoginPage.vue'),
+        component: async () => import('@/pages/LoginPage.vue'),
       },
     ],
   },
@@ -43,7 +42,7 @@ export const routes: RouteRecordRaw[] = [
         meta: {
           titleKey: 'pages.dashboard.title',
         },
-        component: () => import('@/pages/DashboardPage.vue'),
+        component: async () => import('@/pages/DashboardPage.vue'),
       },
       {
         path: 'meet',
@@ -52,7 +51,7 @@ export const routes: RouteRecordRaw[] = [
           titleKey: 'pages.meet.title',
           fillViewport: true,
         },
-        component: () => import('@/pages/MeetPage.vue'),
+        component: async () => import('@/pages/MeetPage.vue'),
       },
       {
         path: 'meet-data',
@@ -61,7 +60,7 @@ export const routes: RouteRecordRaw[] = [
           titleKey: 'pages.meetData.title',
           requiresAuth: true,
         },
-        component: () => import('@/pages/MeetDataPage.vue'),
+        component: async () => import('@/pages/MeetDataPage.vue'),
       },
       {
         path: 'editor',
@@ -69,10 +68,9 @@ export const routes: RouteRecordRaw[] = [
         meta: {
           titleKey: 'pages.editor.title',
           requiresAuth: true,
-          fullWidth: true,
           fillViewport: true,
         },
-        component: () => import('@/pages/EditorPage.vue'),
+        component: async () => import('@/pages/EditorPage.vue'),
       },
       {
         path: 'config',
@@ -80,10 +78,8 @@ export const routes: RouteRecordRaw[] = [
         meta: {
           titleKey: 'pages.config.title',
           requiresAuth: true,
-          // The table of the webhooks reaches down to the footer like the other tables
-          fillViewport: (route) => route.query.tab === 'webhook',
         },
-        component: () => import('@/pages/ConfigPage.vue'),
+        component: async () => import('@/pages/ConfigPage.vue'),
       },
     ],
   },
@@ -93,7 +89,7 @@ export const routes: RouteRecordRaw[] = [
     meta: {
       titleKey: 'pages.scoreboard.title',
     },
-    component: () => import('@/pages/ScoreboardPage.vue'),
+    component: async () => import('@/pages/ScoreboardPage.vue'),
   },
   {
     path: '/:pathMatch(.*)*',

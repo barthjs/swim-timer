@@ -202,20 +202,6 @@ func TestApp_Close(t *testing.T) {
 	})
 }
 
-// testConfig returns the normalized default configuration with its storage and logs in a temporary directory.
-func testConfig(t *testing.T) config.Config {
-	t.Helper()
-
-	root := t.TempDir()
-	cfg, err := config.Defaults()
-	require.NoError(t, err)
-	cfg.Storage.Driver = media.DriverLocal
-	cfg.Storage.Path = filepath.Join(root, "data")
-	cfg.Log.Path = filepath.Join(root, "logs")
-	require.NoError(t, config.Validate(&cfg))
-	return cfg
-}
-
 // testDeps returns dependencies that keep the saved configuration in a temporary directory.
 func testDeps(t *testing.T) app.Deps {
 	t.Helper()

@@ -10,7 +10,7 @@ const messages: Record<string, string> = {
   'validation.max_string': '{field} must be at most {param} characters',
 };
 
-/** format returns the message of a key with its parameters filled in. */
+/** Returns the message of a key with its parameters filled in. */
 function format(key: string, params: Record<string, string> = {}): string {
   let text = messages[key] ?? key;
   for (const [name, value] of Object.entries(params)) {

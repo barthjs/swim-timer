@@ -52,9 +52,9 @@ type Options struct {
 	Repository string
 	// Binary is the file name of the binary inside the release archives, without extension.
 	Binary string
-	// Version is the running version, such as "v1.2.3".
+	// Version is the running version with its leading v.
 	Version string
-	// Arch is the architecture part of the archive names, such as "amd64" or "armv7".
+	// Arch is the architecture part of the archive names, see cmdline.ResolveArch.
 	Arch string
 	// APIURL is the base URL of the GitHub API, https://api.github.com if empty.
 	APIURL string

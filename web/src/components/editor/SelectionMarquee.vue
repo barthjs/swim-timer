@@ -7,7 +7,7 @@ import type { Bounds } from '@/lib/editor/geometry';
 // The rectangle drawn while selecting items on the empty canvas. It lies in the area above the content,
 // so its border keeps one screen pixel at every zoom.
 const props = defineProps<{
-  // The selected area in content units.
+  // The selected area in content units
   bounds: Bounds;
   view: ViewTransform;
 }>();

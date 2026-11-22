@@ -11,6 +11,8 @@ sidebar:
 
 - A secret has the format of the Standard Webhooks specification, `whsec_` followed by 24 to 64 bytes in base64.
 - Several webhooks may share a secret, and a changed secret takes effect with the next message.
+- The API returns the secret only in the response that creates the webhook. An update without a secret
+  keeps the stored one.
 - The signature lets the receiver check every message with http or https, while https also keeps others
   from reading them.
 - The certificate of an https receiver is verified unless the webhook accepts any certificate.

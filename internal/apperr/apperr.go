@@ -5,6 +5,10 @@ package apperr
 import "errors"
 
 var (
+	// ErrAuthenticationRequired is returned when an action needs a signed-in user and the request has none.
+	ErrAuthenticationRequired = errors.New("authentication required")
+	// ErrForbidden is returned when the actor may not perform an action.
+	ErrForbidden = errors.New("forbidden")
 	// ErrNotFound is returned when a requested resource does not exist.
 	ErrNotFound = errors.New("not found")
 	// ErrConflict is returned when data violates a uniqueness constraint.
@@ -12,6 +16,8 @@ var (
 	// ErrVersionConflict is returned when a resource was modified concurrently
 	// between being read and written (optimistic locking failure).
 	ErrVersionConflict = errors.New("resource was modified concurrently")
+	// ErrInvalidSort is returned when a list is sorted by a field it does not allow.
+	ErrInvalidSort = errors.New("invalid sort field")
 )
 
 // FieldError represents a single validation failure for a field.

@@ -77,8 +77,8 @@ func loadMap[T any, K comparable](content []byte, dest map[K]*T, keyFunc func(*T
 	return fillMap(items, lines, dest, keyFunc)
 }
 
-// readCSV decodes the content of a Windows-1252 encoded CSV file into target and returns the line of every item
-// in the file, so later checks can name it. It skips rows without any value and rejects invalid files.
+// readCSV decodes the content of a Windows-1252 encoded CSV file into target and returns the line of every item in the file,
+// so later checks can name it. It skips rows without any value and rejects invalid files.
 func readCSV[T any](content []byte, target *[]*T) ([]int, error) {
 	// The whole content is checked before decoding, since a file saved as UTF-8
 	// can only be recognized after its first multibyte sequence.
@@ -137,8 +137,8 @@ func csvColumns[T any]() []string {
 	return columns
 }
 
-// readRows reads and checks every row of an export file. The timing software separates the values
-// with semicolons, terminates every row with a trailing separator, and quotes values inconsistently,
+// readRows reads and checks every row of an export file. The timing software separates the values with semicolons,
+// terminates every row with a trailing separator, and quotes values inconsistently,
 // so the reader is lenient about quotes and removes them together with the padding of the values.
 // A value never spans several lines, so a value with a line break comes from a quote that is not closed.
 func readRows(in io.Reader, columns []string) (*csvRows, error) {

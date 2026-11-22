@@ -1,7 +1,7 @@
 import { nextTick, ref } from 'vue';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { fakeRouter } from '@/test/router';
+import { fakeRouter, settleRouter } from '@/test/router';
 import { useTableView } from '@/composables/table/useTableView';
 
 let fake = fakeRouter();
@@ -23,11 +23,11 @@ const rows: Row[] = Array.from(
   }),
 );
 
-/** view creates a table view on the rows, sortable by every field. */
+/** Creates a table view on the rows, sortable by every field. */
 function view(source: Row[] = rows, resetOn?: () => unknown) {
   return useTableView(source, {
     sortable: ['name', 'number'],
-    value: (row, id) => row[id as keyof Row],
+    value: (row, id) => row[id],
     resetOn,
   });
 }
@@ -51,10 +51,10 @@ describe('useTableView', () => {
       });
     });
 
-    it('writes the sort to the URL and returns to the first page', () => {
+    it('writes the sort to the URL and returns to the first page', async () => {
       fake = fakeRouter({
         page: '2',
-        tab: 'items',
+        section: 'items',
       });
       const table = view();
 
@@ -62,21 +62,22 @@ describe('useTableView', () => {
         id: 'name',
         desc: true,
       };
+      await settleRouter();
 
       expect(fake.route.query).toEqual({
-        tab: 'items',
+        section: 'items',
         sort: '-name',
       });
     });
 
     it('keeps the sort in memory for a view outside the URL', () => {
       fake = fakeRouter({
-        tab: 'items',
+        section: 'items',
         sort: 'number',
       });
       const table = useTableView(rows, {
         sortable: ['name', 'number'],
-        value: (row, id) => row[id as keyof Row],
+        value: (row, id) => row[id],
         inUrl: false,
       });
 
@@ -90,22 +91,23 @@ describe('useTableView', () => {
         desc: true,
       });
       expect(fake.route.query).toEqual({
-        tab: 'items',
+        section: 'items',
         sort: 'number',
       });
     });
 
-    it('removes the sort from the URL', () => {
+    it('removes the sort from the URL', async () => {
       fake = fakeRouter({
-        tab: 'items',
+        section: 'items',
         sort: '-name',
       });
       const table = view();
 
       table.sort.value = null;
+      await settleRouter();
 
       expect(fake.route.query).toEqual({
-        tab: 'items',
+        section: 'items',
       });
     });
   });
@@ -126,13 +128,32 @@ describe('useTableView', () => {
       ]);
     });
 
-    it('changes the sort from the sorting model of a table', () => {
+    it('changes the sort from the sorting model of a table', async () => {
       fake = fakeRouter({
         sort: 'name',
       });
       const table = view();
 
       table.sorting.value = [];
+      await settleRouter();
+
+      expect(table.sort.value).toBeNull();
+      expect(fake.route.query).toEqual({});
+    });
+
+    it('drops a column that cannot be sorted', async () => {
+      fake = fakeRouter({
+        sort: 'name',
+      });
+      const table = view();
+
+      table.sorting.value = [
+        {
+          id: 'unknown',
+          desc: true,
+        },
+      ];
+      await settleRouter();
 
       expect(table.sort.value).toBeNull();
       expect(fake.route.query).toEqual({});
@@ -140,34 +161,36 @@ describe('useTableView', () => {
   });
 
   describe('pageSize', () => {
-    it('writes the page size to the URL and returns to the first page', () => {
+    it('writes the page size to the URL and returns to the first page', async () => {
       fake = fakeRouter({
-        tab: 'items',
+        section: 'items',
         sort: '-name',
       });
       const table = view();
       table.page.value = 2;
 
       table.pageSize.value = 50;
+      await settleRouter();
 
       expect(fake.route.query).toEqual({
-        tab: 'items',
+        section: 'items',
         sort: '-name',
         perPage: '50',
       });
     });
 
-    it('removes the default page size from the URL', () => {
+    it('removes the default page size from the URL', async () => {
       fake = fakeRouter({
-        tab: 'items',
+        section: 'items',
         perPage: '50',
       });
       const table = view();
 
       table.pageSize.value = 25;
+      await settleRouter();
 
       expect(fake.route.query).toEqual({
-        tab: 'items',
+        section: 'items',
       });
     });
   });
@@ -225,19 +248,20 @@ describe('useTableView', () => {
   });
 
   describe('goTo', () => {
-    it('jumps to the page of a row', () => {
+    it('jumps to the page of a row', async () => {
       fake = fakeRouter({
         perPage: '10',
       });
       const table = view();
 
       const found = table.goTo((row) => row.name === 'row 23');
+      await settleRouter();
 
       expect(found).toBe(true);
       expect(table.page.value).toBe(3);
     });
 
-    it('keeps the page for an unknown row', () => {
+    it('keeps the page for an unknown row', async () => {
       fake = fakeRouter({
         perPage: '10',
       });
@@ -245,6 +269,7 @@ describe('useTableView', () => {
       table.goTo((row) => row.name === 'row 23');
 
       const found = table.goTo((row) => row.name === 'missing');
+      await settleRouter();
 
       expect(found).toBe(false);
       expect(table.page.value).toBe(3);

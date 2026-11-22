@@ -1,4 +1,4 @@
-import type { RouteLocationNormalizedLoaded, RouteRecordRaw } from 'vue-router';
+import type { RouteRecordRaw } from 'vue-router';
 import { describe, expect, it, vi } from 'vitest';
 
 import AdminLayout from '@/layouts/AdminLayout.vue';
@@ -13,7 +13,7 @@ vi.mock('@/layouts/AppLayout.vue', () => ({
   default: {},
 }));
 
-/** namedRoutes collects every named route of the tree, keyed by its name. */
+/** Collects every named route of the tree, keyed by its name. */
 function namedRoutes(records: RouteRecordRaw[]): Map<string, RouteRecordRaw> {
   const result = new Map<string, RouteRecordRaw>();
   for (const record of records) {
@@ -25,7 +25,7 @@ function namedRoutes(records: RouteRecordRaw[]): Map<string, RouteRecordRaw> {
   return result;
 }
 
-/** hasKey reports whether a dotted key resolves to a string in a locale. */
+/** Reports whether a dotted key resolves to a string in a locale. */
 function hasKey(messages: unknown, key: string): boolean {
   let node = messages;
   for (const part of key.split('.')) {
@@ -74,35 +74,11 @@ describe('routes', () => {
     expect(meta?.requiresGuest).toBe(true);
   });
 
-  it('gives only the editor the full width', () => {
+  it('gives only the editor and the meet overview the viewport height', () => {
     for (const [name, route] of byName) {
-      const expected = name === 'editor' ? true : undefined;
-      expect(route.meta?.fullWidth).toBe(expected);
-    }
-  });
-
-  it('gives only the editor, the meet overview, and the webhook tab the viewport height', () => {
-    for (const [name, route] of byName) {
-      if (name === 'config') continue;
-      const expected = name === 'editor' || name === 'meet' ? true : undefined;
+      const expected = ['editor', 'meet'].includes(name) ? true : undefined;
       expect(route.meta?.fillViewport).toBe(expected);
     }
-  });
-
-  it('gives the configuration the viewport height only on the webhook tab', () => {
-    const fill = byName.get('config')?.meta?.fillViewport;
-
-    const filled = ['webhook', 'server'].map((tab) =>
-      typeof fill === 'function'
-        ? fill({
-            query: {
-              tab,
-            },
-          } as unknown as RouteLocationNormalizedLoaded)
-        : fill,
-    );
-
-    expect(filled).toEqual([true, false]);
   });
 
   it('sends unknown paths to the dashboard', () => {

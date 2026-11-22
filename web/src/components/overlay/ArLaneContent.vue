@@ -1,19 +1,20 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 
-import { TextAnchor, type Lane } from '@/api/types';
-import { isResultRanked } from '@/lib/heat';
-import { LANE_CONTENT_HEIGHT } from '@/lib/lanes';
-import { formatName } from '@/lib/names';
-import { formatSwimtime } from '@/lib/time';
+import type { Lane } from '@/api/types/live';
+import { TextAnchor } from '@/api/types/preset';
+import { isResultRanked } from '@/lib/live/heat';
+import { LANE_CONTENT_HEIGHT } from '@/lib/preset/lanes';
+import { formatName } from '@/lib/live/names';
+import { formatSwimtime } from '@/lib/live/time';
 
-// The content of one lane in the AR overlay. It fills the content box of the lane, which the lane transform
-// projects into the camera image, see LANE_CONTENT_WIDTH. All sizes follow the height of the box,
+// The content of one lane in the AR overlay. It fills the content box of the lane, which the lane transform projects
+// into the camera image, see LANE_CONTENT_WIDTH. All sizes follow the height of the box,
 // so the text size of the preset is the height of the text in percent of the lane height.
 const props = defineProps<{
   lane: Pick<Lane, 'number' | 'rank' | 'firstName' | 'lastName' | 'time' | 'finished'>;
   textAnchor: TextAnchor;
-  // The height of the text in percent of the height of the lane.
+  // The height of the text in percent of the height of the lane
   textSize: number;
 }>();
 

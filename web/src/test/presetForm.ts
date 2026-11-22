@@ -2,16 +2,16 @@ import { vi } from 'vitest';
 
 import { withSetup } from '@/test/withSetup';
 import type { FormErrorTarget } from '@/composables/form/useFormValidation';
-import type { PresetForm } from '@/composables/usePresetForm';
-import { providePresetForm } from '@/composables/usePresetForm';
-import { createPreset, toEditorPreset } from '@/lib/lanes';
+import type { PresetForm } from '@/composables/preset/usePresetForm';
+import { providePresetForm } from '@/composables/preset/usePresetForm';
+import { createPreset, toEditorPreset } from '@/lib/preset/lanes';
 
 export { presetFormMocks, resetPresetFormMocks } from '@/test/presetFormMocks';
 
 /**
- * mountPresetForm creates a preset form inside a mounted component, optionally with an opened preset
- * of the given number of lanes, and runs extra composables in the same component. The lanes of the preset
- * span x 480 to 1440 of the 1920 x 1080 reference resolution, lane n y 100 + 60n to 150 + 60n.
+ * Creates a preset form inside a mounted component, optionally with an opened preset
+ * of the given number of lanes, and runs extra composables in the same component. The lanes of the preset span
+ * x 480 to 1440 of the 1920 x 1080 reference resolution, lane n y 100 + 60n to 150 + 60n.
  */
 export function mountPresetForm<T>(
   setup: (presetForm: PresetForm) => T,
@@ -36,7 +36,7 @@ export function mountPresetForm<T>(
   });
 
   return {
-    presetForm: presetForm as PresetForm,
+    presetForm: presetForm!,
     result,
     unmount,
   };

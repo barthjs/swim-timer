@@ -4,16 +4,17 @@ import { useI18n } from 'vue-i18n';
 
 import EditorHelpFrame, { type HelpShortcut } from '@/components/editor/EditorHelpFrame.vue';
 import { shortcutKeys } from '@/lib/editor/shortcuts';
-import { PRESET_EDITOR_SHORTCUTS, type PresetEditorShortcut } from '@/lib/presetEditorShortcuts';
+import { PRESET_EDITOR_SHORTCUTS } from '@/lib/preset/presetEditorShortcuts';
+import { objectKeys } from '@/lib/types/guards';
 
-// Explains what the preset editor is for and the usual workflow, and lists its keyboard shortcuts.
+// Explains what the preset editor is for and the usual workflow, and lists its keyboard shortcuts
 const open = defineModel<boolean>('open', {
   required: true,
 });
 
 const { t } = useI18n();
 
-// The number of steps of the guide in the locales.
+// The number of steps of the guide in the locales
 const STEP_COUNT = 6;
 
 const steps = computed(() =>
@@ -25,9 +26,9 @@ const steps = computed(() =>
   ),
 );
 
-// The shortcuts of the preset editor itself and how the lanes are selected and moved.
+// The shortcuts of the preset editor itself and how the lanes are selected and moved
 const shortcuts = computed<HelpShortcut[]>(() => [
-  ...(Object.keys(PRESET_EDITOR_SHORTCUTS) as PresetEditorShortcut[]).map((shortcut) => ({
+  ...objectKeys(PRESET_EDITOR_SHORTCUTS).map((shortcut) => ({
     keys: shortcutKeys(PRESET_EDITOR_SHORTCUTS[shortcut]),
     label: t(`pages.editor.guide.shortcuts.${shortcut}`),
   })),
@@ -60,7 +61,7 @@ const shortcuts = computed<HelpShortcut[]>(() => [
       </ol>
 
       <div class="flex flex-col gap-2">
-        <h3 class="text-highlighted font-semibold">
+        <h3 class="text-highlighted heading-card">
           {{ t('pages.editor.guide.presetsTitle') }}
         </h3>
         <p>{{ t('pages.editor.guide.presets') }}</p>
@@ -68,7 +69,7 @@ const shortcuts = computed<HelpShortcut[]>(() => [
       </div>
 
       <div class="flex flex-col gap-2">
-        <h3 class="text-highlighted font-semibold">
+        <h3 class="text-highlighted heading-card">
           {{ t('pages.editor.guide.viewTitle') }}
         </h3>
         <p class="whitespace-pre-line">{{ t('pages.editor.guide.view') }}</p>

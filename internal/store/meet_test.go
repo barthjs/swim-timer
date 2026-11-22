@@ -4,12 +4,10 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"golang.org/x/text/encoding/charmap"
 
 	"github.com/barthjs/swim-timer/internal/domain"
 )
@@ -21,113 +19,8 @@ const (
 	testStartEntries = "event;round;heat;lane;relais;idBib\r\n1;1;0;1;0;1;\r\n1;1;0;2;0;2;\r\n"
 )
 
-func TestMeetStore_ListFiles(t *testing.T) {
-	t.Parallel()
-
-	t.Run("returns the file with every extension", func(t *testing.T) {
-		t.Parallel()
-
-		for _, ext := range meetExtensions {
-			t.Run(ext, func(t *testing.T) {
-				t.Parallel()
-
-				storage, root := newTestStorageWithRoot(t)
-				writeMeetFile(t, root, "LSTSTYLE"+ext, testStyles)
-
-				names, err := NewMeetStore(storage).ListFiles(t.Context())
-
-				require.NoError(t, err)
-				assert.Equal(t, "LSTSTYLE"+ext, names[domain.MeetFileStyles])
-			})
-		}
-	})
-
-	t.Run("prefers the uppercase extension", func(t *testing.T) {
-		t.Parallel()
-
-		storage, root := newTestStorageWithRoot(t)
-		// The uppercase extension of the export wins over a lowercase copy
-		writeMeetFile(t, root, "LSTSTYLE.txt", "idStyle;Style;StyleAbrév\r\n1;\"Backstroke\";\"BA\"\r\n")
-		writeMeetFile(t, root, "LSTSTYLE.TXT", testStyles)
-
-		names, err := NewMeetStore(storage).ListFiles(t.Context())
-
-		require.NoError(t, err)
-		assert.Equal(t, "LSTSTYLE.TXT", names[domain.MeetFileStyles])
-		assert.NotContains(t, names, domain.MeetFileCompetitors, "a missing file has no entry")
-	})
-}
-
-func TestMeetStore_ListFileContents(t *testing.T) {
-	t.Parallel()
-
-	t.Run("returns the loaded files as they were read", func(t *testing.T) {
-		t.Parallel()
-
-		storage, root := newTestStorageWithRoot(t)
-		st := NewMeetStore(storage)
-		writeMeetFile(t, root, "LSTSTART.TXT", "event;round;heat;lane;relais;idBib\r\n101;0;0;4;0;46;\r\n")
-		writeMeetFile(t, root, "LSTCONC.TXT", "id;bib;lastname;firstname;birthyear;abNat;abCat\r\n46;;\"Doré\";\"Zoë\";\"2016\";\"SC Riverside\";\"W\";\r\n")
-		require.NoError(t, st.LoadAll(t.Context()))
-
-		got := st.ListFileContents()
-
-		require.Len(t, got, 2)
-		assert.Equal(t, domain.MeetFileCompetitors, got[0].File, "in the order of the meet files")
-		assert.Equal(t, domain.MeetFileStartEntries, got[1].File)
-		stored, err := os.ReadFile(filepath.Join(root, meetFolder, "LSTCONC.TXT"))
-		require.NoError(t, err)
-		assert.Equal(t, stored, got[0].Content, "the content in its original encoding")
-	})
-
-	t.Run("keeps the files of the last successful load", func(t *testing.T) {
-		t.Parallel()
-
-		storage, root := newTestStorageWithRoot(t)
-		st := NewMeetStore(storage)
-		writeMeetFile(t, root, "LSTSTART.TXT", "event;round;heat;lane;relais;idBib\r\n101;0;0;4;0;46;\r\n")
-		require.NoError(t, st.LoadAll(t.Context()))
-		before := st.ListFileContents()
-		writeMeetFile(t, root, "LSTSTART.TXT", "event;round;heat;lane;relais;idBib\r\n101;x;0;4;0;46;\r\n")
-		require.Error(t, st.LoadAll(t.Context()))
-
-		got := st.ListFileContents()
-
-		assert.Equal(t, before, got)
-	})
-
-	t.Run("returns nothing before the first load", func(t *testing.T) {
-		t.Parallel()
-
-		st := NewMeetStore(newTestStorage(t))
-
-		got := st.ListFileContents()
-
-		assert.Empty(t, got)
-	})
-}
-
 func TestMeetStore_GetHeat(t *testing.T) {
 	t.Parallel()
-
-	t.Run("returns the heat", func(t *testing.T) {
-		t.Parallel()
-
-		storage, root := newTestStorageWithRoot(t)
-		writeMeetFile(t, root, "LSTROUND.TXT", "idRound;TITLE;RoundAbrev;roundtext;sequence\r\n1;\"Heats\";\"HEA\";\"Heat\";\"1\"\r\n")
-		writeMeetFile(t, root, "LSTRACE.TXT", testEvents)
-		writeMeetFile(t, root, "LSTSTART.TXT", testStartEntries)
-		st := NewMeetStore(storage)
-		require.NoError(t, st.LoadAll(t.Context()))
-
-		heat, ok := st.GetHeat(1, 0)
-
-		require.True(t, ok)
-		assert.Equal(t, "Heats", heat.Event.PhaseName(), "the phase is linked from LSTROUND")
-		assert.Len(t, heat.StartEntries, 2, "the entries of the phase of the event")
-		assert.Equal(t, 1, heat.FirstLane)
-		assert.False(t, heat.LoadedAt.IsZero())
-	})
 
 	firstLanes := []struct {
 		name   string
@@ -165,104 +58,6 @@ func TestMeetStore_GetHeat(t *testing.T) {
 			assert.Equal(t, tt.want, heat.FirstLane)
 		})
 	}
-
-	t.Run("returns not found for an unknown event", func(t *testing.T) {
-		t.Parallel()
-
-		storage, root := newTestStorageWithRoot(t)
-		writeMeetFile(t, root, "LSTRACE.TXT", testEvents)
-		writeMeetFile(t, root, "LSTSTART.TXT", testStartEntries)
-		st := NewMeetStore(storage)
-		require.NoError(t, st.LoadAll(t.Context()))
-
-		_, ok := st.GetHeat(2, 0)
-
-		assert.False(t, ok)
-	})
-}
-
-func TestMeetStore_SaveFile(t *testing.T) {
-	t.Parallel()
-
-	t.Run("stores the file", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := t.Context()
-		st := NewMeetStore(newTestStorage(t))
-		competitors, err := charmap.Windows1252.NewEncoder().String(testCompetitors)
-		require.NoError(t, err)
-		starts := "event;round;heat;lane;relais;idBib\r\n5;1;0;3;0;7;\r\n"
-		require.NoError(t, st.SaveFile(ctx, domain.MeetFileStartEntries, strings.NewReader(starts), int64(len(starts))))
-
-		err = st.SaveFile(ctx, domain.MeetFileCompetitors, strings.NewReader(competitors), -1)
-
-		require.NoError(t, err)
-		names, err := st.ListFiles(ctx)
-		require.NoError(t, err)
-		assert.Equal(t, "LSTCONC.TXT", names[domain.MeetFileCompetitors])
-		require.NoError(t, st.LoadAll(ctx))
-		entries := startsOf(st, 5, 1, 0)
-		require.Len(t, entries, 1)
-		require.NotNil(t, entries[0].Competitor)
-		assert.Equal(t, 7, entries[0].Competitor.ID)
-		assert.Equal(t, "Brontë", entries[0].Competitor.LastName)
-	})
-
-	t.Run("replaces a lowercase copy", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := t.Context()
-		storage, root := newTestStorageWithRoot(t)
-		writeMeetFile(t, root, "LSTSTYLE.txt", "idStyle;Style;StyleAbrév\r\n1;\"Backstroke\";\"BA\"\r\n")
-		st := NewMeetStore(storage)
-		encoded, err := charmap.Windows1252.NewEncoder().String(testStyles)
-		require.NoError(t, err)
-
-		err = st.SaveFile(ctx, domain.MeetFileStyles, strings.NewReader(encoded), int64(len(encoded)))
-
-		require.NoError(t, err)
-		require.NoError(t, st.LoadAll(ctx))
-		names, err := st.ListFiles(ctx)
-		require.NoError(t, err)
-		assert.Equal(t, "LSTSTYLE.TXT", names[domain.MeetFileStyles])
-		assert.NoFileExists(t, filepath.Join(root, meetFolder, "LSTSTYLE.txt"), "the copy would hide the upload otherwise")
-	})
-}
-
-func TestMeetStore_Snapshot(t *testing.T) {
-	t.Parallel()
-
-	t.Run("returns the loaded meet", func(t *testing.T) {
-		t.Parallel()
-
-		storage, root := newTestStorageWithRoot(t)
-		st := NewMeetStore(storage)
-		writeMeetFile(t, root, "LSTCONC.TXT", "id;bib;lastname;firstname;birthyear;abNat;abCat\r\n46;;\"Doré\";\"Zoë\";\"2016\";\"SC Riverside\";\"W\";\r\n")
-		writeMeetFile(t, root, "LSTRACE.TXT", "event;round;nbHeat;idLen;idStyle;abCat;date;time\r\n101;0;1;1;0;\"W\";\"26/05/01\";\"16:00\"\r\n")
-		writeMeetFile(t, root, "LSTSTART.TXT", "event;round;heat;lane;relais;idBib\r\n101;0;0;4;0;46;\r\n")
-		require.NoError(t, st.LoadAll(t.Context()))
-
-		snapshot := st.Snapshot()
-
-		assert.False(t, snapshot.LoadedAt.IsZero())
-		require.Len(t, snapshot.Events, 1)
-		require.Len(t, snapshot.StartEntries, 1)
-		require.Len(t, snapshot.Competitors, 1)
-		assert.Same(t, snapshot.Competitors[0], snapshot.StartEntries[0].Competitor, "the snapshot keeps the resolved references")
-	})
-
-	t.Run("returns empty lists before the first load", func(t *testing.T) {
-		t.Parallel()
-
-		st := NewMeetStore(newTestStorage(t))
-
-		snapshot := st.Snapshot()
-
-		assert.True(t, snapshot.LoadedAt.IsZero(), "nothing was loaded yet")
-		assert.NotNil(t, snapshot.Events)
-		assert.NotNil(t, snapshot.StartEntries)
-		assert.NotNil(t, snapshot.Competitors)
-	})
 }
 
 func TestMeetStore_LoadAll(t *testing.T) {

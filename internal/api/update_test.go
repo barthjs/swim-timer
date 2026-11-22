@@ -1,7 +1,6 @@
 package api_test
 
 import (
-	"context"
 	"errors"
 	"net/http"
 	"testing"
@@ -9,8 +8,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/barthjs/swim-timer/internal/api"
-	"github.com/barthjs/swim-timer/internal/apitest"
-	"github.com/barthjs/swim-timer/internal/update"
 )
 
 func TestUpdateAccess(t *testing.T) {
@@ -145,50 +142,4 @@ func TestUpdateStartHandler(t *testing.T) {
 
 		admin.GET("/api/update/status").AssertStatus(http.StatusOK).AssertJSONPath("state", "idle")
 	})
-}
-
-// installableUpdater stands in for an installation that can replace its own binary,
-// which a test must never do. Apply waits for the result the test sends.
-type installableUpdater struct {
-	latest string
-	result chan error
-}
-
-// newInstallableUpdater returns an updater that reports a newer release and can install it.
-func newInstallableUpdater(t *testing.T) *installableUpdater {
-	t.Helper()
-
-	return &installableUpdater{
-		latest: "v" + apitest.Faker(t).AppVersion(),
-		result: make(chan error, 1),
-	}
-}
-
-// Version returns the running version.
-func (u *installableUpdater) Version() string {
-	return harnessVersion
-}
-
-// Check reports the latest release as newer.
-func (u *installableUpdater) Check(context.Context) (update.Release, error) {
-	return update.Release{
-		Version: u.latest,
-		URL:     "https://example.test/releases/" + u.latest,
-		Newer:   true,
-	}, nil
-}
-
-// Supported reports that the installation can replace itself.
-func (u *installableUpdater) Supported() error {
-	return nil
-}
-
-// Apply waits for the result the test sends, or for the end of ctx, without replacing any binary.
-func (u *installableUpdater) Apply(ctx context.Context, _ update.Release) error {
-	select {
-	case err := <-u.result:
-		return err
-	case <-ctx.Done():
-		return ctx.Err()
-	}
 }

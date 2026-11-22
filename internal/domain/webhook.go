@@ -43,7 +43,7 @@ type Webhook struct {
 	Events  []WebhookEvent `json:"events"`
 	Enabled bool           `json:"enabled"`
 	Secret  string         `json:"secret"`
-	// SkipTLSVerify accepts any certificate of the endpoint, such as a self-signed one in a local network.
+	// SkipTLSVerify accepts any certificate of the endpoint.
 	SkipTLSVerify bool `json:"skipTlsVerify"`
 }
 

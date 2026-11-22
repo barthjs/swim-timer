@@ -4,7 +4,7 @@ import { useI18n } from 'vue-i18n';
 
 import '@/assets/css/overlay-tokens.css';
 import ArLaneContent from '@/components/overlay/ArLaneContent.vue';
-import { heatLaneNumber, laneStyle, presetLaneCount, type EditorPreset } from '@/lib/lanes';
+import { heatLaneNumber, laneStyle, presetLaneCount, type EditorPreset } from '@/lib/preset/lanes';
 
 // Shows every lane as the AR overlay draws it, with sample values, so the result can be judged while editing.
 // Each lane shows the lane of the heat the AR overlay maps to it.
@@ -15,7 +15,7 @@ const props = defineProps<{
 
 const { t } = useI18n();
 
-// Sample finish times, which differ slightly from lane to lane.
+// Sample finish times, which differ slightly from lane to lane
 const SAMPLE_TIME_MS = 61_230;
 const SAMPLE_TIME_STEP_MS = 870;
 

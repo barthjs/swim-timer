@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
+import { faker } from '@faker-js/faker';
 
 import { useConfirm } from '@/composables/ui/useConfirm';
 
@@ -9,39 +10,41 @@ describe('useConfirm', () => {
 
   describe('confirm', () => {
     it('opens the dialog with the given options', () => {
+      const title = faker.lorem.sentence();
       const { state, confirm } = useConfirm();
 
       void confirm({
-        title: 'Delete?',
+        title,
         color: 'error',
       });
 
       expect(state.value).toEqual({
-        title: 'Delete?',
+        title,
         color: 'error',
         open: true,
       });
     });
 
     it('shares one dialog between all callers', () => {
+      const title = faker.lorem.sentence();
       const first = useConfirm();
       const second = useConfirm();
 
       void first.confirm({
-        title: 'Shared',
+        title,
       });
 
-      expect(second.state.value.title).toBe('Shared');
+      expect(second.state.value.title).toBe(title);
     });
 
     it('cancels a pending confirmation when another one opens', async () => {
       const { confirm, settle } = useConfirm();
       const first = confirm({
-        title: 'First',
+        title: faker.lorem.sentence(),
       });
 
       const second = confirm({
-        title: 'Second',
+        title: faker.lorem.sentence(),
       });
 
       await expect(first).resolves.toBe(false);
@@ -54,7 +57,7 @@ describe('useConfirm', () => {
     it('resolves the confirmation with the answer and closes the dialog', async () => {
       const { state, confirm, settle } = useConfirm();
       const answer = confirm({
-        title: 'Delete?',
+        title: faker.lorem.sentence(),
       });
 
       settle(true);

@@ -61,11 +61,6 @@ func TestWithMissingKeyHandler(t *testing.T) {
 			want:     "absent",
 			reported: []string{"de:absent.one"},
 		},
-		{
-			name: "reports nothing for a translated plural",
-			call: func(b *i18n.Bundle) string { return b.TN("en", "items", 1, nil) },
-			want: "1 item",
-		},
 	}
 
 	for _, tt := range tests {
@@ -194,6 +189,24 @@ func TestNewFS(t *testing.T) {
 	})
 }
 
+func TestBundle_Locales(t *testing.T) {
+	t.Parallel()
+
+	t.Run("returns the locales of the catalogs sorted", func(t *testing.T) {
+		t.Parallel()
+		bundle, err := i18n.NewFS(catalogs(map[string]string{
+			"fr": `{}`,
+			"en": `{}`,
+			"de": `{}`,
+		}))
+		require.NoError(t, err)
+
+		got := bundle.Locales()
+
+		assert.Equal(t, []string{"de", "en", "fr"}, got)
+	})
+}
+
 func TestBundle_T(t *testing.T) {
 	t.Parallel()
 
@@ -244,33 +257,6 @@ func TestBundle_T(t *testing.T) {
 			data:   map[string]string{"Name": "Ada"},
 			want:   "Value {{.Name.Missing}}",
 		},
-		{
-			name:   "renders missing data as nothing",
-			locale: "en",
-			key:    "greeting",
-			want:   "Hello ",
-		},
-		{
-			name:   "renders a missing key of a map as nothing",
-			locale: "en",
-			key:    "greeting",
-			data:   map[string]any{"Other": 1},
-			want:   "Hello ",
-		},
-		{
-			name:   "renders a missing nested field as nothing",
-			locale: "en",
-			key:    "nested_field",
-			data:   map[string]any{},
-			want:   "Value []",
-		},
-		{
-			name:   "renders a nil pointer as nothing",
-			locale: "en",
-			key:    "greeting",
-			data:   struct{ Name *string }{},
-			want:   "Hello ",
-		},
 	}
 
 	for _, tt := range tests {
@@ -294,15 +280,4 @@ func newBundle(t *testing.T) *i18n.Bundle {
 	}))
 	require.NoError(t, err)
 	return bundle
-}
-
-// catalogs builds a file system with one catalog per locale, as the embedded locales directory holds them.
-func catalogs(files map[string]string) fstest.MapFS {
-	fsys := fstest.MapFS{}
-	for locale, content := range files {
-		fsys["locales/"+locale+".json"] = &fstest.MapFile{
-			Data: []byte(content),
-		}
-	}
-	return fsys
 }

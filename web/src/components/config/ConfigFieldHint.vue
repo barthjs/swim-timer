@@ -2,19 +2,19 @@
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import type { ConfigSettings } from '@/api/types';
+import type { ConfigSettings } from '@/api/types/config';
 import HelpHint from '@/components/form/HelpHint.vue';
-import { useConfigForm } from '@/composables/useConfigForm';
+import { useConfigForm } from '@/composables/config/useConfigForm';
 import type { Paths } from '@/lib/form/path';
 
-// The hint slot of a configuration field: an optional character count, where the value comes from with its default,
-// a button that resets the field to its default, and an optional explanation. A flag or an environment variable
-// overrides the config file, so such a source shows as a warning.
+// The hint slot of a configuration field: an optional character count, a warning while a flag
+// or an environment variable overrides the config file, an optional explanation, and a button that resets the field
+// to the default its tooltip names. The button always shows, so it keeps its place, and is disabled at the default.
 const props = defineProps<{
   path: Paths<ConfigSettings>;
   help?: string;
   count?: string;
-  // The choices of a select, so the default shows with the label the select shows for it.
+  // The choices of a select, so the default shows with the label the select shows for it
   options?: { label: string; value: unknown }[];
 }>();
 
@@ -34,22 +34,8 @@ const sourceLabel = computed(() => {
       return t('pages.config.source.flag', {
         name: source.value.name,
       });
-    case 'file':
-      return t('pages.config.source.file');
     default:
-      return t('pages.config.source.default');
-  }
-});
-
-const sourceIcon = computed(() => {
-  switch (source.value?.kind) {
-    case 'env':
-    case 'flag':
-      return 'i-lucide-triangle-alert';
-    case 'file':
-      return 'i-lucide-file-text';
-    default:
-      return 'i-lucide-circle-dashed';
+      return '';
   }
 });
 
@@ -68,11 +54,13 @@ const defaultLabel = computed(() => {
   if (value === undefined || value === null || value === '') {
     return t('pages.config.source.empty');
   }
-  return String(value);
+  return typeof value === 'string' || typeof value === 'number'
+    ? String(value)
+    : JSON.stringify(value);
 });
 
 // A secret offers its own button to remove the saved value, which is what a reset does
-const resettable = computed(() => !isSecret(props.path) && !isDefault(props.path));
+const resettable = computed(() => !isSecret(props.path));
 </script>
 
 <template>
@@ -80,7 +68,7 @@ const resettable = computed(() => !isSecret(props.path) && !isDefault(props.path
     <span v-if="count">{{ count }}</span>
 
     <UPopover
-      v-if="source"
+      v-if="overridden && source"
       mode="hover"
       enable-touch
       :open-delay="100"
@@ -88,9 +76,9 @@ const resettable = computed(() => !isSecret(props.path) && !isDefault(props.path
       :content="{ side: 'right', align: 'start' }"
     >
       <UButton
-        :icon="sourceIcon"
-        :label="overridden ? t(`pages.config.source.badge.${source.kind}`) : undefined"
-        :color="overridden ? 'warning' : 'neutral'"
+        icon="i-lucide-triangle-alert"
+        :label="t(`pages.config.source.badge.${source.kind}`)"
+        color="warning"
         variant="link"
         size="xs"
         class="p-0"
@@ -99,33 +87,36 @@ const resettable = computed(() => !isSecret(props.path) && !isDefault(props.path
 
       <template #content>
         <div class="text-default flex max-w-72 flex-col gap-2 p-3 text-sm">
-          <p>
-            <span class="text-muted">{{ t('pages.config.source.title') }}:</span>{{ ' ' }}
-            {{ sourceLabel }}
-          </p>
-          <p>
-            <span class="text-muted">{{ t('pages.config.source.defaultValue') }}:</span>{{ ' ' }}
-            <span class="font-mono break-all">{{ defaultLabel }}</span>
-          </p>
-          <p v-if="overridden" class="text-warning">
-            {{ t('pages.config.source.overridden') }}
-          </p>
+          <p>{{ sourceLabel }}</p>
+          <p class="text-warning">{{ t('pages.config.source.overridden') }}</p>
         </div>
       </template>
     </UPopover>
 
-    <UTooltip v-if="resettable" :text="t('pages.config.source.reset')">
+    <HelpHint v-if="help" :text="help" />
+
+    <UTooltip
+      v-if="resettable"
+      :text="
+        t('pages.config.source.resetTo', {
+          value: defaultLabel,
+        })
+      "
+    >
       <UButton
         icon="i-lucide-rotate-ccw"
         color="neutral"
         variant="link"
         size="xs"
-        class="p-0"
-        :aria-label="t('pages.config.source.reset')"
+        class="p-0 disabled:opacity-30"
+        :disabled="isDefault(path)"
+        :aria-label="
+          t('pages.config.source.resetTo', {
+            value: defaultLabel,
+          })
+        "
         @click="resetField(path)"
       />
     </UTooltip>
-
-    <HelpHint v-if="help" :text="help" />
   </span>
 </template>

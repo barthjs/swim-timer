@@ -72,6 +72,6 @@ does not exist there. An instance has no `versions.json` and shows only its own 
 
 ## Links from the web interface
 
-The web interface links to the documentation of its own version: the footer to the start page, and every page
-to the section that explains it. `web/src/lib/docs.ts` lists these targets, and `npm run test` in `docs/` checks
+The web interface links to the documentation of its own version: the sidebar to the start page, and every page
+to the section that explains it. `web/src/lib/app/docs.ts` lists these targets, and `npm run test` in `docs/` checks
 them against the built site, so a renamed page or heading fails until its target is updated.

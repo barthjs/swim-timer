@@ -8,9 +8,8 @@ import (
 	"go.yaml.in/yaml/v3"
 )
 
-// Template writes a YAML config file with every setting of the struct cfg points to, nested by section.
-// Each setting carries its description as a comment and its default as the value,
-// so the file documents itself and loads to the same values as the defaults. Secrets are left empty.
+// Template writes a YAML config file of cfg that documents every setting with its description
+// and loads to the defaults, with the secrets left empty.
 func Template(w io.Writer, cfg any) error {
 	var sb strings.Builder
 	var previous []string
@@ -50,7 +49,7 @@ func templateValue(l Leaf) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("config %s: invalid default %q: %w", l.Key, l.Default, err)
 	}
-	// A duration is written as text, such as 30s, the way it is set
+	// A duration is written as text, the way it is set
 	if stringer, ok := value.(fmt.Stringer); ok {
 		value = stringer.String()
 	}

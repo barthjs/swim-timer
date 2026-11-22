@@ -4,7 +4,7 @@ WORKDIR /build/web
 ARG VERSION=dev
 ENV VITE_APP_VERSION=${VERSION}
 
-COPY web/package*.json ./
+COPY web/package*.json web/.npmrc ./
 RUN npm ci --omit=dev
 
 COPY web/ ./
@@ -16,7 +16,7 @@ WORKDIR /build/docs
 ARG VERSION=dev
 ENV DOCS_VERSION=${VERSION}
 
-COPY docs/package*.json ./
+COPY docs/package*.json docs/.npmrc ./
 RUN npm ci --omit=dev
 
 COPY docs/ ./
@@ -35,9 +35,9 @@ RUN go mod download
 COPY . .
 COPY --from=web-builder /build/web/dist ./web/dist
 COPY --from=docs-builder /build/docs/dist ./docs/dist
-RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -ldflags="-s -w -X 'main.Version=${VERSION}'" -o ./bin/swim-timer ./cmd/swim-timer/
+RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -trimpath -ldflags="-s -w -X 'main.Version=${VERSION}'" -o ./bin/swim-timer ./cmd/swim-timer/
 
-FROM alpine:latest AS runtime
+FROM alpine:3.24 AS runtime
 
 ENV APP_USER=application \
     PUID=1000 \

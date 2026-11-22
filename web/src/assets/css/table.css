@@ -7,12 +7,40 @@ The hover is a step stronger than the stripe, so it also stands out on a striped
   --color-table-hover: var(--table-hover);
 }
 
+/*
+The filters of a table fill as many columns as fit, at least 11rem and at most eight per row,
+which the gaps of 0.75rem between them reduce by 5.25rem.
+*/
+@theme {
+  --grid-template-columns-table-filters: repeat(
+    auto-fill,
+    minmax(max(11rem, calc((100% - 5.25rem) / 8)), 1fr)
+  );
+}
+
 :root:not(.dark) {
-  --table-stripe: color-mix(in oklab, var(--ui-color-neutral-200) 75%, var(--ui-bg));
-  --table-hover: color-mix(in oklab, var(--ui-color-neutral-300) 75%, var(--ui-bg));
+  --table-stripe: color-mix(in oklab, var(--ui-color-neutral-200) 55%, var(--ui-bg));
+  --table-hover: color-mix(in oklab, var(--ui-color-neutral-300) 65%, var(--ui-bg));
 }
 
 :root.dark {
   --table-stripe: color-mix(in oklab, var(--ui-color-neutral-800) 70%, var(--ui-bg));
   --table-hover: var(--ui-color-neutral-700);
+}
+
+/*
+ * Below sm the buttons of a table toolbar with an icon show only the icon and keep the label for screen readers.
+ * A button without an icon keeps its label.
+ */
+@media (width < 40rem) {
+  .table-toolbar-controls
+    :is(button, a)[data-slot='base']:has(> [data-slot='leadingIcon'])
+    > [data-slot='label'] {
+    @apply sr-only;
+  }
+
+  .table-toolbar-controls
+    :is(button, a)[data-slot='base']:has(> [data-slot='leadingIcon']):has(> [data-slot='label']) {
+    @apply px-1.5;
+  }
 }

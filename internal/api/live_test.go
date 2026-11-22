@@ -158,20 +158,3 @@ func TestLiveHeatGetHandler(t *testing.T) {
 		assert.Empty(t, heat.Lanes)
 	})
 }
-
-// lapCount is the number of laps of the meet's event in a pool of the configured length.
-func (h *harness) lapCount(m meetFixture) int {
-	return m.distance.Length / h.Config.Timing.PoolLength
-}
-
-// waitForLive waits until the live heat satisfies condition, since frames are handled in the background.
-func (h *harness) waitForLive(condition func(domain.LiveHeat) bool, message string) domain.LiveHeat {
-	h.t.Helper()
-
-	var heat domain.LiveHeat
-	require.Eventually(h.t, func() bool {
-		heat = h.Client.GET("/api/live").Decode[domain.LiveHeat]()
-		return condition(heat)
-	}, eventuallyTimeout, eventuallyTick, message)
-	return heat
-}

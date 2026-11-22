@@ -48,22 +48,13 @@ func TestHash(t *testing.T) {
 func TestHexBytes_MarshalText(t *testing.T) {
 	t.Parallel()
 
-	t.Run("writes space-separated upper-case hex bytes", func(t *testing.T) {
+	t.Run("writes space-separated upper-case hex bytes as a JSON string", func(t *testing.T) {
 		t.Parallel()
 
-		got, err := HexBytes{0x01, 0x02, 0x1E, 0xFF}.MarshalText()
+		got, err := json.Marshal(HexBytes{0x01, 0x02, 0x1E, 0xFF})
 
 		require.NoError(t, err)
-		assert.Equal(t, "01 02 1E FF", string(got))
-	})
-
-	t.Run("writes a JSON string", func(t *testing.T) {
-		t.Parallel()
-
-		got, err := json.Marshal(HexBytes{0x04, 0xA0})
-
-		require.NoError(t, err)
-		assert.JSONEq(t, `"04 A0"`, string(got))
+		assert.JSONEq(t, `"01 02 1E FF"`, string(got))
 	})
 }
 

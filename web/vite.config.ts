@@ -1,3 +1,4 @@
+import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath, URL } from 'node:url';
 
 import { defineConfig, type Plugin } from 'vite';
@@ -6,6 +7,24 @@ import vue from '@vitejs/plugin-vue';
 import ui from '@nuxt/ui/vite';
 
 import uiOptions from './ui.config.ts';
+
+/** The optional certificate of the dev server, which serves HTTPS once both files exist. */
+const DEV_CERTS = {
+  key: fileURLToPath(new URL('./.certs/key.pem', import.meta.url)),
+  cert: fileURLToPath(new URL('./.certs/cert.pem', import.meta.url)),
+};
+
+/** Returns the certificate of the dev server, or undefined to serve plain HTTP. */
+function devHttps(): { key: Buffer; cert: Buffer } | undefined {
+  if (!existsSync(DEV_CERTS.key) || !existsSync(DEV_CERTS.cert)) {
+    return undefined;
+  }
+
+  return {
+    key: readFileSync(DEV_CERTS.key),
+    cert: readFileSync(DEV_CERTS.cert),
+  };
+}
 
 /**
  * The oldest browser the overlays must run in. Streaming software often embeds an older Chromium,
@@ -51,6 +70,7 @@ export default defineConfig({
   },
   server: {
     host: true,
+    https: devHttps(),
     proxy: {
       // ws forwards the upgrade of the realtime connection as well
       '/api': {

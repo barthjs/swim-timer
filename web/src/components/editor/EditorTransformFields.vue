@@ -8,7 +8,7 @@ import type { Bounds } from '@/lib/editor/geometry';
 // or scales the selection as a whole, so its items keep their places relative to each other.
 const props = defineProps<{
   bounds: Bounds;
-  // The unit of the content, such as "px" or "mm".
+  // The unit of the content, such as "px" or "mm"
   unit: string;
 }>();
 
@@ -23,19 +23,19 @@ const y = computed(() => Math.round(props.bounds.minY));
 const width = computed(() => Math.round(props.bounds.maxX - props.bounds.minX));
 const height = computed(() => Math.round(props.bounds.maxY - props.bounds.minY));
 
-/** setX moves the selection to a new left edge. */
+/** Moves the selection to a new left edge. */
 function setX(value: number | null | undefined): void {
   if (typeof value !== 'number') return;
   emit('change', shifted(value - props.bounds.minX, 0));
 }
 
-/** setY moves the selection to a new top edge. */
+/** Moves the selection to a new top edge. */
 function setY(value: number | null | undefined): void {
   if (typeof value !== 'number') return;
   emit('change', shifted(0, value - props.bounds.minY));
 }
 
-/** setWidth scales the selection to a new width from its left edge. */
+/** Scales the selection to a new width from its left edge. */
 function setWidth(value: number | null | undefined): void {
   if (typeof value !== 'number' || value <= 0) return;
   emit('change', {
@@ -44,7 +44,7 @@ function setWidth(value: number | null | undefined): void {
   });
 }
 
-/** setHeight scales the selection to a new height from its top edge. */
+/** Scales the selection to a new height from its top edge. */
 function setHeight(value: number | null | undefined): void {
   if (typeof value !== 'number' || value <= 0) return;
   emit('change', {
@@ -53,7 +53,7 @@ function setHeight(value: number | null | undefined): void {
   });
 }
 
-/** shifted returns the bounds of the selection moved by an offset. */
+/** Returns the bounds of the selection moved by an offset. */
 function shifted(dx: number, dy: number): Bounds {
   return {
     minX: props.bounds.minX + dx,

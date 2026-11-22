@@ -8,10 +8,15 @@ on:
       - main
     paths:
       - 'docs/**'
-      - 'web/src/lib/docs.ts'
+      - 'web/src/lib/app/docs.ts'
       - '.github/workflows/docs.yaml'
 
   workflow_call:
+    inputs:
+      tag:
+        description: Tag of the release that calls the workflow
+        type: string
+        required: false
 
   workflow_dispatch:
 
@@ -62,13 +67,17 @@ jobs:
       - name: Unpack releases
         env:
           GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.tag }}
         run: |
-          for tag in $(gh release list --exclude-drafts --limit 1000 --json tagName --jq '.[].tagName'); do
-            # Releases from before the documentation have no archive
-            if gh release download "$tag" --pattern swim-timer_docs.tar.gz --dir "$RUNNER_TEMP/$tag" 2>/dev/null; then
-              mkdir -p "site/$tag"
-              tar -xzf "$RUNNER_TEMP/$tag/swim-timer_docs.tar.gz" -C "site/$tag"
-            fi
+          tags=$(gh release list --exclude-drafts --limit 1000 --json tagName --jq '.[].tagName')
+          # A release that was just published may be missing from the list for a moment
+          if [ -n "$RELEASE_TAG" ]; then
+            tags=$(printf '%s\n%s\n' "$tags" "$RELEASE_TAG" | sort -u)
+          fi
+          for tag in $tags; do
+            gh release download "$tag" --pattern swim-timer_docs.tar.gz --dir "$RUNNER_TEMP/$tag"
+            mkdir -p "site/$tag"
+            tar -xzf "$RUNNER_TEMP/$tag/swim-timer_docs.tar.gz" -C "site/$tag"
           done
 
       - name: Write index

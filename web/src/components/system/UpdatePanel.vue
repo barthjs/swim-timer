@@ -1,48 +1,49 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useTimeoutFn } from '@vueuse/core';
 
 import { metaRepository } from '@/api/repositories/meta';
 import { updateRepository } from '@/api/repositories/update';
-import type { UpdateCheckResponse, UpdateStatusResponse } from '@/api/types';
-import HelpHint from '@/components/form/HelpHint.vue';
-import { useApiError } from '@/composables/useApiError';
+import type { UpdateCheckResponse, UpdateStatusResponse } from '@/api/types/update';
+import { useApiError } from '@/composables/form/useApiError';
 import { useConfirm } from '@/composables/ui/useConfirm';
 import { useMutation } from '@/composables/form/useMutation';
-import { RestartState, isRestartAnswer, restartState } from '@/lib/update';
-
-// How long to wait after an answer before the update status and, during the restart, the server are asked again.
-const POLL_INTERVAL_MS = 2000;
+import { RestartState, isRestartAnswer, restartState } from '@/lib/app/update';
+import { useMetaStore } from '@/stores/meta';
 
 const emit = defineEmits<{
   // Reports whether the update is starting, running, or restarting, so the dialog stays open until the reload
   busy: [busy: boolean];
 }>();
 
+// How long to wait after an answer before the update status and, during the restart, the server are asked again
+const POLL_INTERVAL_MS = 2000;
+
 const { t } = useI18n();
 const { confirm } = useConfirm();
 const { messageFor } = useApiError();
+const metaStore = useMetaStore();
 
 const check = ref<UpdateCheckResponse | null>(null);
 const status = ref<UpdateStatusResponse | null>(null);
-// The server restarts after the update is installed and does not answer for a moment.
+// The server restarts after the update is installed and does not answer for a moment
 const restarting = ref(false);
-// The version before the update and the time the restart began, to tell when the new version answers.
+// The version before the update and the time the restart began, to tell when the new version answers
 const previousVersion = ref('');
 const restartStartedAt = ref(0);
-// Why following the update stopped: an error answer of the server, or a restart that took too long.
+// Why following the update stopped: an error answer of the server, or a restart that took too long
 const pollError = ref<string | null>(null);
 // Whether the update is followed, a request that is still running when it stops schedules no further one
 let following = false;
 
-const { mutate: runCheck, pending: checking } = useMutation(() => updateRepository.check(), {
+const { mutate: runCheck, pending: checking } = useMutation(async () => updateRepository.check(), {
   onSuccess: (result) => {
     check.value = result;
   },
 });
 
-const { mutate: start, pending: starting } = useMutation(() => updateRepository.start(), {
+const { mutate: start, pending: starting } = useMutation(async () => updateRepository.start(), {
   onSuccess: () => {
     previousVersion.value = check.value?.current ?? '';
     pollError.value = null;
@@ -54,8 +55,8 @@ const { mutate: start, pending: starting } = useMutation(() => updateRepository.
   },
 });
 
-// The next request is only scheduled once the previous one finished, so the requests do not pile up
-// while the server does not answer.
+// The next request is only scheduled once the previous one finished,
+// so the requests do not pile up while the server does not answer.
 const { start: schedulePoll, stop: cancelPoll } = useTimeoutFn(
   () => void poll(),
   POLL_INTERVAL_MS,
@@ -65,7 +66,7 @@ const { start: schedulePoll, stop: cancelPoll } = useTimeoutFn(
 );
 
 /**
- * poll follows the update until it is installed, then waits until the restarted server reports the new version.
+ * Follows the update until it is installed, then waits until the restarted server reports the new version.
  * It schedules the next request as long as the update is followed.
  */
 async function poll(): Promise<void> {
@@ -77,7 +78,7 @@ async function poll(): Promise<void> {
   if (following) schedulePoll();
 }
 
-/** followUpdate reads the state of the update and switches to the restart once it is installed. */
+/** Reads the state of the update and switches to the restart once it is installed. */
 async function followUpdate(): Promise<void> {
   try {
     status.value = await updateRepository.getStatus();
@@ -94,20 +95,20 @@ async function followUpdate(): Promise<void> {
   }
 }
 
-/** stopFollowing ends following the update. */
+/** Ends following the update. */
 function stopFollowing(): void {
   following = false;
   cancelPoll();
 }
 
-/** beginRestart switches to waiting for the restarted server. */
+/** Switches to waiting for the restarted server. */
 function beginRestart(): void {
   restarting.value = true;
   restartStartedAt.value = Date.now();
 }
 
 /**
- * waitForRestart reloads the page once the server answers with another version than before the update,
+ * Reloads the page once the server answers with another version than before the update,
  * and gives up after a timeout. The installed release can be newer than the checked one.
  */
 async function waitForRestart(): Promise<void> {
@@ -131,8 +132,7 @@ async function waitForRestart(): Promise<void> {
     pollError.value = t('update.restartTimeout');
   }
 }
-
-/** install starts the update after a confirmation. */
+/** Starts the update after a confirmation. */
 async function install(): Promise<void> {
   if (!check.value) return;
   const confirmed = await confirm({
@@ -146,8 +146,10 @@ async function install(): Promise<void> {
   if (confirmed) await start();
 }
 
-onMounted(() => void runCheck());
 onBeforeUnmount(stopFollowing);
+
+// The installed version is known before the first check, which only runs on a click
+const currentVersion = computed(() => check.value?.current ?? metaStore.meta?.version ?? '');
 
 const busy = computed(
   () => !pollError.value && (status.value?.state === 'running' || restarting.value),
@@ -165,20 +167,20 @@ watch(
 
 <template>
   <div class="flex flex-col gap-4">
-    <div class="flex flex-wrap items-center gap-3">
+    <div class="flex flex-col gap-2">
       <UButton
         icon="i-lucide-refresh-cw"
         color="neutral"
         variant="subtle"
+        block
         :loading="checking"
         :disabled="busy"
         @click="runCheck()"
       >
         {{ t('update.check') }}
       </UButton>
-      <HelpHint :text="t('update.hint')" />
-      <span v-if="check" class="text-muted text-sm">
-        {{ t('update.current', { version: check.current }) }}
+      <span v-if="currentVersion" class="text-muted text-sm">
+        {{ t('update.current', { version: currentVersion }) }}
       </span>
     </div>
 

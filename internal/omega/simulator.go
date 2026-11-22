@@ -49,8 +49,7 @@ func (realClock) After(d time.Duration) <-chan time.Time { return time.After(d) 
 // Option configures a Simulator.
 type Option func(*Simulator)
 
-// WithClock replaces the system time, for example with a clock that advances instantly in tests.
-// A nil clock is ignored.
+// WithClock replaces the system time, unless clock is nil.
 func WithClock(clock Clock) Option {
 	return func(s *Simulator) {
 		if clock != nil {
@@ -108,9 +107,9 @@ func (s *Simulator) Run(ctx context.Context, event, lapCount int, heats []Simula
 	}
 }
 
-// simulateHeat runs a single heat: a load frame, a start frame with the time of day, one time per swimmer and lap
-// at the moment it is reached, and an official frame. Swimmers get a random speed of 20 to 30 seconds per 50 meters
-// plus a penalty for their distance to the middle lane.
+// simulateHeat runs a single heat: a load frame, a start frame with the time of day,
+// one time per swimmer and lap at the moment it is reached, and an official frame.
+// Swimmers get a random speed of 20 to 30 seconds per 50 meters plus a penalty for their distance to the middle lane.
 func (s *Simulator) simulateHeat(ctx context.Context, event, lapCount int, heat SimulatedHeat) {
 	s.logger.Info().Int("event", event).Int("heat", heat.Number).Msg("simulating heat")
 
@@ -215,8 +214,8 @@ func (s *Simulator) simulateHeat(ctx context.Context, event, lapCount int, heat 
 }
 
 // wait waits for d on the clock of the simulator and reports whether the run goes on.
-// A canceled ctx ends the run even if d has elapsed as well, which select alone would pick at random.
 func (s *Simulator) wait(ctx context.Context, d time.Duration) bool {
+	// A canceled ctx ends the run even if d has elapsed as well, which select alone would pick at random
 	if ctx.Err() != nil {
 		return false
 	}

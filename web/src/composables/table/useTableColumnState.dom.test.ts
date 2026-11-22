@@ -1,7 +1,9 @@
 import { nextTick } from 'vue';
 import { afterEach, describe, expect, it } from 'vitest';
+import { faker } from '@faker-js/faker';
 
 import { useTableColumnState } from '@/composables/table/useTableColumnState';
+import { fakeDistinct } from '@/test/fake';
 import { withSetup } from '@/test/withSetup';
 
 describe('useTableColumnState', () => {
@@ -10,28 +12,35 @@ describe('useTableColumnState', () => {
   });
 
   it('starts with an unchanged layout', () => {
-    const { result: state } = withSetup(() => useTableColumnState('users'));
+    const { result: state } = withSetup(() => useTableColumnState(faker.lorem.slug()));
 
     expect(state.value).toEqual({
       order: [],
       hidden: [],
+      shown: [],
       sizing: {},
     });
   });
 
   it('keeps the layout per table in the browser', async () => {
-    const { result: state } = withSetup(() => useTableColumnState('users'));
+    const [table, otherTable] = fakeDistinct(() => faker.lorem.slug(), 2);
+    const [first, second, third] = fakeDistinct(() => faker.database.column(), 3);
+    const { result: state } = withSetup(() => useTableColumnState(table));
     state.value = {
-      order: ['email', 'name'],
-      hidden: ['role'],
+      order: [first, second],
+      hidden: [third],
+      shown: [],
       sizing: {
-        name: 240,
+        [first]: faker.number.int({
+          min: 80,
+          max: 400,
+        }),
       },
     };
     await nextTick();
 
-    const { result: restored } = withSetup(() => useTableColumnState('users'));
-    const { result: other } = withSetup(() => useTableColumnState('stickers'));
+    const { result: restored } = withSetup(() => useTableColumnState(table));
+    const { result: other } = withSetup(() => useTableColumnState(otherTable));
 
     expect(restored.value).toEqual(state.value);
     expect(other.value.hidden).toEqual([]);

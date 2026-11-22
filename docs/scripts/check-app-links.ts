@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 
 /**
- * missingTarget returns why a link of the interface into the documentation leads nowhere in the built site,
+ * Returns why a link of the interface into the documentation leads nowhere in the built site,
  * or undefined if its page exists and holds its anchor.
  */
 export async function missingTarget(dist: string, target: string): Promise<string | undefined> {
@@ -23,7 +23,7 @@ export async function missingTarget(dist: string, target: string): Promise<strin
   return undefined;
 }
 
-/** checkAppLinks fails if a page or section that the interface links to is missing from the built site. */
+/** Fails if a page or section that the interface links to is missing from the built site. */
 export async function checkAppLinks(dist: string, targets: string[]): Promise<void> {
   const problems: string[] = [];
   for (const target of targets) {
@@ -40,6 +40,6 @@ export async function checkAppLinks(dist: string, targets: string[]): Promise<vo
 
 // The targets are imported only here, so the tests do not load the web interface, whose packages may be missing
 if (import.meta.main) {
-  const { DOCS_PAGES } = await import('../../web/src/lib/docs.ts');
+  const { DOCS_PAGES } = await import('../../web/src/lib/app/docs.ts');
   await checkAppLinks(path.resolve(process.argv[2] ?? 'dist'), Object.values(DOCS_PAGES));
 }

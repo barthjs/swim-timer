@@ -40,7 +40,8 @@ Every release has a ZIP archive per architecture, which holds `swim-timer.exe`:
 | ARM64        | [swim-timer_windows_arm64.zip](https://github.com/barthjs/swim-timer/releases/latest/download/swim-timer_windows_arm64.zip) |
 | x86 (32-bit) | [swim-timer_windows_386.zip](https://github.com/barthjs/swim-timer/releases/latest/download/swim-timer_windows_386.zip)     |
 
-Unpack it into a directory of your choice and start `swim-timer.exe`, which opens the web interface in the browser.
+Unpack it into a directory of your choice and start `swim-timer.exe`.
+A double click on its icon in the notification area opens the web interface in the browser, and a right click opens the menu.
 
 ## Files
 

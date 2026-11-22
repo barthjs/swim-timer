@@ -1014,7 +1014,7 @@
                 "tags": [
                     "recordings"
                 ],
-                "summary": "Download recording",
+                "summary": "Get recording",
                 "parameters": [
                     {
                         "type": "string",
@@ -1322,7 +1322,7 @@
                         "SessionAuth": []
                     }
                 ],
-                "description": "Creates a webhook under a generated id and starts its deliveries. An empty secret is generated. The URL may use http or https and must not point to a private or local network outside the allowed networks of the configuration (Admin only).",
+                "description": "Creates a webhook under a generated id and starts its deliveries. An empty secret is generated. The response is the only one that holds the secret. The URL may use http or https and must not point to a private or local network outside the allowed networks of the configuration (Admin only).",
                 "consumes": [
                     "application/json"
                 ],
@@ -1435,7 +1435,7 @@
                         "SessionAuth": []
                     }
                 ],
-                "description": "Replaces the settings of the webhook with the given id, which take effect with its next delivery. An empty secret is generated anew. The URL is checked as on create (Admin only).",
+                "description": "Replaces the settings of the webhook with the given id, which take effect with its next delivery. An empty secret keeps the stored one. The URL is checked as on create (Admin only).",
                 "consumes": [
                     "application/json"
                 ],
@@ -1679,7 +1679,7 @@
                         "SessionAuth": []
                     }
                 ],
-                "description": "Sends a message of the type webhook.test to the webhook with the given id once, even if it is disabled, and returns the delivery. The delivery counts towards the state of the webhook (Admin only).",
+                "description": "Sends a message of the type webhook.test to the webhook with the given id once, even if it is disabled, and returns the delivery. The delivery shows in the log but leaves the state of the webhook alone (Admin only).",
                 "produces": [
                     "application/json"
                 ],
@@ -1833,9 +1833,11 @@
             "type": "object",
             "properties": {
                 "exists": {
+                    "description": "Exists is false until the file at Path is created.",
                     "type": "boolean"
                 },
                 "path": {
+                    "description": "Path is empty when a save creates a new config file.",
                     "type": "string"
                 }
             }
@@ -1856,6 +1858,7 @@
                     "$ref": "#/definitions/LogSettings"
                 },
                 "secrets": {
+                    "description": "Secrets reports by path whether each secret is set, since their values never leave the backend.",
                     "type": "object",
                     "additionalProperties": {
                         "type": "boolean"
@@ -1865,6 +1868,7 @@
                     "$ref": "#/definitions/ServerSettings"
                 },
                 "sources": {
+                    "description": "Sources names by path where each setting comes from.",
                     "type": "object",
                     "additionalProperties": {
                         "$ref": "#/definitions/ConfigSource"
@@ -1948,6 +1952,7 @@
             "type": "object",
             "properties": {
                 "kind": {
+                    "description": "Kind is the source of the value, where a flag or an environment variable overrides the config file,\nso a change saved to the file has no effect on such a setting.",
                     "type": "string",
                     "enum": [
                         "default",
@@ -1997,6 +2002,7 @@
                     "type": "string"
                 },
                 "requestId": {
+                    "description": "RequestID matches the X-Request-ID header and the log lines of the request.",
                     "type": "string"
                 }
             }
@@ -2023,10 +2029,11 @@
                     "type": "integer"
                 },
                 "phase": {
-                    "description": "Phase is the phase of the event, such as heats or final, and PhaseName its name, empty if unknown.",
+                    "description": "Phase is the number of the phase of the event.",
                     "type": "integer"
                 },
                 "phaseName": {
+                    "description": "PhaseName is the name of the phase, empty if unknown.",
                     "type": "string"
                 },
                 "style": {
@@ -2064,7 +2071,12 @@
             "type": "object",
             "properties": {
                 "competitor": {
-                    "$ref": "#/definitions/CompetitorResponse"
+                    "description": "Competitor is null if it does not exist.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/CompetitorResponse"
+                        }
+                    ]
                 },
                 "lane": {
                     "type": "integer"
@@ -2163,7 +2175,7 @@
                     "$ref": "#/definitions/HeatStatus"
                 },
                 "stopTime": {
-                    "description": "StopTime is the heat time in milliseconds the timer stops at once every lane the device reports in use\nhas finished, the highest finish time among them. It is 0 while a lane in use has not finished.",
+                    "description": "StopTime is the heat time in milliseconds the timer stops at once every lane the device reports in use has finished,\nthe highest finish time among them. It is 0 while a lane in use has not finished.",
                     "type": "integer"
                 }
             }
@@ -2280,6 +2292,7 @@
                     "$ref": "#/definitions/EventResponse"
                 },
                 "heat": {
+                    "description": "Heat is counted from 1.",
                     "type": "integer"
                 },
                 "loadedAt": {
@@ -2297,6 +2310,7 @@
             "type": "object",
             "properties": {
                 "competitors": {
+                    "description": "Competitors are listed once and referenced by id from the start entries.",
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/CompetitorResponse"
@@ -2400,11 +2414,13 @@
             "type": "object",
             "properties": {
                 "x": {
+                    "description": "X is the horizontal position in the output image as a fraction of its width.",
                     "type": "number",
                     "maximum": 1,
                     "minimum": 0
                 },
                 "y": {
+                    "description": "Y is the vertical position in the output image as a fraction of its height.",
                     "type": "number",
                     "maximum": 1,
                     "minimum": 0
@@ -2415,9 +2431,11 @@
             "type": "object",
             "properties": {
                 "x": {
+                    "description": "X is the horizontal position in the output image as a fraction of its width.",
                     "type": "number"
                 },
                 "y": {
+                    "description": "Y is the vertical position in the output image as a fraction of its height.",
                     "type": "number"
                 }
             }
@@ -2425,7 +2443,7 @@
         "PresetResponse": {
             "type": "object",
             "properties": {
-                "comment": {
+                "description": {
                     "type": "string"
                 },
                 "frameHeight": {
@@ -2472,7 +2490,7 @@
                 "textSize"
             ],
             "properties": {
-                "comment": {
+                "description": {
                     "type": "string",
                     "maxLength": 1000,
                     "minLength": 1
@@ -2499,6 +2517,7 @@
                     }
                 },
                 "name": {
+                    "description": "Name matches the name in the path and names the file, so 60 characters of up to 4 bytes\nstay within the 255 bytes a file name may have.",
                     "type": "string",
                     "maxLength": 60,
                     "minLength": 1
@@ -2507,14 +2526,10 @@
                     "type": "boolean"
                 },
                 "textAnchor": {
+                    "type": "string",
                     "enum": [
                         "left",
                         "right"
-                    ],
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/TextAnchor"
-                        }
                     ]
                 },
                 "textSize": {
@@ -2610,6 +2625,7 @@
                     "type": "integer"
                 },
                 "heat": {
+                    "description": "Heat is counted from 1.",
                     "type": "integer"
                 },
                 "lane": {
@@ -2652,17 +2668,6 @@
                     "type": "string"
                 }
             }
-        },
-        "TextAnchor": {
-            "type": "string",
-            "enum": [
-                "left",
-                "right"
-            ],
-            "x-enum-varnames": [
-                "TextAnchorLeft",
-                "TextAnchorRight"
-            ]
         },
         "ThemeSettings": {
             "type": "object",
@@ -2759,6 +2764,7 @@
                     "type": "boolean"
                 },
                 "unsupported": {
+                    "description": "Unsupported names why this installation cannot install the release itself, empty if it can.",
                     "type": "string",
                     "enum": [
                         "development_build",
@@ -2838,11 +2844,11 @@
                     "maxLength": 100
                 },
                 "secret": {
+                    "description": "Secret is generated when empty.",
                     "type": "string",
                     "maxLength": 255
                 },
                 "skipTlsVerify": {
-                    "description": "SkipTLSVerify accepts any certificate of the endpoint, such as a self-signed one.",
                     "type": "boolean"
                 },
                 "url": {
@@ -2861,10 +2867,11 @@
                     "type": "integer"
                 },
                 "error": {
+                    "description": "Error gives the technical details of ErrorCode for the log.",
                     "type": "string"
                 },
                 "errorCode": {
-                    "description": "ErrorCode names why a delivery got no response, and Error gives the technical details for the log.\nBoth are empty if the target answered.",
+                    "description": "ErrorCode names why a delivery got no response, empty if the target answered.",
                     "type": "string",
                     "enum": [
                         "blocked_address",
@@ -2905,6 +2912,7 @@
             "type": "object",
             "properties": {
                 "name": {
+                    "description": "Name is in lowercase.",
                     "type": "string"
                 },
                 "value": {
@@ -2919,6 +2927,7 @@
                     "type": "string"
                 },
                 "headers": {
+                    "description": "Headers are sorted by name.",
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/WebhookHeaderResponse"
@@ -2955,10 +2964,10 @@
                     "type": "string"
                 },
                 "secret": {
+                    "description": "Secret is only set in the response that created the webhook, since the secret is never shown again.",
                     "type": "string"
                 },
                 "skipTlsVerify": {
-                    "description": "SkipTLSVerify accepts any certificate of the endpoint, such as a self-signed one.",
                     "type": "boolean"
                 },
                 "status": {
@@ -2988,6 +2997,7 @@
                     "type": "string"
                 },
                 "lastErrorCode": {
+                    "description": "LastErrorCode names why the last failed delivery got no response, left out before the first failure.",
                     "type": "string",
                     "enum": [
                         "blocked_address",
@@ -3002,7 +3012,7 @@
                     "type": "string"
                 },
                 "lastStatusCode": {
-                    "description": "LastStatusCode and LastErrorCode describe the last failed delivery by the status of its response,\nor by the reason it got none. Both are left out before the first failure.",
+                    "description": "LastStatusCode is the status of the response to the last failed delivery, left out before the first failure.",
                     "type": "integer"
                 }
             }
@@ -3036,11 +3046,11 @@
                     "maxLength": 100
                 },
                 "secret": {
+                    "description": "Secret keeps the stored one when empty.",
                     "type": "string",
                     "maxLength": 255
                 },
                 "skipTlsVerify": {
-                    "description": "SkipTLSVerify accepts any certificate of the endpoint, such as a self-signed one.",
                     "type": "boolean"
                 },
                 "url": {

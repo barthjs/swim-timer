@@ -26,8 +26,7 @@ func Execute(version string) int {
 	}), nil)
 }
 
-// newRoot builds the command tree. Without a subcommand, the root command starts the application.
-// Every configuration setting is a persistent flag, so it can be passed to any command.
+// newRoot builds the command tree, whose root starts the application and takes every setting as a persistent flag.
 func newRoot(build cmdline.Build) *cobra.Command {
 	s := &state{
 		build: build,

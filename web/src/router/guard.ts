@@ -3,11 +3,7 @@ import type { RouteLocationNormalized, RouteLocationRaw } from 'vue-router';
 import { loginLocation } from '@/lib/auth/redirect';
 import { useAuthStore } from '@/stores/auth';
 
-/**
- * authGuard sends guests away from pages that need a login
- * and logged-in admins away from pages meant for guests, such as the login page.
- * Public pages pass without loading the session.
- */
+/** Sends guests away from pages that need a login and logged-in admins away from pages meant for guests. */
 export async function authGuard(to: RouteLocationNormalized): Promise<true | RouteLocationRaw> {
   if (!to.meta.requiresAuth && !to.meta.requiresGuest) return true;
 

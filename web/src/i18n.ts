@@ -16,14 +16,18 @@ export const i18n = createI18n({
   },
 });
 
-/** isSupportedLocale reports whether the app has translations for a language. */
+/** Reports whether the app has translations for a language. */
 function isSupportedLocale(value: string): value is SupportedLocale {
   return (supportedLocales as readonly string[]).includes(value);
 }
 
-/** setLocaleFromBackend switches the active locale to the backend-configured app-wide language. */
+/**
+ * Switches the active locale and the language of the document
+ * to the backend-configured app-wide language.
+ */
 export function setLocaleFromBackend(language: string): void {
   if (isSupportedLocale(language)) {
     i18n.global.locale.value = language;
+    document.documentElement.lang = language;
   }
 }

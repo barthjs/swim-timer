@@ -1,11 +1,11 @@
 ---
 import Default from '@astrojs/starlight/components/PageTitle.astro';
 
-import { breadcrumbs, type SidebarNode } from '../lib/breadcrumbs.ts';
+import { breadcrumbs } from '@/lib/breadcrumbs.ts';
 
 // The breadcrumbs start at the start page, which needs none itself
 const { sidebar, siteTitleHref, id } = Astro.locals.starlightRoute;
-const trail = id === '' ? [] : breadcrumbs(sidebar as SidebarNode[]);
+const trail = id === '' ? [] : breadcrumbs(sidebar);
 ---
 
 {trail.length > 0 && (

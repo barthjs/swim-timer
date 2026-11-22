@@ -9,8 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-chi/chi/v5"
-
 	"github.com/barthjs/swim-timer/internal/domain"
 	"github.com/barthjs/swim-timer/internal/service"
 )
@@ -43,19 +41,19 @@ func (a *API) meetOverviewGetHandler(w http.ResponseWriter, r *http.Request) {
 	a.writeJSON(w, r, http.StatusOK, ToMeetResponse(a.meetService.GetOverview()), nil)
 }
 
-// MeetResponse is the whole meet. Competitors are listed once and referenced by id from the start entries.
 type MeetResponse struct {
 	LoadedAt     *time.Time           `json:"loadedAt,omitzero"`
 	Events       []EventResponse      `json:"events"`
 	StartEntries []StartEntryResponse `json:"startEntries"`
-	Competitors  []CompetitorResponse `json:"competitors"`
+	// Competitors are listed once and referenced by id from the start entries.
+	Competitors []CompetitorResponse `json:"competitors"`
 }
 
-// EventResponse is an event of the meet with its references resolved.
 type EventResponse struct {
 	Number int `json:"number"`
-	// Phase is the phase of the event, such as heats or final, and PhaseName its name, empty if unknown.
-	Phase     int    `json:"phase"`
+	// Phase is the number of the phase of the event.
+	Phase int `json:"phase"`
+	// PhaseName is the name of the phase, empty if unknown.
 	PhaseName string `json:"phaseName"`
 	HeatCount int    `json:"heatCount"`
 	Name      string `json:"name"`
@@ -67,36 +65,32 @@ type EventResponse struct {
 	Category *CategoryResponse `json:"category"`
 }
 
-// DistanceResponse is the distance of an event.
 type DistanceResponse struct {
 	Name       string `json:"name"`
 	Length     int    `json:"length"`
 	RelayCount int    `json:"relayCount"`
 }
 
-// StyleResponse is the swimming style of an event.
 type StyleResponse struct {
 	Name         string `json:"name"`
 	Abbreviation string `json:"abbreviation"`
 }
 
-// CategoryResponse is the category of an event.
 type CategoryResponse struct {
 	Name         string `json:"name"`
 	Abbreviation string `json:"abbreviation"`
 }
 
-// StartEntryResponse places a competitor in a heat and lane. The heat is counted from 1.
 type StartEntryResponse struct {
-	Event         int `json:"event"`
-	Phase         int `json:"phase"`
+	Event int `json:"event"`
+	Phase int `json:"phase"`
+	// Heat is counted from 1.
 	Heat          int `json:"heat"`
 	Lane          int `json:"lane"`
 	RelayPosition int `json:"relayPosition"`
 	CompetitorID  int `json:"competitorId"`
 }
 
-// CompetitorResponse is a competitor of the meet.
 type CompetitorResponse struct {
 	ID        int    `json:"id"`
 	FirstName string `json:"firstName"`
@@ -128,7 +122,6 @@ func (a *API) meetEventListHandler(w http.ResponseWriter, r *http.Request) {
 	a.writeJSON(w, r, http.StatusOK, resp, nil)
 }
 
-// MeetEventListResponse is every event of the meet.
 type MeetEventListResponse struct {
 	LoadedAt *time.Time      `json:"loadedAt,omitzero"`
 	Events   []EventResponse `json:"events"`
@@ -164,7 +157,6 @@ func (a *API) meetEventGetHandler(w http.ResponseWriter, r *http.Request) {
 	}, nil)
 }
 
-// MeetEventResponse is one event of the meet.
 type MeetEventResponse struct {
 	LoadedAt *time.Time    `json:"loadedAt,omitzero"`
 	Event    EventResponse `json:"event"`
@@ -221,19 +213,19 @@ func (a *API) meetHeatGetHandler(w http.ResponseWriter, r *http.Request) {
 	a.writeJSON(w, r, http.StatusOK, resp, nil)
 }
 
-// MeetHeatResponse is an event and the start entries of one of its heats. The heat is counted from 1.
 type MeetHeatResponse struct {
-	LoadedAt     *time.Time               `json:"loadedAt,omitzero"`
-	Event        EventResponse            `json:"event"`
+	LoadedAt *time.Time    `json:"loadedAt,omitzero"`
+	Event    EventResponse `json:"event"`
+	// Heat is counted from 1.
 	Heat         int                      `json:"heat"`
 	StartEntries []HeatStartEntryResponse `json:"startEntries"`
 }
 
-// HeatStartEntryResponse places a competitor in a lane of a heat. Competitor is null if it does not exist.
 type HeatStartEntryResponse struct {
-	Lane          int                 `json:"lane"`
-	RelayPosition int                 `json:"relayPosition"`
-	Competitor    *CompetitorResponse `json:"competitor"`
+	Lane          int `json:"lane"`
+	RelayPosition int `json:"relayPosition"`
+	// Competitor is null if it does not exist.
+	Competitor *CompetitorResponse `json:"competitor"`
 }
 
 // meetCompetitorListHandler returns every competitor of the meet.
@@ -258,7 +250,6 @@ func (a *API) meetCompetitorListHandler(w http.ResponseWriter, r *http.Request) 
 	a.writeJSON(w, r, http.StatusOK, resp, nil)
 }
 
-// MeetCompetitorListResponse is every competitor of the meet.
 type MeetCompetitorListResponse struct {
 	LoadedAt    *time.Time           `json:"loadedAt,omitzero"`
 	Competitors []CompetitorResponse `json:"competitors"`
@@ -286,7 +277,6 @@ func (a *API) meetStartEntryListHandler(w http.ResponseWriter, r *http.Request) 
 	a.writeJSON(w, r, http.StatusOK, resp, nil)
 }
 
-// MeetStartEntryListResponse is the start list of the meet.
 type MeetStartEntryListResponse struct {
 	LoadedAt     *time.Time           `json:"loadedAt,omitzero"`
 	StartEntries []StartEntryResponse `json:"startEntries"`
@@ -393,7 +383,7 @@ func toCompetitorResponse(competitor *domain.Competitor) CompetitorResponse {
 func (a *API) meetFileListHandler(w http.ResponseWriter, r *http.Request) {
 	names, err := a.meetService.ListFiles(r.Context())
 	if err != nil {
-		a.serverErrorResponse(w, r, err)
+		a.respondError(w, r, err)
 		return
 	}
 
@@ -409,7 +399,6 @@ func (a *API) meetFileListHandler(w http.ResponseWriter, r *http.Request) {
 	a.writeJSON(w, r, http.StatusOK, resp, nil)
 }
 
-// MeetFileResponse reports whether a meet file is available and under which name it is stored.
 type MeetFileResponse struct {
 	File      string `json:"file"`
 	Filename  string `json:"filename,omitempty"`
@@ -433,7 +422,7 @@ type MeetFileResponse struct {
 //	@Security		SessionAuth
 //	@Router			/meet/files/{file} [put]
 func (a *API) meetFileSaveHandler(w http.ResponseWriter, r *http.Request) {
-	file, ok := domain.ParseMeetFile(chi.URLParam(r, "file"))
+	file, ok := domain.ParseMeetFile(pathParam(r, "file"))
 	if !ok {
 		a.notFoundResponse(w, r)
 		return
@@ -453,16 +442,15 @@ func (a *API) meetFileSaveHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := a.meetService.SaveFile(r.Context(), file, data); err != nil {
-		a.serverErrorResponse(w, r, err)
+		a.respondError(w, r, err)
 		return
 	}
 
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// meetFileUploadHandler stores every uploaded file whose name matches a meet file.
-// Each file is reported on its own, so one unknown or broken file does not reject the others.
-// It does not reload the meet data.
+// meetFileUploadHandler stores every uploaded meet file without reloading the meet data,
+// and reports each file on its own, so one unknown or broken file does not reject the others.
 //
 //	@Summary		Upload meet files
 //	@Description	Stores every file of the "files" field whose name, ignoring extension and case, matches a meet file. The meet data is not reloaded (Admin only).
@@ -503,7 +491,6 @@ func (a *API) meetFileUploadHandler(w http.ResponseWriter, r *http.Request) {
 	a.writeJSON(w, r, http.StatusOK, resp, nil)
 }
 
-// MeetFileUploadResponse reports for an uploaded file which meet file it was stored as, or why it was rejected.
 type MeetFileUploadResponse struct {
 	Filename string `json:"filename"`
 	File     string `json:"file,omitempty"`
@@ -558,8 +545,7 @@ func (a *API) storeMeetFileUpload(r *http.Request, header *multipart.FileHeader,
 	return result
 }
 
-// meetUploadAllowed reports whether an uploaded file has one of the extensions
-// the timing software exports and its content is plain text.
+// meetUploadAllowed reports whether an uploaded file has one of the extensions the timing software exports and its content is plain text.
 func meetUploadAllowed(filename string, data []byte) bool {
 	return meetUploadExtensionAllowed(filename) && uploadTypeAllowed(data, allowedMeetUploadTypes)
 }

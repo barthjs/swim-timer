@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n';
 
-import { type DocsPage, docsUrl } from '@/lib/docs';
+import { type DocsPage, docsUrl } from '@/lib/app/docs';
 
-// A button next to the title of a page that opens its section of the documentation in a new tab.
+// A button next to the title of a page that opens its section of the documentation in a new tab
 defineProps<{
   page: DocsPage;
 }>();

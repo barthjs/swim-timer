@@ -53,7 +53,7 @@ describe('releaseUrl', () => {
   });
 
   it('keeps links that do not point to the latest release', () => {
-    const links = [`${releases}`, `${releases}/tag/v1.0.0`, 'https://example.com/latest'];
+    const links = [releases, `${releases}/tag/v1.0.0`, 'https://example.com/latest'];
 
     const urls = links.map((link) => releaseUrl(link, releases, 'v1.2.3'));
 

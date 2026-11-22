@@ -1,6 +1,6 @@
 package domain
 
-// Recording is a stored recording of the timing data, named with its extension, such as recording_2026-10-18.jsonl.
+// Recording is a stored recording of the timing data.
 type Recording struct {
 	// Name is the file name with its extension.
 	Name string

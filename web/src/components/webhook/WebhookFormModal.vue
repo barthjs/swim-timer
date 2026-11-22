@@ -1,24 +1,22 @@
 <script setup lang="ts">
-import { computed, reactive, useTemplateRef, watch } from 'vue';
+import { useTemplateRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { webhookRepository } from '@/api/repositories/webhook';
-import { WebhookEvent, type WebhookCreateRequest, type WebhookResponse } from '@/api/types';
+import type { WebhookCreateRequest, WebhookResponse } from '@/api/types/webhook';
+import FormModal from '@/components/form/FormModal.vue';
 import HelpHint from '@/components/form/HelpHint.vue';
 import WebhookSecretField from '@/components/webhook/WebhookSecretField.vue';
+import { useEditDialog } from '@/composables/form/useEditDialog';
 import { useFormValidation, type FormErrorTarget } from '@/composables/form/useFormValidation';
-import { useMutation } from '@/composables/form/useMutation';
 import { FORM_VALIDATE_ON } from '@/lib/form/validation';
-
-// The maximum lengths the server accepts for the text fields of a webhook.
-const NAME_MAX = 100;
-const URL_MAX = 2048;
-const SECRET_MAX = 255;
+import type { WebhookEventOption } from '@/lib/webhook/webhook';
 
 // Creates a webhook, or edits the given one, in a dialog. Every webhook is saved on its own, right away.
 const props = defineProps<{
   // The webhook to edit, null for a new one
   webhook: WebhookResponse | null;
+  events: WebhookEventOption[];
 }>();
 
 const open = defineModel<boolean>('open', {
@@ -30,40 +28,39 @@ const emit = defineEmits<{
   saved: [webhook: WebhookResponse, created: boolean];
 }>();
 
+// The maximum lengths the server accepts for the text fields of a webhook
+const NAME_MAX = 100;
+const URL_MAX = 2048;
+const SECRET_MAX = 255;
+
 const { t } = useI18n();
 const form = useTemplateRef<FormErrorTarget>('form');
 
-const state = reactive<WebhookCreateRequest>({
-  name: '',
-  url: '',
-  events: [WebhookEvent.HeatUpdated],
-  enabled: true,
-  secret: '',
-  skipTlsVerify: false,
-});
-
-const eventItems = computed(() => [
-  {
-    label: t('pages.config.webhook.events.heatUpdated'),
-    description: t('pages.config.webhook.events.heatUpdatedHint'),
-    value: WebhookEvent.HeatUpdated,
-  },
-  {
-    label: t('pages.config.webhook.events.meetReloaded'),
-    description: t('pages.config.webhook.events.meetReloadedHint'),
-    value: WebhookEvent.MeetReloaded,
-  },
-]);
-
-// Each opening starts from the edited webhook, or from the defaults of a new one
-watch(open, (isOpen) => {
-  if (!isOpen) return;
-  state.name = props.webhook?.name ?? '';
-  state.url = props.webhook?.url ?? '';
-  state.events = props.webhook ? [...props.webhook.events] : [WebhookEvent.HeatUpdated];
-  state.enabled = props.webhook?.enabled ?? true;
-  state.secret = props.webhook?.secret ?? '';
-  state.skipTlsVerify = props.webhook?.skipTlsVerify ?? false;
+// Each opening starts from the edited webhook, or from the defaults of a new one.
+// The secret of a saved webhook is never shown again, so its field starts empty
+// and keeps the stored secret unless a new one is entered.
+const {
+  open: openProxy,
+  state,
+  attemptClose,
+  save,
+  saving,
+} = useEditDialog<WebhookResponse, WebhookCreateRequest, WebhookResponse>({
+  open,
+  row: () => props.webhook,
+  initial: (webhook) => ({
+    name: webhook?.name ?? '',
+    url: webhook?.url ?? '',
+    events: webhook ? [...webhook.events] : props.events.slice(0, 1).map((event) => event.value),
+    enabled: webhook?.enabled ?? true,
+    secret: '',
+    skipTlsVerify: webhook?.skipTlsVerify ?? false,
+  }),
+  create: async (current) => webhookRepository.create(current),
+  update: async (webhook, current) => webhookRepository.update(webhook.id, current),
+  success: () => t('webhook.saved'),
+  onSaved: (webhook, isEdit) => emit('saved', webhook, !isEdit),
+  form,
 });
 
 const { validate } = useFormValidation<WebhookCreateRequest>(() => ({
@@ -82,95 +79,66 @@ const { validate } = useFormValidation<WebhookCreateRequest>(() => ({
     max: SECRET_MAX,
   },
 }));
-
-const { mutate: save, pending: saving } = useMutation(
-  () =>
-    props.webhook
-      ? webhookRepository.update(props.webhook.id, state)
-      : webhookRepository.create(state),
-  {
-    form,
-    values: state,
-    success: t('pages.config.webhook.saved'),
-    onSuccess: (webhook) => {
-      open.value = false;
-      emit('saved', webhook, !props.webhook);
-    },
-  },
-);
 </script>
 
 <template>
-  <UModal
-    v-model:open="open"
-    :title="webhook ? t('pages.config.webhook.edit') : t('pages.config.webhook.new')"
+  <FormModal
+    v-model:open="openProxy"
+    :title="webhook ? t('webhook.edit') : t('webhook.new')"
+    form-id="webhook-form"
+    :submit-label="t('common.save')"
+    :loading="saving"
     :ui="{ content: 'sm:max-w-2xl' }"
+    @cancel="attemptClose"
   >
-    <template #body>
-      <UForm
-        :validate-on="FORM_VALIDATE_ON"
-        id="webhook-form"
-        ref="form"
-        :state="state"
-        :validate="validate"
-        class="flex flex-col gap-4"
-        @submit="void save()"
-      >
-        <UFormField :label="t('fields.name')" name="name" required>
-          <UInput v-model="state.name" :maxlength="NAME_MAX" autofocus class="w-full" />
-        </UFormField>
-        <UFormField :label="t('fields.url')" name="url" required>
-          <template #hint>
-            <HelpHint :text="t('pages.config.webhook.urlHint')" />
-          </template>
-          <UInput
-            v-model="state.url"
-            :maxlength="URL_MAX"
-            type="url"
-            placeholder="https://example.com/webhook"
-            class="w-full"
-          />
-        </UFormField>
-        <UFormField :label="t('fields.events')" name="events" required>
-          <UCheckboxGroup v-model="state.events" :items="eventItems" />
-        </UFormField>
-        <UFormField :label="t('fields.secret')" name="secret">
-          <template #hint>
-            <HelpHint :text="t('pages.config.webhook.secretHint')" />
-          </template>
-          <WebhookSecretField
-            v-model="state.secret"
-            :maxlength="SECRET_MAX"
-            :placeholder="t('pages.config.webhook.secretPlaceholder')"
-          />
-        </UFormField>
-        <UFormField :label="t('fields.skipTlsVerify')" name="skipTlsVerify">
-          <template #hint>
-            <HelpHint :text="t('pages.config.webhook.skipTlsVerifyHint')" />
-          </template>
-          <USwitch v-model="state.skipTlsVerify" />
-        </UFormField>
-        <UFormField :label="t('fields.enabled')" name="enabled">
-          <USwitch v-model="state.enabled" />
-        </UFormField>
-      </UForm>
-    </template>
-    <template #footer>
-      <div class="flex w-full justify-end gap-2">
-        <UButton
-          :label="t('common.cancel')"
-          color="neutral"
-          variant="outline"
-          @click="open = false"
+    <UForm
+      id="webhook-form"
+      ref="form"
+      :validate-on="FORM_VALIDATE_ON"
+      :state="state"
+      :validate="validate"
+      class="flex flex-col gap-4"
+      @submit="void save()"
+    >
+      <UFormField :label="t('fields.name')" name="name" required>
+        <UInput v-model="state.name" :maxlength="NAME_MAX" class="w-full" />
+      </UFormField>
+      <UFormField :label="t('fields.url')" name="url" required>
+        <template #hint>
+          <HelpHint :text="t('webhook.urlHint')" />
+        </template>
+        <UInput
+          v-model="state.url"
+          :maxlength="URL_MAX"
+          type="url"
+          placeholder="https://example.com/webhook"
+          class="w-full"
         />
-        <UButton
-          type="submit"
-          form="webhook-form"
-          :label="t('common.save')"
-          icon="i-lucide-save"
-          :loading="saving"
+      </UFormField>
+      <UFormField :label="t('fields.events')" name="events" required>
+        <UCheckboxGroup v-model="state.events" :items="events" />
+      </UFormField>
+      <UFormField :label="t('fields.secret')" name="secret">
+        <template #hint>
+          <HelpHint :text="webhook ? t('webhook.secretKeepHint') : t('webhook.secretHint')" />
+        </template>
+        <WebhookSecretField
+          v-model="state.secret"
+          :maxlength="SECRET_MAX"
+          :placeholder="
+            webhook ? t('webhook.secretKeepPlaceholder') : t('webhook.secretPlaceholder')
+          "
         />
-      </div>
-    </template>
-  </UModal>
+      </UFormField>
+      <UFormField :label="t('fields.skipTlsVerify')" name="skipTlsVerify">
+        <template #hint>
+          <HelpHint :text="t('webhook.skipTlsVerifyHint')" />
+        </template>
+        <USwitch v-model="state.skipTlsVerify" />
+      </UFormField>
+      <UFormField :label="t('fields.enabled')" name="enabled">
+        <USwitch v-model="state.enabled" />
+      </UFormField>
+    </UForm>
+  </FormModal>
 </template>

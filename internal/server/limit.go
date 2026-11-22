@@ -14,9 +14,8 @@ type limitedBody struct {
 	original io.ReadCloser
 }
 
-// BodyLimit limits the request body to maxBytes. Reading beyond it fails with *http.MaxBytesError.
-// Applied globally it sets the default, and applied again to a group or a route,
-// it replaces the default for that route. A limit of 0 or less removes the limit.
+// BodyLimit limits the request body to maxBytes, or removes the limit for 0, and replaces a limit applied before,
+// so a group or a route can change the default.
 func BodyLimit(maxBytes int64) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -39,15 +38,14 @@ func BodyLimit(maxBytes int64) func(http.Handler) http.Handler {
 	}
 }
 
-// Timeout bounds the time a route has to read the request and write the response.
-// It sets the read and write deadline of the connection, which replaces the server-wide timeouts for this request,
-// and a context deadline handlers can react to. Applied again to a group or a route, it replaces the earlier timeout.
-// A timeout of 0 or fewer removes both, for long-lived responses such as streams.
+// Timeout sets the deadlines of the connection and the request context, or removes them for 0,
+// and replaces a timeout applied before, so a group or a route can change the default.
 func Timeout(timeout time.Duration) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			controller := http.NewResponseController(w)
 
+			// The zero deadline lets long-lived responses run
 			var deadline time.Time
 			if timeout > 0 {
 				deadline = time.Now().Add(timeout)
@@ -56,8 +54,8 @@ func Timeout(timeout time.Duration) func(http.Handler) http.Handler {
 			_ = controller.SetReadDeadline(deadline)
 			_ = controller.SetWriteDeadline(deadline)
 
-			// The deadline derives from the request context before any Timeout ran, so a longer timeout for a route
-			// is not cut short by a shorter one of its group. Cancellation by the client still applies.
+			// The deadline derives from the request context before any Timeout ran,
+			// so a longer timeout for a route is not cut short by a shorter one of its group. Cancellation by the client still applies.
 			base, ok := r.Context().Value(timeoutBaseKey{}).(context.Context)
 			if !ok {
 				base = r.Context()

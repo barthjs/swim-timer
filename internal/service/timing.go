@@ -19,8 +19,8 @@ import (
 	"github.com/barthjs/swim-timer/internal/store"
 )
 
-// recentHeatCount bounds the heats kept with their times, so a frame for a heat shown shortly before,
-// such as a late correction, shows it again with its times instead of starting it empty.
+// recentHeatCount bounds the heats kept with their times, so a late frame for a heat shown shortly before
+// shows it again with its times instead of starting it empty.
 const recentHeatCount = 8
 
 const (
@@ -107,8 +107,8 @@ type TimingService struct {
 	heat *domain.LiveHeat
 }
 
-// NewTimingService creates a TimingService. With a recorder, it also records the received data. It may be nil.
-// onPublish receives every published live heat after the overlays and must not change it. It may be nil.
+// NewTimingService creates a TimingService with an optional recorder of the received data
+// and an optional onPublish that receives every published live heat after the overlays and must not change it.
 func NewTimingService(
 	logger zerolog.Logger,
 	options TimingOptions,
@@ -197,7 +197,6 @@ func (s *TimingService) Snapshot() ([]byte, error) {
 }
 
 // RecordMeet records the meet files in use from now on, so the following data can be assigned to its meet.
-// The meet service calls it after every successful reload. Without recording it does nothing.
 func (s *TimingService) RecordMeet() {
 	if s.recorder == nil {
 		return
@@ -287,10 +286,11 @@ func (s *TimingService) recordLateOfficial(frame omega.Frame, key heatKey, lapCo
 	}
 }
 
-// startHeat applies a start frame to its heat and shows that heat. A start for an official heat
-// and a repetition of the last start of the heat are ignored. After loading the next heat, the device sometimes
-// repeats the previous start under the new heat number, so such a start is held back until a time confirms it.
+// startHeat applies a start frame to its heat and shows that heat, see the page concepts/special-cases.
 func (s *TimingService) startHeat(frame omega.Frame, start startCorrection) {
+	// A start for an official heat and a repetition of the last start of the heat are ignored.
+	// After loading the next heat, the device sometimes repeats the previous start under the new heat number,
+	// so such a start is held back until a time confirms it.
 	event, heat, lapCount, ok := s.parseHeat(frame)
 	if !ok {
 		return
@@ -346,10 +346,11 @@ func (s *TimingService) repeatsLastStart(key heatKey, start startCorrection) boo
 	return start.valid && s.lastStart != nil && s.lastStart.key != key && s.lastStart.omegaMS == start.omegaMS
 }
 
-// updateTime records the time of a lane at a lap and shows its heat, so a heat whose load and start frames
-// were missed still appears. A time confirms a held back start of its heat and adds a lane without a start entry.
-// A button time only fills a lap without a time, since it backs up a missed touch.
+// updateTime records the time of a lane at a lap and shows its heat,
+// so a heat whose load and start frames were missed still appears, see the page concepts/special-cases.
 func (s *TimingService) updateTime(frame omega.Frame, kind timeKind) {
+	// A time confirms a held back start of its heat and adds a lane without a start entry.
+	// A button time only fills a lap without a time, since it backs up a missed touch.
 	event, heat, lapCount, ok := s.parseHeat(frame)
 	if !ok {
 		return
@@ -487,8 +488,9 @@ func (s *TimingService) applyStart(state *heatState, lapCount int, start startCo
 	}
 }
 
-// publish stores a new live heat, broadcasts it, and hands it to onPublish. The message is encoded under the lock,
-// so the stored and the broadcast state match, but sent after releasing it, so a slow broadcast never blocks readers.
+// publish stores a new live heat, broadcasts it, and hands it to onPublish.
+// The message is encoded under the lock, so the stored and the broadcast state match,
+// but sent after releasing it, so a slow broadcast never blocks readers.
 func (s *TimingService) publish(state *domain.LiveHeat) {
 	s.mu.Lock()
 	message, err := json.Marshal(domain.NewMessage(domain.MessageUpdate, state))
@@ -506,8 +508,7 @@ func (s *TimingService) publish(state *domain.LiveHeat) {
 	}
 }
 
-// getPoolLength returns the pool length of an event in meters: the configured one, or else the distance
-// of the event divided by the lap count the device transmits, with 50 m if either is unknown.
+// getPoolLength returns the configured pool length of an event in meters, or derives it from the distance and lap count.
 func (s *TimingService) getPoolLength(event, lapCount int) int {
 	if s.options.PoolLength > 0 {
 		return s.options.PoolLength
@@ -655,8 +656,8 @@ func (h *heatState) record(lane, lap int, result lapResult) {
 	laps[lap] = result
 }
 
-// updateLanes shows for every lane the time of its highest lap with its rank at that lap. The ranks are computed
-// from the times instead of taken from the device, which only sends the rank of the lane of the frame.
+// updateLanes shows for every lane the time of its highest lap with its rank at that lap.
+// The ranks are computed from the times instead of taken from the device, which only sends the rank of the lane of the frame.
 func (h *heatState) updateLanes(poolLength int) {
 	ranks := lapRanks(h.results, h.heat.LapCount)
 
@@ -676,8 +677,8 @@ func (h *heatState) updateLanes(poolLength int) {
 	}
 }
 
-// updateStopTime sets the stop time of the heat to the highest finish time once every lane the device reports
-// in use has finished, and clears it otherwise.
+// updateStopTime sets the stop time of the heat to the highest finish time
+// once every lane the device reports in use has finished, and clears it otherwise.
 func (h *heatState) updateStopTime() {
 	h.heat.StopTime = 0
 	if len(h.usedLanes) == 0 {
@@ -696,7 +697,7 @@ func (h *heatState) updateStopTime() {
 }
 
 // liveHeat returns a copy of the heat as the overlays receive it, without the lanes that have no time
-// and that the device does not report in use. A lane with a time stays, since the mask also drops lanes in use.
+// and that the device does not report in use.
 func (h *heatState) liveHeat() *domain.LiveHeat {
 	heat := h.heat.Copy()
 	if len(h.usedLanes) == 0 {
@@ -707,6 +708,7 @@ func (h *heatState) liveHeat() *domain.LiveHeat {
 	for _, frameLane := range h.usedLanes {
 		inUse[laneNumber(heat.FirstLane, frameLane)] = true
 	}
+	// A lane with a time stays, since the mask also drops lanes in use
 	for number := range heat.Lanes {
 		if !inUse[number] && len(h.results[number]) == 0 {
 			delete(heat.Lanes, number)
@@ -784,9 +786,8 @@ type heldStart struct {
 	start    startCorrection
 }
 
-// startClock corrects the start time of a heat by the delay of its start signal. A start signal is only ever delayed,
-// so the smallest offset between the local time of day and the device's time of day of any start is the baseline
-// of an on-time signal, and a late start is shifted back by its delay. It is not safe for concurrent use.
+// startClock corrects the start time of a heat by the delay of its start signal, see the page concepts/start-time-correction,
+// and is not safe for concurrent use.
 type startClock struct {
 	logger zerolog.Logger
 	// zone is the zone offset of the host when the clock started, see localTimeOfDayMS.
@@ -850,16 +851,16 @@ func (c *startClock) correct(frame omega.Frame, now time.Time) startCorrection {
 	}
 }
 
-// localTimeOfDayMS returns the milliseconds since midnight of t in its zone. Callers pass the fixed zone
-// the host had at startup, since the device clock does not follow a daylight saving change.
+// localTimeOfDayMS returns the milliseconds since midnight of t in its zone.
+// Callers pass the fixed zone the host had at startup, since the device clock does not follow a daylight saving change.
 func localTimeOfDayMS(t time.Time) int {
 	h, m, sec := t.Clock()
 	ms := t.Nanosecond() / 1_000_000
 	return (h*3600+m*60+sec)*1000 + ms
 }
 
-// clockOffset returns the difference between the local and the device's time of day, wrapped into twelve hours
-// in both directions, so it stays continuous when only one of the clocks has passed midnight.
+// clockOffset returns the difference between the local and the device's time of day,
+// wrapped into twelve hours in both directions, so it stays continuous when only one of the clocks has passed midnight.
 func clockOffset(localDayMS, omegaTimeMS int) time.Duration {
 	const (
 		dayMS     = 24 * 60 * 60 * 1000
@@ -876,8 +877,8 @@ func clockOffset(localDayMS, omegaTimeMS int) time.Duration {
 	return time.Duration(offset) * time.Millisecond
 }
 
-// updateBaseline adjusts the baseline to the offset of a start and returns the baseline the start is measured
-// against. It reports false for an offset further below a confirmed baseline than the clocks can drift.
+// updateBaseline adjusts the baseline to the offset of a start and returns the baseline the start is measured against.
+// It reports false for an offset further below a confirmed baseline than the clocks can drift.
 func (c *startClock) updateBaseline(offset time.Duration) (time.Duration, bool) {
 	if c.baseline == nil {
 		c.baseline = &offset

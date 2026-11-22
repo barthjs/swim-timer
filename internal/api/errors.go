@@ -30,15 +30,13 @@ const (
 	codeServerError            = "server_error"
 )
 
-// ErrorResponse is the JSON body for all non-validation error responses.
-// RequestID matches the X-Request-ID header and the log lines of the request.
 type ErrorResponse struct {
-	Code      string `json:"code"`
-	Message   string `json:"message"`
+	Code    string `json:"code"`
+	Message string `json:"message"`
+	// RequestID matches the X-Request-ID header and the log lines of the request.
 	RequestID string `json:"requestId,omitempty"`
 }
 
-// ValidationErrorResponse is the JSON body for a 422 with per-field details.
 type ValidationErrorResponse struct {
 	Code      string      `json:"code"`
 	Message   string      `json:"message"`
@@ -63,6 +61,12 @@ func (a *API) respondError(w http.ResponseWriter, r *http.Request, err error) {
 	}
 
 	switch {
+	case errors.Is(err, apperr.ErrInvalidSort):
+		a.badRequestResponse(w, r, err)
+	case errors.Is(err, apperr.ErrAuthenticationRequired):
+		a.authenticationRequiredResponse(w, r)
+	case errors.Is(err, apperr.ErrForbidden):
+		a.forbiddenResponse(w, r)
 	case errors.Is(err, apperr.ErrNotFound):
 		a.notFoundResponse(w, r)
 	case errors.Is(err, apperr.ErrConflict):

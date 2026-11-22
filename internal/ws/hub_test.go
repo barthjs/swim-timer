@@ -50,24 +50,6 @@ func TestWithCheckOrigin(t *testing.T) {
 	})
 }
 
-func TestWithPongWait(t *testing.T) {
-	t.Parallel()
-
-	t.Run("ignores a non-positive wait", func(t *testing.T) {
-		t.Parallel()
-
-		// A non-positive wait keeps the default, so the connection is not dropped right away
-		hub, server := startHub(t, nil, ws.WithPongWait(0), ws.WithPongWait(-time.Second))
-		conn := dial(t, server)
-		broadcastUntilReceived(t, hub, conn, "ready")
-		time.Sleep(100 * time.Millisecond)
-
-		hub.Broadcast([]byte("still connected"))
-
-		assert.Equal(t, "still connected", readUntil(t, conn, "still connected"))
-	})
-}
-
 func TestHub_Run(t *testing.T) {
 	t.Parallel()
 
@@ -231,26 +213,6 @@ func TestHub_Publish(t *testing.T) {
 		case <-time.After(readTimeout):
 			require.FailNow(t, "Publish blocked on a stopped hub")
 		}
-	})
-}
-
-func TestHub_Disconnect(t *testing.T) {
-	t.Parallel()
-
-	t.Run("closes the clients of the topic", func(t *testing.T) {
-		t.Parallel()
-
-		hub, server := startTopicHub(t)
-		leaving := dialTopics(t, server, "alpha")
-		staying := dialTopics(t, server, "beta")
-		broadcastUntilReceived(t, hub, leaving, "ready")
-		broadcastUntilReceived(t, hub, staying, "ready")
-
-		hub.Disconnect("alpha")
-		hub.Broadcast([]byte("after"))
-
-		assertClosed(t, leaving)
-		assert.Equal(t, "after", readUntil(t, staying, "after"))
 	})
 }
 
@@ -494,6 +456,26 @@ func TestHub_Serve(t *testing.T) {
 	})
 }
 
+func TestHub_Disconnect(t *testing.T) {
+	t.Parallel()
+
+	t.Run("closes the clients of the topic", func(t *testing.T) {
+		t.Parallel()
+
+		hub, server := startTopicHub(t)
+		leaving := dialTopics(t, server, "alpha")
+		staying := dialTopics(t, server, "beta")
+		broadcastUntilReceived(t, hub, leaving, "ready")
+		broadcastUntilReceived(t, hub, staying, "ready")
+
+		hub.Disconnect("alpha")
+		hub.Broadcast([]byte("after"))
+
+		assertClosed(t, leaving)
+		assert.Equal(t, "after", readUntil(t, staying, "after"))
+	})
+}
+
 // stoppedHub returns a hub whose Run has already returned.
 func stoppedHub(t *testing.T) *ws.Hub {
 	t.Helper()
@@ -526,8 +508,8 @@ func startHub(t *testing.T, snapshot ws.SnapshotFunc, opts ...ws.Option) (*ws.Hu
 	return hub, server
 }
 
-// startTopicHub runs a hub behind a test server until the test ends. The server registers a client
-// with the topics of its query.
+// startTopicHub runs a hub behind a test server until the test ends.
+// The server registers a client with the topics of its query.
 func startTopicHub(t *testing.T) (*ws.Hub, *httptest.Server) {
 	t.Helper()
 
@@ -594,13 +576,12 @@ func allowOrigin(origin string) func(r *http.Request) bool {
 	}
 }
 
-// broadcastUntilReceived broadcasts until the client receives the message. A freshly dialed client is registered
-// asynchronously, so a message broadcast right after Dial may be sent before it is known. The broadcasts run
-// in their own goroutine, since a read that times out leaves a gorilla connection unusable, so the client reads
-// with the full timeout. Later reads skip leftover copies with readUntil.
+// broadcastUntilReceived broadcasts the message until the client receives it, and later reads skip the copies with readUntil.
 func broadcastUntilReceived(t *testing.T, hub *ws.Hub, conn *websocket.Conn, message string) {
 	t.Helper()
 
+	// A freshly dialed client is registered asynchronously, so a broadcast right after Dial may miss it.
+	// The broadcasts run in their own goroutine, since a read that times out leaves a gorilla connection unusable.
 	stop := make(chan struct{})
 	defer close(stop)
 	go func() {

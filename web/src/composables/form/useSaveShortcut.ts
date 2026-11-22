@@ -2,26 +2,23 @@ import { computed, isRef, toValue, type MaybeRefOrGetter, type Ref } from 'vue';
 import { defineShortcuts } from '@nuxt/ui/composables';
 import type { Form, FormSchema } from '@nuxt/ui';
 
-import { useShortcutLabels, type ShortcutKey } from '@/composables/useShortcutLabels';
+import { useShortcutLabels, type ShortcutKey } from '@/composables/ui/useShortcutLabels';
+import { shortcutDefinition } from '@/lib/ui/shortcuts';
 
-/** SubmitTarget is the part of a Nuxt UI form instance the save shortcut submits. */
+/** The part of a Nuxt UI form instance the save shortcut submits. */
 export type SubmitTarget = Pick<Form<FormSchema>, 'submit'>;
 
-/** SaveTarget is a form to submit or a callback that saves. */
+/** A form to submit or a callback that saves. */
 export type SaveTarget = Readonly<Ref<SubmitTarget | null | undefined>> | (() => unknown);
 
-/** SAVE_SHORTCUT holds the keys of the save shortcut, Ctrl+S or Cmd+S on macOS. */
+/** Holds the keys of the save shortcut, Ctrl+S or Cmd+S on macOS. */
 export const SAVE_SHORTCUT: ShortcutKey[] = ['meta', 's'];
 
-/**
- * useSaveShortcut saves with Ctrl+S, or Cmd+S on macOS, also while a text field has the focus.
- * A form is submitted, so the shortcut validates and saves like its submit button.
- * The shortcut always replaces the save dialog of the browser, but only saves while it is enabled.
- */
+/** Saves with Ctrl+S or Cmd+S like the submit button while it is enabled, instead of the browser. */
 export function useSaveShortcut(target: SaveTarget, enabled: MaybeRefOrGetter<boolean> = true) {
   const { keyLabels } = useShortcutLabels();
 
-  /** save submits the form or runs the callback while the shortcut is enabled. */
+  /** Submits the form or runs the callback while the shortcut is enabled. */
   function save(): void {
     if (!toValue(enabled)) return;
     if (isRef(target)) {
@@ -32,7 +29,7 @@ export function useSaveShortcut(target: SaveTarget, enabled: MaybeRefOrGetter<bo
   }
 
   defineShortcuts({
-    [SAVE_SHORTCUT.join('_')]: {
+    [shortcutDefinition(SAVE_SHORTCUT)]: {
       usingInput: true,
       handler: save,
     },

@@ -1,7 +1,6 @@
 package structconf
 
 import (
-	"path/filepath"
 	"testing"
 
 	"github.com/spf13/pflag"
@@ -77,17 +76,6 @@ func TestSources(t *testing.T) {
 			assert.Equal(t, source, sources[key], key)
 		}
 		assert.Len(t, sources, len(Leaves(&tagConfig{})), "every setting has a source")
-	})
-
-	t.Run("returns the default without a file", func(t *testing.T) {
-		t.Setenv("CONFIG_FILE", filepath.Join(t.TempDir(), "missing.yaml"))
-
-		sources, err := Sources(testAppName, nil, &tagConfig{})
-
-		require.NoError(t, err)
-		assert.Equal(t, Source{
-			Kind: SourceDefault,
-		}, sources["demo.name"])
 	})
 }
 

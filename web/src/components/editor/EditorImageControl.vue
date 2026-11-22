@@ -3,17 +3,17 @@ import { useI18n } from 'vue-i18n';
 
 // The background image of an editor in the toolbar. Without an image, the button opens the file picker.
 // With one, it opens a menu with the opacity, another image, and removing it.
+defineProps<{
+  // What the editor calls its image, such as a background image
+  label: string;
+  hasImage: boolean;
+  // The key labels of the shortcut that picks an image
+  kbds: string[];
+}>();
+
 const opacity = defineModel<number>('opacity', {
   required: true,
 });
-
-defineProps<{
-  // What the editor calls its image, such as a background image.
-  label: string;
-  hasImage: boolean;
-  // The key labels of the shortcut that picks an image.
-  kbds: string[];
-}>();
 
 const emit = defineEmits<{
   pick: [];
@@ -21,6 +21,11 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
+
+/** Takes the value of the slider, which reports undefined when it has none. */
+function updateOpacity(value: number | undefined): void {
+  if (value !== undefined) opacity.value = value;
+}
 </script>
 
 <template>
@@ -32,7 +37,13 @@ const { t } = useI18n();
     <template #content>
       <div class="flex w-64 flex-col gap-3 p-3">
         <UFormField :label="t('editor.image.opacity')">
-          <USlider v-model="opacity" :min="0.1" :max="1" :step="0.05" />
+          <USlider
+            :model-value="opacity"
+            :min="0.1"
+            :max="1"
+            :step="0.05"
+            @update:model-value="updateOpacity"
+          />
         </UFormField>
         <div class="flex gap-2">
           <UButton

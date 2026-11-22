@@ -14,13 +14,8 @@ func TemplateFuncs() map[string]any {
 	return map[string]any{missingFunc: emptyIfMissing}
 }
 
-// BlankMissing makes a parsed template print nothing for a missing value instead of "<no value>",
-// such as a key that is not in the data map, a field of a missing value, or a nil pointer.
-// It pipes the result of every output action through emptyIfMissing, so "{{ .Name }}" runs as
-// "{{ .Name | emptyIfMissing }}". Actions that only declare variables print nothing and stay as they are.
-// Call it on every template of a set after parsing and before the first execution, for both text/template
-// and html/template. Other template sets can use it as well, so they render missing values the same way
-// as the messages of the catalogs.
+// BlankMissing makes a parsed text or HTML template print nothing instead of "<no value>" for a missing value
+// and runs on every template of a set between parsing and the first execution.
 func BlankMissing(tree *parse.Tree) {
 	if tree == nil {
 		return
@@ -39,6 +34,7 @@ func blankMissing(node parse.Node) {
 			blankMissing(child)
 		}
 	case *parse.ActionNode:
+		// An action that only declares variables prints nothing
 		if len(n.Pipe.Decl) > 0 {
 			return
 		}
@@ -65,8 +61,7 @@ func blankMissing(node parse.Node) {
 	}
 }
 
-// emptyIfMissing returns an empty string for nil and for nil pointers, maps, slices, and interfaces,
-// and any other value unchanged.
+// emptyIfMissing returns an empty string for nil and for nil pointers, maps, slices, and interfaces, and any other value unchanged.
 func emptyIfMissing(value any) any {
 	if value == nil {
 		return ""

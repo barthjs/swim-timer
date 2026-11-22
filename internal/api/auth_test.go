@@ -2,7 +2,6 @@ package api_test
 
 import (
 	"net/http"
-	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -178,23 +177,4 @@ func TestAuthLogoutHandler(t *testing.T) {
 		client.GET("/api/auth/me").AssertOK().AssertJSON(map[string]bool{"authenticated": false})
 		client.GET("/api/config").AssertUnauthorized()
 	})
-}
-
-// parallelStatuses sends n requests at the same time through send and counts the returned status codes.
-func parallelStatuses(n int, send func(i int) int) map[int]int {
-	statuses := make(chan int, n)
-	var wg sync.WaitGroup
-	for i := range n {
-		wg.Go(func() {
-			statuses <- send(i)
-		})
-	}
-	wg.Wait()
-	close(statuses)
-
-	counts := make(map[int]int)
-	for status := range statuses {
-		counts[status]++
-	}
-	return counts
 }

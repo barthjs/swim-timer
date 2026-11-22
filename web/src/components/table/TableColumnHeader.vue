@@ -8,6 +8,8 @@ const props = defineProps<{
   label: string;
   sorted: false | 'asc' | 'desc';
   sortable: boolean;
+  // Aligns the label at the end, above a column of quantities
+  end?: boolean;
   resizable: boolean;
   resizing: boolean;
 }>();
@@ -20,7 +22,7 @@ const emit = defineEmits<{
 
 const { t } = useI18n();
 
-/** sortIcon returns the icon that shows the current order. */
+/** Returns the icon that shows the current order. */
 function sortIcon(): string {
   if (props.sorted === 'asc') return 'i-lucide-arrow-up-narrow-wide';
   if (props.sorted === 'desc') return 'i-lucide-arrow-down-wide-narrow';
@@ -29,7 +31,7 @@ function sortIcon(): string {
 </script>
 
 <template>
-  <div class="flex min-w-0 items-center">
+  <div class="flex min-w-0 items-center" :class="end && 'justify-end'">
     <UButton
       v-if="sortable"
       :label="label"
@@ -56,7 +58,7 @@ function sortIcon(): string {
       <div
         class="h-full w-px transition-colors group-hover:bg-(--ui-border-accented)"
         :class="resizing ? 'bg-primary' : 'bg-transparent'"
-      />
+      ></div>
     </div>
   </div>
 </template>

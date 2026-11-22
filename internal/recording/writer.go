@@ -14,8 +14,8 @@ import (
 )
 
 const (
-	// maxQueuedBytes bounds the data waiting to be written. It holds about a minute of a device sending
-	// without pause at 9600 baud. Data beyond it is dropped, so the reader of the device never waits for the disk.
+	// maxQueuedBytes bounds the data waiting to be written. It holds about a minute of a device sending without pause at 9600 baud.
+	// Data beyond it is dropped, so the reader of the device never waits for the disk.
 	maxQueuedBytes = 64 << 10
 	// queueSize bounds the number of waiting lines, for a device that delivers its data in many small reads.
 	queueSize = 4096
@@ -38,9 +38,8 @@ type queuedEntry struct {
 	droppedBefore int64
 }
 
-// Writer appends a session to the recording file of the current day in a background goroutine.
-// Data never waits for the disk: what does not fit into the queue is dropped and reported as a gap.
-// Meet lines are never dropped, since the data after them could not be assigned to its meet without them.
+// Writer appends a session to the recording file of the current day in a background goroutine,
+// where data never waits for the disk and meet lines are never dropped.
 type Writer struct {
 	logger  zerolog.Logger
 	options WriterOptions
@@ -76,10 +75,8 @@ func FileName(t time.Time) string {
 	return "recording_" + t.Format(time.DateOnly) + ".jsonl"
 }
 
-// Start opens the recording file of the current day in a background goroutine, starts a session in it,
-// and writes the queued entries until Close is called. If the file cannot be opened,
-// it logs the error and discards the entries, so the timing keeps running without the recording.
-// It may only be called once.
+// Start writes a session to the recording file of the current day until Close, once per Writer,
+// and keeps the timing running without the recording when the file cannot be opened.
 func (w *Writer) Start() {
 	if !w.started.CompareAndSwap(false, true) {
 		w.logger.Error().Msg("recording writer is already running")
@@ -150,9 +147,7 @@ func (w *Writer) Reader(r io.Reader) io.Reader {
 	}
 }
 
-// Data queues the bytes of one read from the device. It never blocks: if the queue is full,
-// the bytes are dropped and the next data line that fits is preceded by a gap line.
-// The bytes are copied, so the caller may reuse its buffer.
+// Data queues a copy of the bytes of one read from the device without blocking, or reports them as a gap.
 func (w *Writer) Data(at time.Time, data []byte) {
 	size := int64(len(data))
 	if size == 0 {

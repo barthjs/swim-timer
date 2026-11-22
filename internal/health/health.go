@@ -47,9 +47,7 @@ type Checker struct {
 // Option configures a Checker.
 type Option func(*Checker)
 
-// WithOptional registers a dependency the application can run without. Its failure marks the application
-// as degraded instead of unavailable. A name that repeats a required or another optional dependency
-// would hide one of them in the checks, so NewChecker panics on it.
+// WithOptional registers a dependency the application can run without, whose failure marks it as degraded.
 func WithOptional(name string, pinger Pinger) Option {
 	return func(c *Checker) {
 		_, required := c.pingers[name]
@@ -61,8 +59,8 @@ func WithOptional(name string, pinger Pinger) Option {
 	}
 }
 
-// NewChecker creates a Checker. The pingers are required dependencies, see WithOptional for the others.
-// It panics if an optional dependency repeats the name of another dependency.
+// NewChecker creates a Checker for the required pingers and panics on an optional dependency that repeats a name,
+// since the checks would hide one of them.
 func NewChecker(version string, pingers map[string]Pinger, opts ...Option) *Checker {
 	c := &Checker{
 		version:  version,
@@ -103,9 +101,7 @@ func (c *Checker) Live(w http.ResponseWriter, _ *http.Request) {
 	})
 }
 
-// Ready reports whether the application can accept traffic. A failing required dependency answers 503
-// with the status unavailable, a failing optional one answers 200 with the status degraded.
-// The checks name the state of every dependency.
+// Ready answers whether the application can accept traffic, with the state of every dependency.
 func (c *Checker) Ready(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), readyTimeout)
 	defer cancel()

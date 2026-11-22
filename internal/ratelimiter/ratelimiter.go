@@ -6,16 +6,11 @@ import (
 	"time"
 )
 
-// Limiter counts attempts per key within a fixed time window.
-// Allow lets exactly limit attempts through per window and rejects the ones after them.
-//
-// Two usage patterns are supported:
-//   - Allow counts every attempt, for plain request limits.
-//   - TooManyAttempts + Hit + Reset count only real failures:
-//     check the budget first, Hit on a failed attempt, Reset on success.
+// Limiter counts attempts per key within a fixed time window, every attempt with Allow,
+// or only the failures with TooManyAttempts before, Hit after a failure, and Reset after a success.
 type Limiter interface {
-	// Allow atomically counts an attempt for a key and reports whether it is still
-	// within the limit for the current window, plus the seconds until reset when it is not.
+	// Allow atomically counts an attempt for a key and reports whether it is still within the limit for the current window,
+	// plus the seconds until reset when it is not.
 	Allow(ctx context.Context, key string, limit int, window time.Duration) (allowed bool, retryAfter int64, err error)
 	// TooManyAttempts reports whether a key has already reached the limit, without counting a hit.
 	TooManyAttempts(ctx context.Context, key string, limit int) (bool, error)
@@ -45,7 +40,7 @@ type options struct {
 	now func() time.Time
 }
 
-// WithClock sets the time source the windows are measured with, for example a fake clock in tests.
+// WithClock sets the time source the windows are measured with.
 func WithClock(now func() time.Time) Option {
 	return func(o *options) {
 		if now != nil {

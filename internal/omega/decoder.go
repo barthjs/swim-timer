@@ -23,8 +23,8 @@ type Decoder struct {
 // DecoderOption configures a Decoder.
 type DecoderOption func(*Decoder)
 
-// WithDiscardHandler passes every run of bytes the decoder drops to handle, in the order of the stream,
-// for example to analyze a disturbed line. The slice is only valid during the call. A nil function is ignored.
+// WithDiscardHandler passes every run of bytes the decoder drops to handle in the order of the stream,
+// with a slice that is only valid during the call.
 func WithDiscardHandler(handle func(data []byte)) DecoderOption {
 	return func(d *Decoder) {
 		if handle != nil {
@@ -45,15 +45,12 @@ func NewDecoder(r io.Reader, opts ...DecoderOption) *Decoder {
 	return d
 }
 
-// Next blocks until the next complete frame arrives and returns it. The device splits every frame
-// into two transmission blocks, each starting with SOH, STX, HOME and ending with EOT.
-// A header always starts a new block, so bytes before it, such as noise or a block cut off without its EOT,
-// are dropped and the frame that follows is kept. A block never grows beyond the length of a part 2.
-// A block of the part 1 length is kept until a block of the part 2 length follows it.
-// Any other block and any dropped byte discard the pending part 1, so parts of different frames are never combined.
-// Combined blocks that deviate from the frame structure are skipped. It returns an error only if reading fails,
-// and drops the pending bytes then.
+// Next blocks until the next complete frame arrives and returns it, or the error of the reader.
 func (d *Decoder) Next() (Frame, error) {
+	// The device splits every frame into two blocks, each from a header to EOT, see the page omega-transmission-protocol.
+	// A header always starts a new block and drops the bytes before it. A block of the part 1 length waits
+	// for one of the part 2 length, and any other block or dropped byte discards it,
+	// so parts of different frames are never combined.
 	for {
 		b, err := d.reader.ReadByte()
 		if err != nil {
@@ -76,10 +73,9 @@ func (d *Decoder) Next() (Frame, error) {
 	}
 }
 
-// appendByte adds a byte to the current block. A header that completes after other bytes starts a new block
-// and drops what came before it. A full block without EOT is dropped as well, except for trailing bytes
-// that may begin the next header.
+// appendByte adds a byte to the current block, which a completed header starts anew.
 func (d *Decoder) appendByte(b byte) {
+	// A full block without EOT is dropped, except for trailing bytes that may begin the next header
 	if len(d.block) == framePart2Size {
 		kept := headerPrefixLength(d.block)
 		d.discardPart1()
@@ -97,8 +93,8 @@ func (d *Decoder) appendByte(b byte) {
 	}
 }
 
-// headerPrefixLength returns the number of trailing bytes of the block that match the start of a header,
-// which may begin the next block.
+// headerPrefixLength returns the number of trailing bytes of the block
+// that match the start of a header, which may begin the next block.
 func headerPrefixLength(block []byte) int {
 	for size := len(frameHeader) - 1; size > 0; size-- {
 		if bytes.HasSuffix(block, frameHeader[:size]) {

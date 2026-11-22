@@ -5,8 +5,8 @@ import (
 	"time"
 )
 
-// ToMap returns a populated configuration as nested maps keyed like the config file. Durations are written as text,
-// such as "30s", the way they are set. Pass a redacted copy (see Redacted) when the output may be shown to a person.
+// ToMap returns a configuration as nested maps keyed like the config file, with durations as text,
+// and takes a redacted copy when a person may see the output.
 func ToMap(cfg any) map[string]any {
 	result := map[string]any{}
 	eachLeafValue(cfg, func(key string, value any) {

@@ -4,49 +4,55 @@ import type { TableColumn } from '@nuxt/ui';
 import {
   emptyTableColumnState,
   isConfigurableColumn,
+  isTableColumnVisible,
+  setTableColumnVisible,
   moveItem,
   parseTableColumnState,
   tableColumnId,
   tableColumnOptions,
   tableColumnOrder,
   tableColumnVisibility,
+  isGrowColumn,
+  isNumericColumn,
   isResizableColumn,
   tableColumnWidth,
+  tableMeasuredSizing,
   tableMinWidth,
   tableRenderedSizing,
-  tableResizeDelta,
+  tableResizableIds,
+  tableResize,
   tableResizePartners,
-  TABLE_COLUMN_FLEXIBLE_MIN_SIZE,
+  tableSortableColumn,
+  TABLE_COLUMN_GROW_MIN_REM,
+  TABLE_COLUMN_MIN_REM,
 } from '@/lib/table/columns';
 
-/** Row is a row of the tables under test. */
 type Row = { name: string; email: string; role: string };
 
-/** A selection column first, three configurable columns, and an actions column last. */
+/** A selection column first, three configurable columns with a grow column, and an actions column last. */
 const columns: TableColumn<Row>[] = [
   {
     id: 'select',
-    size: 48,
     header: () => null,
   },
   {
     accessorKey: 'name',
     header: 'Name',
+    meta: {
+      grow: true,
+    },
   },
   {
     accessorKey: 'email',
     header: 'Email',
-    size: 200,
   },
   {
     accessorKey: 'role',
     header: 'Role',
-    size: 120,
     minSize: 80,
   },
   {
     id: 'actions',
-    size: 100,
   },
 ];
 
@@ -55,6 +61,7 @@ describe('parseTableColumnState', () => {
     const stored = {
       order: ['role', 'name'],
       hidden: ['email'],
+      shown: ['role'],
       sizing: {
         name: 240,
       },
@@ -81,6 +88,7 @@ describe('parseTableColumnState', () => {
     expect(state).toEqual({
       order: ['name'],
       hidden: [],
+      shown: [],
       sizing: {
         role: 90,
       },
@@ -145,55 +153,261 @@ describe('tableColumnOrder', () => {
   });
 });
 
+describe('isTableColumnVisible', () => {
+  it('shows a column the viewer did not hide', () => {
+    const visible = isTableColumnVisible('name', emptyTableColumnState());
+
+    expect(visible).toBe(true);
+  });
+
+  it('hides a column the viewer hid', () => {
+    const visible = isTableColumnVisible('email', {
+      ...emptyTableColumnState(),
+      hidden: ['email'],
+    });
+
+    expect(visible).toBe(false);
+  });
+
+  it('hides a column hidden by default', () => {
+    const visible = isTableColumnVisible('role', emptyTableColumnState(), ['role']);
+
+    expect(visible).toBe(false);
+  });
+
+  it('shows a column hidden by default that the viewer showed', () => {
+    const visible = isTableColumnVisible(
+      'role',
+      {
+        ...emptyTableColumnState(),
+        shown: ['role'],
+      },
+      ['role'],
+    );
+
+    expect(visible).toBe(true);
+  });
+});
+
+describe('setTableColumnVisible', () => {
+  it('hides a column', () => {
+    const state = setTableColumnVisible(emptyTableColumnState(), 'email', false);
+
+    expect(state.hidden).toEqual(['email']);
+  });
+
+  it('shows a hidden column', () => {
+    const state = setTableColumnVisible(
+      {
+        ...emptyTableColumnState(),
+        hidden: ['email'],
+      },
+      'email',
+      true,
+    );
+
+    expect(state.hidden).toEqual([]);
+  });
+
+  it('records a shown column that is hidden by default', () => {
+    const state = setTableColumnVisible(emptyTableColumnState(), 'role', true, ['role']);
+
+    expect(state).toEqual({
+      ...emptyTableColumnState(),
+      shown: ['role'],
+    });
+  });
+
+  it('forgets a column hidden by default when the viewer hides it again', () => {
+    const state = setTableColumnVisible(
+      {
+        ...emptyTableColumnState(),
+        shown: ['role'],
+      },
+      'role',
+      false,
+      ['role'],
+    );
+
+    expect(state).toEqual(emptyTableColumnState());
+  });
+});
+
 describe('tableColumnVisibility', () => {
   it('hides the hidden configurable columns only', () => {
-    const visibility = tableColumnVisibility(columns, ['email', 'select']);
+    const visibility = tableColumnVisibility(columns, {
+      ...emptyTableColumnState(),
+      hidden: ['email', 'select'],
+    });
 
     expect(visibility).toEqual({
       email: false,
     });
   });
+
+  it('hides the columns hidden by default that the viewer did not show', () => {
+    const visibility = tableColumnVisibility(columns, emptyTableColumnState(), ['role']);
+
+    expect(visibility).toEqual({
+      role: false,
+    });
+  });
+});
+
+describe('isGrowColumn', () => {
+  it('reports a column marked to grow', () => {
+    const grow = columns.map(isGrowColumn);
+
+    expect(grow).toEqual([false, true, false, false, false]);
+  });
+});
+
+describe('isNumericColumn', () => {
+  it('reports a column marked as numeric', () => {
+    const numericColumn: TableColumn<Row> = {
+      accessorKey: 'role',
+      header: 'Role',
+      meta: {
+        numeric: true,
+      },
+    };
+
+    const numeric = [numericColumn, ...columns].map(isNumericColumn);
+
+    expect(numeric).toEqual([true, false, false, false, false, false]);
+  });
 });
 
 describe('tableColumnWidth', () => {
-  it('prefers a dragged width over the size of the page', () => {
-    const width = tableColumnWidth(columns[2]!, {
-      email: 320,
-    });
+  /** The widths the content of the columns needs. */
+  const measured = {
+    name: 180,
+    email: 200,
+  };
+
+  it('prefers a dragged width over the measured one', () => {
+    const width = tableColumnWidth(
+      columns[2]!,
+      {
+        email: 320,
+      },
+      measured,
+    );
 
     expect(width).toBe(320);
   });
 
-  it('uses the size of the page without a dragged width', () => {
-    const width = tableColumnWidth(columns[2]!, {});
+  it('uses the measured width without a dragged width', () => {
+    const width = tableColumnWidth(columns[2]!, {}, measured);
 
     expect(width).toBe(200);
   });
 
-  it('leaves a column without a size flexible', () => {
-    const width = tableColumnWidth(columns[1]!, {});
+  it('leaves a grow column without a width', () => {
+    const width = tableColumnWidth(columns[1]!, {}, measured);
+
+    expect(width).toBeUndefined();
+  });
+
+  it('leaves a grow column without a width after a drag as well', () => {
+    const width = tableColumnWidth(
+      columns[1]!,
+      {
+        name: 260,
+      },
+      measured,
+    );
 
     expect(width).toBeUndefined();
   });
 });
 
-describe('tableMinWidth', () => {
-  it('adds the widths of the visible columns with a minimum for flexible ones', () => {
-    const width = tableMinWidth(columns, emptyTableColumnState());
+describe('tableMeasuredSizing', () => {
+  /** Keep the widths between 50 and 300 pixels. */
+  const bounds = {
+    min: 50,
+    max: 300,
+  };
 
-    expect(width).toBe(48 + TABLE_COLUMN_FLEXIBLE_MIN_SIZE + 200 + 120 + 100);
+  it('maps the widths to the visible columns without the grow column', () => {
+    const sizing = tableMeasuredSizing(
+      columns,
+      ['select', 'name', 'email', 'actions'],
+      [52, 400, 180.4, 90],
+      bounds,
+    );
+
+    expect(sizing).toEqual({
+      select: 52,
+      email: 181,
+      actions: 90,
+    });
+  });
+
+  it('keeps the widths within the bounds', () => {
+    const sizing = tableMeasuredSizing(columns, ['select', 'email'], [20, 640], bounds);
+
+    expect(sizing).toEqual({
+      select: 50,
+      email: 300,
+    });
+  });
+});
+
+describe('tableMinWidth', () => {
+  /** The widths the content of the columns needs. */
+  const measured = {
+    select: 48,
+    email: 200,
+    role: 120,
+    actions: 100,
+  };
+
+  it('adds the widths of the visible columns with a minimum for those without one', () => {
+    const width = tableMinWidth(columns, emptyTableColumnState(), measured);
+
+    expect(width).toEqual({
+      pixels: 48 + 200 + 120 + 100,
+      rem: TABLE_COLUMN_GROW_MIN_REM,
+    });
   });
 
   it('leaves out hidden columns and counts dragged widths', () => {
-    const width = tableMinWidth(columns, {
-      order: [],
-      hidden: ['email'],
-      sizing: {
-        name: 300,
+    const width = tableMinWidth(
+      columns,
+      {
+        order: [],
+        hidden: ['email'],
+        shown: [],
+        sizing: {
+          name: 300,
+        },
       },
-    });
+      measured,
+    );
 
-    expect(width).toBe(48 + 300 + 120 + 100);
+    expect(width).toEqual({
+      pixels: 48 + 300 + 120 + 100,
+      rem: 0,
+    });
+  });
+
+  it('leaves out columns hidden by default', () => {
+    const width = tableMinWidth(columns, emptyTableColumnState(), measured, ['role']);
+
+    expect(width).toEqual({
+      pixels: 48 + 200 + 100,
+      rem: TABLE_COLUMN_GROW_MIN_REM,
+    });
+  });
+
+  it('counts the narrowest width for a column not measured yet', () => {
+    const width = tableMinWidth(columns, emptyTableColumnState(), {});
+
+    expect(width).toEqual({
+      pixels: 0,
+      rem: TABLE_COLUMN_GROW_MIN_REM + 4 * TABLE_COLUMN_MIN_REM,
+    });
   });
 });
 
@@ -212,6 +426,50 @@ describe('isResizableColumn', () => {
     });
 
     expect(resizable).toBe(false);
+  });
+});
+
+describe('tableSortableColumn', () => {
+  it('gives a sortable column without a value one', () => {
+    const column = tableSortableColumn({
+      id: 'status',
+      header: 'Status',
+      enableSorting: true,
+    });
+
+    expect('accessorFn' in column).toBe(true);
+  });
+
+  it('keeps the value of a column with an accessor', () => {
+    const accessorFn = () => 'value';
+
+    const column = tableSortableColumn({
+      id: 'status',
+      header: 'Status',
+      enableSorting: true,
+      accessorFn,
+    });
+
+    expect('accessorFn' in column && column.accessorFn).toBe(accessorFn);
+  });
+
+  it('leaves a column without sorting as it is', () => {
+    const original = {
+      id: 'status',
+      header: 'Status',
+    };
+
+    const column = tableSortableColumn(original);
+
+    expect(column).toBe(original);
+  });
+});
+
+describe('tableResizableIds', () => {
+  it('lists the visible resizable columns in the order of the table', () => {
+    const ids = tableResizableIds(columns, ['select', 'role', 'name', 'actions']);
+
+    expect(ids).toEqual(['role', 'name']);
   });
 });
 
@@ -234,37 +492,87 @@ describe('tableResizePartners', () => {
   });
 });
 
-describe('tableResizeDelta', () => {
-  const left = {
-    width: 200,
-    minSize: 60,
-  };
-  const right = {
-    width: 150,
-    minSize: 100,
-  };
+describe('tableResize', () => {
+  /** Four columns with the border after the second one, each 50 pixels above its minimum. */
+  const row = [
+    {
+      id: 'a',
+      width: 150,
+      minSize: 100,
+    },
+    {
+      id: 'b',
+      width: 150,
+      minSize: 100,
+    },
+    {
+      id: 'c',
+      width: 150,
+      minSize: 100,
+    },
+    {
+      id: 'd',
+      width: 150,
+      minSize: 100,
+    },
+  ];
 
-  it.each([30, -30])('moves the border freely by %i between the minimums', (delta) => {
-    const moved = tableResizeDelta(delta, left, right);
+  it('narrows the column after the border while it is above its minimum', () => {
+    const widths = tableResize(30, row, 1, 0);
 
-    expect(moved).toBe(delta);
+    expect(widths).toEqual({
+      b: 180,
+      c: 120,
+    });
   });
 
-  it.each([
-    {
-      name: 'the right',
-      delta: 80,
-      expected: 50,
-    },
-    {
-      name: 'the left',
-      delta: -500,
-      expected: -140,
-    },
-  ])('stops where $name side reaches its minimum', ({ delta, expected }) => {
-    const moved = tableResizeDelta(delta, left, right);
+  it('narrows the columns further right once the next one reached its minimum', () => {
+    const widths = tableResize(80, row, 1, 0);
 
-    expect(moved).toBe(expected);
+    expect(widths).toEqual({
+      b: 230,
+      c: 100,
+      d: 120,
+    });
+  });
+
+  it('grows the table once every column after the border reached its minimum', () => {
+    const widths = tableResize(200, row, 1, 0);
+
+    expect(widths).toEqual({
+      b: 350,
+      c: 100,
+      d: 100,
+    });
+  });
+
+  it('narrows the columns further left once the column before the border reached its minimum', () => {
+    const widths = tableResize(-80, row, 1, 0);
+
+    expect(widths).toEqual({
+      a: 120,
+      b: 100,
+      c: 230,
+    });
+  });
+
+  it('stops once every column before the border reached its minimum', () => {
+    const widths = tableResize(-500, row, 1, 0);
+
+    expect(widths).toEqual({
+      a: 100,
+      b: 100,
+      c: 250,
+    });
+  });
+
+  it('first gives back the width the table has beyond its container', () => {
+    const widths = tableResize(-30, row, 1, 20);
+
+    expect(widths).toEqual({
+      b: 120,
+      c: 160,
+    });
   });
 });
 

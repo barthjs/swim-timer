@@ -15,7 +15,6 @@ import (
 
 // ConfigService holds the running admin-editable configuration and persists changes to the config file
 // that was loaded at startup, or to a newly chosen one if none was loaded.
-//
 // Saving never applies to the running process: every other service reads its configuration once at startup,
 // so a change only takes effect after a restart.
 type ConfigService struct {
@@ -25,8 +24,7 @@ type ConfigService struct {
 	sources  map[string]structconf.Source
 }
 
-// InvalidConfigError reports a configuration that config.Validate rejects as a whole,
-// such as a setting whose format only the config package checks.
+// InvalidConfigError reports a configuration that config.Validate rejects as a whole.
 type InvalidConfigError struct {
 	Err error
 }
@@ -70,8 +68,7 @@ func (s *ConfigService) Get() config.Config {
 // A secret submitted empty keeps its current value unless its JSON path is listed in clearSecrets,
 // since the admin interface never receives the secrets.
 func (s *ConfigService) Save(cfg config.Config, clearSecrets []string) error {
-	// The lock covers the whole save, so two saves at once cannot keep the secrets of a configuration
-	// the other one replaces in the meantime.
+	// The lock covers the whole save, so two saves at once cannot keep the secrets of a configuration the other one replaces in the meantime
 	s.mu.Lock()
 	defer s.mu.Unlock()
 

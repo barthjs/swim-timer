@@ -4,7 +4,11 @@ services:
     container_name: swim-timer
     working_dir: /web
     command: npm run dev
-    user: ${PUID}:${PGID}
+    user: ${PUID:-1000}:${PGID:-1000}
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     volumes:
       - ./web:/web
     network_mode: host

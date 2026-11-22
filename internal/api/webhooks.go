@@ -7,8 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-chi/chi/v5"
-
 	"github.com/barthjs/swim-timer/internal/domain"
 	"github.com/barthjs/swim-timer/internal/service"
 	"github.com/barthjs/swim-timer/internal/webhook"
@@ -34,7 +32,7 @@ const (
 func (a *API) webhookListHandler(w http.ResponseWriter, r *http.Request) {
 	states, err := a.webhookService.List(r.Context())
 	if err != nil {
-		a.serverErrorResponse(w, r, err)
+		a.respondError(w, r, err)
 		return
 	}
 
@@ -46,27 +44,26 @@ func (a *API) webhookListHandler(w http.ResponseWriter, r *http.Request) {
 	a.writeJSON(w, r, http.StatusOK, resp, nil)
 }
 
-// WebhookResponse is a webhook with the state of its deliveries.
 type WebhookResponse struct {
 	ID      string   `json:"id"`
 	Name    string   `json:"name"`
 	URL     string   `json:"url"`
 	Events  []string `json:"events" enums:"heat.updated,meet.reloaded"`
 	Enabled bool     `json:"enabled"`
-	Secret  string   `json:"secret"`
-	// SkipTLSVerify accepts any certificate of the endpoint, such as a self-signed one.
+	// Secret is only set in the response that created the webhook, since the secret is never shown again.
+	Secret        string                `json:"secret,omitzero"`
 	SkipTLSVerify bool                  `json:"skipTlsVerify"`
 	Status        WebhookStatusResponse `json:"status"`
 }
 
-// WebhookStatusResponse is the state of the deliveries to a webhook since the start of the application.
-// The times are left out before the first delivery of their kind.
+// WebhookStatusResponse is the state of the deliveries to a webhook since the start of the application,
+// whose times are left out before the first delivery of their kind.
 type WebhookStatusResponse struct {
 	LastDeliveredAt *time.Time `json:"lastDeliveredAt,omitzero"`
 	LastFailedAt    *time.Time `json:"lastFailedAt,omitzero"`
-	// LastStatusCode and LastErrorCode describe the last failed delivery by the status of its response,
-	// or by the reason it got none. Both are left out before the first failure.
-	LastStatusCode      int    `json:"lastStatusCode,omitzero"`
+	// LastStatusCode is the status of the response to the last failed delivery, left out before the first failure.
+	LastStatusCode int `json:"lastStatusCode,omitzero"`
+	// LastErrorCode names why the last failed delivery got no response, left out before the first failure.
 	LastErrorCode       string `json:"lastErrorCode,omitzero" enums:"blocked_address,invalid_url,invalid_secret,untrusted_certificate,timeout,unreachable"`
 	ConsecutiveFailures int    `json:"consecutiveFailures"`
 }
@@ -85,7 +82,7 @@ type WebhookStatusResponse struct {
 //	@Security		SessionAuth
 //	@Router			/webhooks/{id} [get]
 func (a *API) webhookGetHandler(w http.ResponseWriter, r *http.Request) {
-	state, err := a.webhookService.Get(r.Context(), chi.URLParam(r, "id"))
+	state, err := a.webhookService.Get(r.Context(), pathParam(r, "id"))
 	if err != nil {
 		a.respondError(w, r, err)
 		return
@@ -94,21 +91,20 @@ func (a *API) webhookGetHandler(w http.ResponseWriter, r *http.Request) {
 	a.writeJSON(w, r, http.StatusOK, toWebhookResponse(state), nil)
 }
 
-// WebhookCreateRequest holds a new webhook. An empty secret is generated.
 type WebhookCreateRequest struct {
 	Name    string   `json:"name" validate:"required,max=100"`
 	URL     string   `json:"url" validate:"required,max=2048"`
 	Events  []string `json:"events" validate:"required,min=1,max=2,unique,dive,oneof=heat.updated meet.reloaded" enums:"heat.updated,meet.reloaded"`
 	Enabled bool     `json:"enabled"`
-	Secret  string   `json:"secret" validate:"max=255"`
-	// SkipTLSVerify accepts any certificate of the endpoint, such as a self-signed one.
-	SkipTLSVerify bool `json:"skipTlsVerify"`
+	// Secret is generated when empty.
+	Secret        string `json:"secret" validate:"max=255"`
+	SkipTLSVerify bool   `json:"skipTlsVerify"`
 }
 
 // webhookCreateHandler creates a webhook.
 //
 //	@Summary		Create webhook
-//	@Description	Creates a webhook under a generated id and starts its deliveries. An empty secret is generated. The URL may use http or https and must not point to a private or local network outside the allowed networks of the configuration (Admin only).
+//	@Description	Creates a webhook under a generated id and starts its deliveries. An empty secret is generated. The response is the only one that holds the secret. The URL may use http or https and must not point to a private or local network outside the allowed networks of the configuration (Admin only).
 //	@Tags			webhooks
 //	@Accept			json
 //	@Produce		json
@@ -139,24 +135,25 @@ func (a *API) webhookCreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	a.writeJSON(w, r, http.StatusCreated, toWebhookResponse(state), nil)
+	resp := toWebhookResponse(state)
+	resp.Secret = state.Webhook.Secret
+	a.writeJSON(w, r, http.StatusCreated, resp, nil)
 }
 
-// WebhookUpdateRequest holds the settings that replace those of a webhook. An empty secret is generated anew.
 type WebhookUpdateRequest struct {
 	Name    string   `json:"name" validate:"required,max=100"`
 	URL     string   `json:"url" validate:"required,max=2048"`
 	Events  []string `json:"events" validate:"required,min=1,max=2,unique,dive,oneof=heat.updated meet.reloaded" enums:"heat.updated,meet.reloaded"`
 	Enabled bool     `json:"enabled"`
-	Secret  string   `json:"secret" validate:"max=255"`
-	// SkipTLSVerify accepts any certificate of the endpoint, such as a self-signed one.
-	SkipTLSVerify bool `json:"skipTlsVerify"`
+	// Secret keeps the stored one when empty.
+	Secret        string `json:"secret" validate:"max=255"`
+	SkipTLSVerify bool   `json:"skipTlsVerify"`
 }
 
 // webhookUpdateHandler replaces the settings of a webhook.
 //
 //	@Summary		Update webhook
-//	@Description	Replaces the settings of the webhook with the given id, which take effect with its next delivery. An empty secret is generated anew. The URL is checked as on create (Admin only).
+//	@Description	Replaces the settings of the webhook with the given id, which take effect with its next delivery. An empty secret keeps the stored one. The URL is checked as on create (Admin only).
 //	@Tags			webhooks
 //	@Accept			json
 //	@Produce		json
@@ -176,7 +173,7 @@ func (a *API) webhookUpdateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	state, err := a.webhookService.Update(r.Context(), chi.URLParam(r, "id"), service.WebhookUpdateInput{
+	state, err := a.webhookService.Update(r.Context(), pathParam(r, "id"), service.WebhookUpdateInput{
 		Name:          req.Name,
 		URL:           req.URL,
 		Events:        toWebhookEvents(req.Events),
@@ -205,7 +202,7 @@ func (a *API) webhookUpdateHandler(w http.ResponseWriter, r *http.Request) {
 //	@Security		SessionAuth
 //	@Router			/webhooks/{id} [delete]
 func (a *API) webhookDeleteHandler(w http.ResponseWriter, r *http.Request) {
-	if err := a.webhookService.Delete(r.Context(), chi.URLParam(r, "id")); err != nil {
+	if err := a.webhookService.Delete(r.Context(), pathParam(r, "id")); err != nil {
 		a.respondError(w, r, err)
 		return
 	}
@@ -216,7 +213,7 @@ func (a *API) webhookDeleteHandler(w http.ResponseWriter, r *http.Request) {
 // webhookTestHandler sends a test message to a webhook.
 //
 //	@Summary		Test webhook
-//	@Description	Sends a message of the type webhook.test to the webhook with the given id once, even if it is disabled, and returns the delivery. The delivery counts towards the state of the webhook (Admin only).
+//	@Description	Sends a message of the type webhook.test to the webhook with the given id once, even if it is disabled, and returns the delivery. The delivery shows in the log but leaves the state of the webhook alone (Admin only).
 //	@Tags			webhooks
 //	@Produce		json
 //	@Param			id	path		string	true	"Webhook id"
@@ -228,7 +225,7 @@ func (a *API) webhookDeleteHandler(w http.ResponseWriter, r *http.Request) {
 //	@Security		SessionAuth
 //	@Router			/webhooks/{id}/test [post]
 func (a *API) webhookTestHandler(w http.ResponseWriter, r *http.Request) {
-	delivery, err := a.webhookService.Test(r.Context(), chi.URLParam(r, "id"))
+	delivery, err := a.webhookService.Test(r.Context(), pathParam(r, "id"))
 	if err != nil {
 		a.respondError(w, r, err)
 		return
@@ -237,7 +234,6 @@ func (a *API) webhookTestHandler(w http.ResponseWriter, r *http.Request) {
 	a.writeJSON(w, r, http.StatusOK, toWebhookDeliveryResponse(delivery), nil)
 }
 
-// WebhookDeliveryResponse is one attempt to deliver a message to a webhook.
 type WebhookDeliveryResponse struct {
 	MessageID   string    `json:"messageId"`
 	Event       string    `json:"event"`
@@ -248,10 +244,10 @@ type WebhookDeliveryResponse struct {
 	DurationMs int64 `json:"durationMs"`
 	// ResponseBody is the start of the response body.
 	ResponseBody string `json:"responseBody"`
-	// ErrorCode names why a delivery got no response, and Error gives the technical details for the log.
-	// Both are empty if the target answered.
+	// ErrorCode names why a delivery got no response, empty if the target answered.
 	ErrorCode string `json:"errorCode" enums:"blocked_address,invalid_url,invalid_secret,untrusted_certificate,timeout,unreachable"`
-	Error     string `json:"error"`
+	// Error gives the technical details of ErrorCode for the log.
+	Error string `json:"error"`
 }
 
 // webhookDeliveryListHandler returns the last deliveries to a webhook.
@@ -268,7 +264,7 @@ type WebhookDeliveryResponse struct {
 //	@Security		SessionAuth
 //	@Router			/webhooks/{id}/deliveries [get]
 func (a *API) webhookDeliveryListHandler(w http.ResponseWriter, r *http.Request) {
-	deliveries, err := a.webhookService.ListDeliveries(r.Context(), chi.URLParam(r, "id"))
+	deliveries, err := a.webhookService.ListDeliveries(r.Context(), pathParam(r, "id"))
 	if err != nil {
 		a.respondError(w, r, err)
 		return
@@ -314,7 +310,7 @@ func (a *API) webhookPreviewGetHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	request, err := a.webhookService.Preview(r.Context(), chi.URLParam(r, "id"), event)
+	request, err := a.webhookService.Preview(r.Context(), pathParam(r, "id"), event)
 	if err != nil {
 		a.respondError(w, r, err)
 		return
@@ -323,16 +319,16 @@ func (a *API) webhookPreviewGetHandler(w http.ResponseWriter, r *http.Request) {
 	a.writeJSON(w, r, http.StatusOK, toWebhookPreviewResponse(request), nil)
 }
 
-// WebhookPreviewResponse is a message to a webhook as it would be sent now. The headers are sorted by name.
 type WebhookPreviewResponse struct {
-	Method  string                  `json:"method"`
-	URL     string                  `json:"url"`
+	Method string `json:"method"`
+	URL    string `json:"url"`
+	// Headers are sorted by name.
 	Headers []WebhookHeaderResponse `json:"headers"`
 	Body    string                  `json:"body"`
 }
 
-// WebhookHeaderResponse is a header of a message to a webhook, with its name in lowercase.
 type WebhookHeaderResponse struct {
+	// Name is in lowercase.
 	Name  string `json:"name"`
 	Value string `json:"value"`
 }
@@ -350,7 +346,6 @@ func toWebhookResponse(state service.WebhookState) WebhookResponse {
 		URL:           state.Webhook.URL,
 		Events:        events,
 		Enabled:       state.Webhook.Enabled,
-		Secret:        state.Webhook.Secret,
 		SkipTLSVerify: state.Webhook.SkipTLSVerify,
 		Status: WebhookStatusResponse{
 			LastDeliveredAt:     optionalTime(state.Status.LastDeliveredAt),

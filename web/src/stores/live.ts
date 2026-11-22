@@ -1,17 +1,18 @@
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
 
-import { type LiveHeat, type LiveMessage, LiveMessageType } from '@/api/types';
-import { createClockSync } from '@/lib/clock';
-import { formatSwimtime } from '@/lib/time';
+import { type LiveHeat, type LiveMessage, LiveMessageType } from '@/api/types/live';
+import { createClockSync } from '@/lib/live/clock';
+import { formatSwimtime } from '@/lib/live/time';
 import { RESYNC_MESSAGE, useRealtimeStore } from '@/stores/realtime';
 
 /** The time shown while no lane has a time yet. */
 const EMPTY_TIME = '00:00,00';
 
 /**
- * useLiveStore holds the live heat the realtime connection reports. Every message carries the full live heat,
- * so each one replaces the current state and the last known state stays visible while reconnecting.
+ * Holds the live heat the realtime connection reports.
+ * Every message carries the full live heat, so each one replaces the current state
+ * and the last known state stays visible while reconnecting.
  */
 export const useLiveStore = defineStore('live', () => {
   const realtime = useRealtimeStore();
@@ -25,9 +26,9 @@ export const useLiveStore = defineStore('live', () => {
   const reconnects = computed(() => realtime.reconnects);
 
   const clock = createClockSync();
-  let unsubscribe: Array<() => void> = [];
+  let unsubscribe: (() => void)[] = [];
 
-  /** connect subscribes to the messages of the live heat and opens the connection unless it is already open. */
+  /** Subscribes to the messages of the live heat and opens the connection unless it is already open. */
   function connect(): void {
     if (unsubscribe.length === 0) {
       unsubscribe = [
@@ -41,20 +42,17 @@ export const useLiveStore = defineStore('live', () => {
     realtime.connect();
   }
 
-  /** disconnect closes the connection and stops reconnecting. The last known state stays. */
+  /** Closes the connection and stops reconnecting. The last known state stays. */
   function disconnect(): void {
     for (const off of unsubscribe) off();
     unsubscribe = [];
     realtime.disconnect();
   }
 
-  /**
-   * applyHeat replaces the state with the heat of a message. A server that restarted sends an init
-   * without a heat until the timing device reports again, so that init keeps a known heat, see keepsHeat.
-   */
+  /** Replaces the state with the heat of a message, except where an init keeps a known heat, see keepsHeat. */
   function applyHeat(message: LiveMessage): void {
-    if (message.type !== LiveMessageType.Init && message.type !== LiveMessageType.Update) return;
     clock.sample(Date.parse(message.serverTime));
+    // A server that restarted sends an init without a heat until the timing device reports again
     if (message.type === LiveMessageType.Init && keepsHeat(state.value, message.data)) return;
     state.value = message.data;
   }
@@ -72,7 +70,7 @@ export const useLiveStore = defineStore('live', () => {
     return maxTime > 0 ? formatSwimtime(maxTime) : EMPTY_TIME;
   });
 
-  /** startTimeLocal returns the heat start on the performance.now() clock, or null without a start. */
+  /** Returns the heat start on the performance.now() clock, or null without a start. */
   function startTimeLocal(): number | null {
     if (!state.value?.startTime) return null;
     return clock.toLocal(Date.parse(state.value.startTime));
@@ -91,7 +89,7 @@ export const useLiveStore = defineStore('live', () => {
 });
 
 /**
- * keepsHeat reports whether an init snapshot without a heat leaves the known heat in place.
+ * Reports whether an init snapshot without a heat leaves the known heat in place.
  * A heat is known once the timing device reported it, before that its status is empty.
  */
 function keepsHeat(current: LiveHeat | null, init: LiveHeat): boolean {

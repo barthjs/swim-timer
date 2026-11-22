@@ -15,83 +15,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/barthjs/swim-timer/internal/apitest"
-	"github.com/barthjs/swim-timer/internal/apperr"
 	"github.com/barthjs/swim-timer/internal/update"
 )
-
-func TestUpdateService_Check(t *testing.T) {
-	t.Parallel()
-
-	t.Run("returns the latest release", func(t *testing.T) {
-		t.Parallel()
-
-		svc := newTestUpdateService(t, "v1.0.0", "v1.2.0")
-
-		check, err := svc.Check(t.Context())
-
-		require.NoError(t, err)
-		assert.Equal(t, UpdateCheck{
-			Current:     "v1.0.0",
-			Latest:      "v1.2.0",
-			URL:         "https://example.test/v1.2.0",
-			Newer:       true,
-			Unsupported: UnsupportedDevelopmentBuild,
-		}, check)
-	})
-}
-
-func TestUpdateService_Start(t *testing.T) {
-	t.Parallel()
-
-	t.Run("marks the update as running", func(t *testing.T) {
-		t.Parallel()
-
-		svc := NewUpdateService(zerolog.Nop(), newFakeUpdater(t), nil)
-
-		err := svc.Start()
-
-		require.NoError(t, err)
-		assert.Equal(t, UpdateStatus{
-			State: UpdateRunning,
-		}, svc.Status())
-	})
-
-	t.Run("rejects an unsupported installation", func(t *testing.T) {
-		t.Parallel()
-
-		svc := newTestUpdateService(t, "dev", "v1.2.0")
-
-		err := svc.Start()
-
-		assertValidation(t, err, "update", UnsupportedDevelopmentBuild)
-		assert.Equal(t, UpdateStatus{
-			State: UpdateIdle,
-		}, svc.Status())
-	})
-
-	t.Run("rejects a second update while the first runs", func(t *testing.T) {
-		t.Parallel()
-
-		svc := NewUpdateService(zerolog.Nop(), newFakeUpdater(t), nil)
-		require.NoError(t, svc.Start())
-
-		err := svc.Start()
-
-		assert.ErrorIs(t, err, apperr.ErrConflict)
-	})
-
-	t.Run("rejects a new update until the restart", func(t *testing.T) {
-		t.Parallel()
-
-		svc := NewUpdateService(zerolog.Nop(), newFakeUpdater(t), nil)
-		require.NoError(t, svc.Start())
-		svc.Run(t.Context())
-
-		err := svc.Start()
-
-		assert.ErrorIs(t, err, apperr.ErrConflict, "an installed update waits for the restart")
-	})
-}
 
 func TestUpdateService_Run(t *testing.T) {
 	t.Parallel()

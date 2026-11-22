@@ -5,6 +5,10 @@ import { useI18n } from 'vue-i18n';
 import UpdatePanel from '@/components/system/UpdatePanel.vue';
 import { useAuthStore } from '@/stores/auth';
 
+defineProps<{
+  repositoryUrl: string;
+}>();
+
 const version = import.meta.env.VITE_APP_VERSION || 'dev';
 
 const { t } = useI18n();
@@ -17,7 +21,7 @@ const updateBusy = ref(false);
 <template>
   <div class="flex items-center justify-center gap-1">
     <a
-      href="https://github.com/barthjs/swim-timer/releases"
+      :href="`${repositoryUrl}/releases`"
       target="_blank"
       rel="noopener noreferrer"
       class="flex items-center gap-1.5"
@@ -44,7 +48,10 @@ const updateBusy = ref(false);
       </UTooltip>
 
       <template #body>
-        <UpdatePanel @busy="updateBusy = $event" />
+        <div class="flex flex-col gap-4">
+          <UpdatePanel @busy="updateBusy = $event" />
+          <slot />
+        </div>
       </template>
     </UModal>
   </div>

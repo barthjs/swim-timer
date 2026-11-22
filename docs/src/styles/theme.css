@@ -26,8 +26,42 @@ starlight-theme-select select {
 }
 
 /* The content stands centered between the two sidebars instead of next to the table of contents */
-.main-pane {
+:root[data-has-toc] .main-pane {
   --sl-content-margin-inline: auto;
+}
+
+/* Without a table of contents, the content stands next to the sidebar instead of in the middle of the free width */
+:root:not([data-has-toc]) .main-pane {
+  --sl-content-margin-inline: 0 auto;
+}
+
+/*
+The search starts at the left edge of the content. Starlight offsets it for a content column it places itself,
+so the offset follows the placement above: none next to the sidebar, and on wide pages with a table of contents
+half of the width the centered content leaves free in its pane.
+*/
+.header {
+  --__main-column-fr: 0rem;
+}
+
+@media (min-width: 72rem) {
+  :root[data-has-toc] .header {
+    --__main-column-fr: calc(
+      (
+          min(
+              100% + 2 * var(--sl-nav-pad-x) - 2 * var(--sl-sidebar-width),
+              var(--sl-content-width) +
+                (
+                  100% + 2 * var(--sl-nav-pad-x) - var(--sl-content-width) - 2 *
+                    var(--sl-sidebar-width)
+                ) /
+                2
+            ) -
+            var(--sl-content-width)
+        ) /
+        2
+    );
+  }
 }
 
 :root[data-theme='light'] {

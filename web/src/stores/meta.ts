@@ -2,12 +2,9 @@ import { defineStore } from 'pinia';
 import { ref } from 'vue';
 
 import { metaRepository } from '@/api/repositories/meta';
-import type { MetaResponse } from '@/api/types';
+import type { MetaResponse } from '@/api/types/meta';
 
-/**
- * useMetaStore caches the metadata of the application from /api/meta, such as its name, version,
- * language, and theme, which every page needs before it renders.
- */
+/** Caches the metadata of the application from /api/meta, which every page needs before it renders. */
 export const useMetaStore = defineStore('meta', () => {
   const meta = ref<MetaResponse | null>(null);
 
@@ -16,26 +13,23 @@ export const useMetaStore = defineStore('meta', () => {
   let requested = 0;
   let applied = 0;
 
-  /** load fetches /api/meta once and caches it for the lifetime of this page load, or until reload. */
+  /** Fetches /api/meta once and caches it for the lifetime of this page load, or until reload. */
   async function load(): Promise<MetaResponse> {
     if (meta.value) return meta.value;
     if (inflight) return inflight;
     return fetchMeta();
   }
 
-  /**
-   * reload fetches /api/meta again and replaces the cache, for example after the server restarted with another
-   * configuration. The cached metadata stays until the new one arrives.
-   */
-  function reload(): Promise<MetaResponse> {
+  /** Fetches /api/meta again and replaces the cache once the new metadata arrives. */
+  async function reload(): Promise<MetaResponse> {
     return fetchMeta();
   }
 
   /**
-   * fetchMeta requests the metadata and caches it. A response replaces the cache unless the response of a newer
-   * request already did, so a newer request that fails keeps the result of an older one.
+   * Requests the metadata and caches it. A response replaces the cache unless the response of a newer request already did,
+   * so a newer request that fails keeps the result of an older one.
    */
-  function fetchMeta(): Promise<MetaResponse> {
+  async function fetchMeta(): Promise<MetaResponse> {
     requested += 1;
     const sequence = requested;
     const request = metaRepository

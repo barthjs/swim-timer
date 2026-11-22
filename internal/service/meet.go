@@ -56,7 +56,7 @@ type MeetStartEntryList struct {
 	StartEntries []MeetStartEntry
 }
 
-// MeetEvent is one event of the meet.
+// MeetEvent is an event of the meet with the time the meet was loaded.
 type MeetEvent struct {
 	LoadedAt time.Time
 	Event    *domain.Event
@@ -82,8 +82,7 @@ type MeetService struct {
 	onReload func()
 }
 
-// NewMeetService creates a MeetService. onReload runs after every successful reload, so the recording
-// of the timing data keeps the meet files in use and the webhooks send the new meet. It may be nil.
+// NewMeetService creates a MeetService whose optional onReload runs after every successful reload.
 func NewMeetService(logger zerolog.Logger, broadcaster broadcaster, store *store.MeetStore, onReload func()) *MeetService {
 	return &MeetService{
 		logger:      logger,

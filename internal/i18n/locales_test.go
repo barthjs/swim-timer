@@ -15,7 +15,7 @@ import (
 	"github.com/barthjs/swim-timer/internal/i18n"
 )
 
-// placeholder matches a template field such as "{{.Name}}" or "{{ .Name }}".
+// placeholder matches a template field with or without spaces inside the braces.
 var placeholder = regexp.MustCompile(`{{\s*\.(\w+)\s*}}`)
 
 // TestLocales checks the catalogs: every key resolves, every locale has the same keys as the default locale,

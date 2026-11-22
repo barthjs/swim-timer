@@ -1,6 +1,6 @@
 import { ref } from 'vue';
 
-// Theme colors accepted by Nuxt UI buttons.
+// Theme colors accepted by Nuxt UI buttons
 type UiColor = 'primary' | 'secondary' | 'success' | 'info' | 'warning' | 'error' | 'neutral';
 
 export type ConfirmOptions = {
@@ -24,12 +24,12 @@ const state = ref<ConfirmState>({
 let resolver: ((value: boolean) => void) | null = null;
 
 /**
- * useConfirm opens a confirmation dialog and resolves once it is answered, so a caller can write
+ * Opens a confirmation dialog and resolves once it is answered, so a caller can write
  * `if (await confirm({ title, description }))`. A single AppConfirmModal in the root component renders it.
  */
 export function useConfirm() {
-  /** confirm opens the dialog and resolves to true once it is confirmed. */
-  const confirm = (options: ConfirmOptions): Promise<boolean> =>
+  /** Opens the dialog and resolves to true once it is confirmed. */
+  const confirm = async (options: ConfirmOptions): Promise<boolean> =>
     new Promise<boolean>((resolve) => {
       // Resolve a previous, still-open confirm as canceled before replacing it
       resolver?.(false);
@@ -40,7 +40,7 @@ export function useConfirm() {
       };
     });
 
-  /** settle closes the dialog and resolves the pending confirmation. */
+  /** Closes the dialog and resolves the pending confirmation. */
   const settle = (value: boolean) => {
     state.value = {
       ...state.value,

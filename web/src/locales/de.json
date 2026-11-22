@@ -1,6 +1,5 @@
 {
   "admin": {
-    "docs": "Dokumentation",
     "login": "Anmelden",
     "logout": "Abmelden",
     "nav": {
@@ -11,17 +10,21 @@
       "meetData": "Veranstaltungsdaten"
     },
     "openScoreboard": "Anzeigetafel öffnen",
-    "pageDocs": "Dokumentation zu dieser Seite öffnen"
+    "pageDocs": "Dokumentation zu dieser Seite öffnen",
+    "updateOverlays": "Die Overlays verbinden sich nach dem Neustart selbst wieder."
   },
   "common": {
     "back": "Zurück",
     "cancel": "Abbrechen",
     "collapse": "Einklappen",
     "confirm": "Bestätigen",
+    "copyFailed": "Kopieren fehlgeschlagen",
+    "create": "Anlegen",
     "delete": "Löschen",
     "discardConfirm": "Verwerfen",
     "discardDescription": "Deine ungespeicherten Änderungen gehen verloren.",
     "discardTitle": "Änderungen verwerfen?",
+    "docs": "Dokumentation",
     "expand": "Aufklappen",
     "help": "Hilfe",
     "hidePassword": "Passwort verbergen",
@@ -29,11 +32,13 @@
     "ok": "OK",
     "pickColor": "Farbe wählen",
     "removeSecret": "Gespeicherten Wert entfernen",
+    "repository": "Quellcode",
     "reset": "Zurücksetzen",
     "save": "Speichern",
     "search": "Suchen",
     "secretRemoved": "Wird beim Speichern entfernt",
     "secretSaved": "Gespeichert, leer lassen zum Beibehalten",
+    "sections": "Abschnitte",
     "showPassword": "Passwort anzeigen"
   },
   "editor": {
@@ -133,9 +138,10 @@
     "zoomToSelection": "Auf Auswahl zoomen"
   },
   "errors": {
-    "authentication_required": "Bitte melde Dich an, um fortzufahren.",
+    "authentication_required": "Bitte melde dich an, um fortzufahren.",
     "bad_request": "Die Anfrage war ungültig.",
     "conflict": "Das hat nicht funktioniert. Bitte versuche es erneut.",
+    "forbidden": "Dafür fehlt dir die Berechtigung.",
     "invalid_credentials": "Die Anmeldedaten sind falsch.",
     "method_not_allowed": "Diese Aktion ist nicht erlaubt.",
     "not_found": "Das konnten wir nicht finden.",
@@ -145,82 +151,7 @@
     "rate_limited_seconds": "Zu viele Versuche. Bitte versuche es in einer Sekunde erneut. | Zu viele Versuche. Bitte versuche es in {count} Sekunden erneut.",
     "server_error": "Etwas ist schiefgelaufen. Bitte versuche es erneut.",
     "timeout": "Das hat zu lange gedauert. Bitte versuche es erneut.",
-    "validation_failed": "Bitte überprüfe Deine Eingabe."
-  },
-  "fields": {
-    "app": {
-      "env": "Umgebung",
-      "language": "Sprache",
-      "name": "Anwendungsname",
-      "secret": "Admin-Passwort"
-    },
-    "comment": "Kommentar",
-    "enabled": "Aktiv",
-    "events": "Ereignisse",
-    "file": "Datei",
-    "files": "Dateien",
-    "frameHeight": "Höhe",
-    "frameWidth": "Breite",
-    "laneGap": "Bahnabstand (%)",
-    "log": {
-      "channel": "Log-Kanal",
-      "compress": "Alte Logs komprimieren",
-      "format": "Log-Format",
-      "level": "Log-Level",
-      "maxAgeDays": "Aufbewahrung der Logs (Tage)",
-      "maxSizeMb": "Maximale Log-Größe (MB)",
-      "path": "Log-Verzeichnis"
-    },
-    "name": "Name",
-    "password": "Passwort",
-    "reverseLanes": "Reihenfolge der Bahnen",
-    "secret": "Secret",
-    "server": {
-      "corsAllowCredentials": "CORS mit Cookies erlauben",
-      "corsAllowedOrigins": "Erlaubte CORS-Origins",
-      "host": "Host",
-      "port": "Port",
-      "sslCertFile": "TLS-Zertifikatspfad",
-      "sslEnabled": "HTTPS aktivieren",
-      "sslKeyFile": "TLS-Schlüsselpfad",
-      "trustedProxies": "Vertrauenswürdige Proxys"
-    },
-    "skipTlsVerify": "Jedes Zertifikat akzeptieren",
-    "storage": {
-      "driver": "Speichertreiber",
-      "path": "Speicherpfad",
-      "s3": {
-        "accessKey": "S3 Access Key",
-        "bucket": "S3-Bucket",
-        "endpoint": "S3-Endpunkt",
-        "region": "S3-Region",
-        "secretKey": "S3 Secret Key",
-        "usePathStyle": "Path-Style-Adressierung verwenden"
-      }
-    },
-    "textAnchor": "Kameraposition",
-    "textSize": "Textgröße (%)",
-    "theme": {
-      "error": "Fehler",
-      "info": "Info",
-      "neutral": "Neutral",
-      "primary": "Primär",
-      "secondary": "Sekundär",
-      "success": "Erfolg",
-      "warning": "Warnung"
-    },
-    "timing": {
-      "baudRate": "Baudrate",
-      "poolLength": "Beckenlänge",
-      "recording": "Aufzeichnung",
-      "replayPath": "Abgespielte Aufzeichnung",
-      "serialPort": "Serielle Schnittstelle",
-      "simulateEvent": "Simulierter Wettkampf"
-    },
-    "url": "URL",
-    "webhook": {
-      "allowedNetworks": "Erlaubte private Netze"
-    }
+    "validation_failed": "Bitte überprüfe deine Eingabe."
   },
   "keys": {
     "alt": "Alt",
@@ -249,16 +180,15 @@
     "config": {
       "app": {
         "envDevelopment": "Entwicklung",
-        "envHint": "Für den Betrieb „Produktion“ wählen. „Entwicklung“ und „Test“ sind für die Weiterentwicklung der Anwendung gedacht.",
+        "envHint": "Für den Betrieb „Produktion“ wählen.",
         "envProduction": "Produktion",
         "envStaging": "Test",
         "languageHint": "Sprache der Oberfläche.",
-        "nameHint": "Wird in der Oberfläche angezeigt. Leer lassen, um den eingebauten Namen zu verwenden.",
         "secretHint": "Passwort für die Anmeldung im Admin-Bereich. Ohne Passwort kann sich jeder anmelden."
       },
       "file": {
-        "loaded": "Konfigurationsdatei:",
-        "missing": "Die Konfigurationsdatei existiert noch nicht und wird beim Speichern angelegt:",
+        "loaded": "Konfigurationsdatei",
+        "missing": "Die Konfigurationsdatei existiert noch nicht und wird beim Speichern angelegt.",
         "none": "Es wurde keine Konfigurationsdatei gefunden. Beim Speichern wird config.yaml im ersten beschreibbaren Konfigurationsverzeichnis angelegt."
       },
       "loadError": "Die Konfiguration konnte nicht geladen werden.",
@@ -273,7 +203,6 @@
         "levelWarn": "Warnung",
         "maxAgeDaysHint": "Rotierte Log-Dateien werden nach so vielen Tagen gelöscht. -1 behält sie dauerhaft.",
         "maxSizeMbHint": "Die Log-Datei wird täglich um Mitternacht rotiert und zusätzlich, sobald sie diese Größe erreicht.",
-        "pathHint": "Verzeichnis der Log-Datei swim-timer.log. Leer lassen, um das Log-Verzeichnis des Betriebssystems zu verwenden.",
         "pathPlaceholder": "Log-Verzeichnis des Betriebssystems"
       },
       "restartDescription": "Die Konfiguration wurde gespeichert. Sie wirkt nach einem Neustart der Anwendung.",
@@ -291,11 +220,11 @@
         "webhook": "Webhooks"
       },
       "server": {
-        "corsAllowCredentialsHint": "Lässt die erlaubten Domains Cookies mitsenden, zum Beispiel für eine Anmeldung. Erfordert konkrete Domains statt *.",
-        "corsAllowedOriginsHint": "Domains, deren Webseiten die API im Browser aufrufen dürfen, eine pro Zeile. Leer lassen, wenn Oberfläche und API unter derselben Domain laufen.",
+        "corsAllowCredentialsHint": "Lässt die erlaubten Domains Cookies mitsenden. Erfordert konkrete Domains statt *.",
+        "corsAllowedOriginsHint": "Domains, deren Webseiten die API im Browser aufrufen dürfen, eine pro Zeile.",
         "corsAllowedOriginsPlaceholder": "https://example.com",
         "hostPlaceholder": "Alle Schnittstellen",
-        "sslCertFileHint": "Leer lassen, um ein selbstsigniertes Zertifikat zu verwenden.",
+        "sslCertFilePlaceholder": "Selbstsigniertes Zertifikat",
         "sslEnabledHint": "Liefert die Oberfläche über HTTPS aus. Ohne Zertifikatsdateien wird ein selbstsigniertes Zertifikat erzeugt, vor dem Browser warnen.",
         "trustedProxiesHint": "Proxys, deren Angaben zur Adresse des Aufrufers übernommen werden, als kommagetrennte IP-Adressen oder Netze in CIDR-Schreibweise."
       },
@@ -304,34 +233,26 @@
           "env": "Env",
           "flag": "Flag"
         },
-        "default": "Standardwert",
-        "defaultValue": "Standard",
         "defaults": "Standardwerte",
         "empty": "leer",
         "env": "Umgebungsvariable {name}",
-        "file": "Konfigurationsdatei",
         "flag": "Kommandozeilen-Flag {name}",
         "off": "aus",
         "on": "an",
         "overridden": "Die Umgebungsvariable oder das Flag hat Vorrang vor der Konfigurationsdatei. Ein hier gespeicherter Wert wirkt erst, wenn die Variable oder das Flag entfernt wird.",
-        "reset": "Auf Standard zurücksetzen",
         "resetAll": "Alle Einstellungen auf Standard zurücksetzen",
         "resetSection": "{section} auf Standard zurücksetzen",
-        "title": "Herkunft"
+        "resetTo": "Zurücksetzen auf: {value}"
       },
       "storage": {
-        "driverHint": "Ort, an dem die Veranstaltungsdateien und Presets gespeichert werden.",
         "local": "Lokal",
-        "pathHint": "Leer lassen, um das Datenverzeichnis des Betriebssystems zu verwenden.",
-        "pathPlaceholder": "Datenverzeichnis",
-        "testHint": "Prüft die eingegebenen Werte, ohne sie zu speichern. Lokal muss das Verzeichnis beschreibbar und bei S3 der Bucket erreichbar sein, ein leerer Secret Key prüft den gespeicherten.",
-        "usePathStyleHint": "Spricht den Bucket über den Pfad der URL statt über eine Subdomain des Endpunkts an."
+        "pathPlaceholder": "Datenverzeichnis des Betriebssystems"
       },
       "testConnection": "Verbindung testen",
       "testConnectionFailure": "Verbindungstest fehlgeschlagen",
       "testConnectionSuccess": "Verbindung erfolgreich",
       "theme": {
-        "hint": "Eine Farbe leer lassen, um die eingebaute Standardfarbe zu verwenden.",
+        "default": "Standard",
         "title": "Farben"
       },
       "timing": {
@@ -346,11 +267,11 @@
         "recordingExport": "Als Tabelle herunterladen",
         "recordingHint": "Zeichnet die empfangenen Daten der Zeitmessanlage im Ordner recordings des Speichers auf, eine Datei pro Tag. Aufgezeichnet wird nur mit dem lokalen Speichertreiber und nicht, während eine Aufzeichnung abgespielt wird.",
         "recordingLibrary": "Aufzeichnungen",
-        "recordingLibraryHint": "Die Aufzeichnungen der Zeitmessung im Speicher. Lade eine Aufzeichnung hoch, um sie abzuspielen, oder lade sie herunter, so wie sie gespeichert ist oder als Tabelle der dekodierten Frames. Eine Datei mit vorhandenem Namen ersetzt die bestehende.",
         "recordingNone": "Keine Aufzeichnung",
         "recordingSelect": "Abspielen",
+        "recordingUploading": "Aufzeichnung wird hochgeladen",
         "replayPathHint": "Aufzeichnung, die der Simulator statt der Zeitmessanlage in einer Schleife mit den aufgezeichneten Pausen abspielt. Mit einem simulierten Wettkampf spielt er nur die Läufe dieses Wettkampfs ab.",
-        "serialPortHint": "Serielle Schnittstelle der Zeitmessanlage oder host:port einer Serial-over-IP-Bridge. Leer lassen, um alle gefundenen Schnittstellen zu durchsuchen.",
+        "serialPortHint": "Serielle Schnittstelle der Zeitmessanlage oder host:port einer Serial-over-IP-Bridge.",
         "serialPortPlaceholder": "Alle Schnittstellen durchsuchen",
         "simulateEventHint": "Nummer des Wettkampfs, den der Simulator statt der Zeitmessanlage abspielt. Mit einer abgespielten Aufzeichnung spielt er die Läufe dieses Wettkampfs aus der Aufzeichnung ab, sonst erzeugt er zufällige Zeiten. 0 deaktiviert den Simulator oder spielt die ganze Aufzeichnung ab.",
         "uploadRecording": "Hochladen"
@@ -359,98 +280,17 @@
       "unsavedChanges": "Ungespeicherte Änderungen",
       "webhook": {
         "allowedNetworksHint": "Private oder lokale Netze, an die Webhooks zugestellt werden dürfen, als kommagetrennte IP-Adressen oder Netze in CIDR-Schreibweise. Leer lassen, um nur an öffentliche Adressen zuzustellen.",
-        "copySecret": "Secret kopieren",
-        "createdDescription": "Trage dieses Secret beim Empfänger ein, damit er die Signatur der Nachrichten prüfen kann. Es ist auch beim Bearbeiten des Webhooks zu sehen.",
-        "createdTitle": "Webhook {name} angelegt",
-        "deleteDescription": "{name} erhält danach keine Live-Daten mehr.",
-        "deleteTitle": "Webhook löschen?",
-        "deleted": "Webhook {name} gelöscht",
-        "deliveries": {
-          "description": "Die letzten 25 Zustellungen seit dem Start, die neueste zuerst.",
-          "duration": "Dauer",
-          "empty": "Seit dem Start keine Zustellungen.",
-          "event": "Ereignis",
-          "loadError": "Die Zustellungen konnten nicht geladen werden",
-          "milliseconds": "{value} ms",
-          "outcome": "Ergebnis",
-          "response": "Antwort",
-          "search": "Ereignis, Status oder Antwort suchen",
-          "status": "Status",
-          "time": "Zeit",
-          "title": "Zustellungen an {name}"
-        },
-        "deliveriesAction": "Zustellungen",
-        "edit": "Webhook bearbeiten",
-        "editAction": "Bearbeiten",
-        "empty": "Noch keine Webhooks. Ein Webhook sendet die Live-Daten an eine URL, zum Beispiel an eine Website.",
-        "errors": {
-          "blocked_address": "Die Adresse liegt in einem privaten oder lokalen Netz, das nicht erlaubt ist.",
-          "invalid_secret": "Das Secret ist ungültig.",
-          "invalid_url": "Die URL ist ungültig.",
-          "status": "Der Empfänger hat mit Status {status} geantwortet.",
-          "timeout": "Der Empfänger hat nicht rechtzeitig geantwortet.",
-          "unreachable": "Der Empfänger war nicht erreichbar.",
-          "untrusted_certificate": "Das Zertifikat des Empfängers konnte nicht geprüft werden. Schalte für ein selbstsigniertes Zertifikat „Jedes Zertifikat akzeptieren“ ein."
-        },
         "events": {
           "heatUpdated": "Aktueller Lauf",
           "heatUpdatedHint": "Jede Änderung des aktuellen Laufs",
           "meetReloaded": "Veranstaltungsdaten",
-          "meetReloadedHint": "Die ganze Veranstaltung nach jedem Neuladen",
-          "test": "Testnachricht"
-        },
-        "failingSince": "{error}, {count} fehlgeschlagene Zustellungen in Folge, zuletzt um {time}",
-        "generateSecret": "Secret erzeugen",
-        "health": {
-          "disabled": "Aus",
-          "failing": "Fehler",
-          "ok": "OK",
-          "waiting": "Wartet"
-        },
-        "lastDelivered": "Zuletzt zugestellt um {time}",
-        "loadError": "Die Webhooks konnten nicht geladen werden",
-        "new": "Neuer Webhook",
-        "noDelivery": "Seit dem Start keine Zustellung",
-        "outcomes": {
-          "deferred": "Verschoben",
-          "delivered": "Zugestellt",
-          "gone": "Entfernt",
-          "rejected": "Abgelehnt",
-          "retry": "Wird wiederholt"
-        },
-        "preview": {
-          "body": "Inhalt",
-          "copied": "Inhalt kopiert",
-          "copy": "Inhalt kopieren",
-          "description": "Eine Nachricht mit den aktuellen Daten des Ereignisses, wie sie jetzt gesendet würde, signiert mit dem Secret des Webhooks. Es wird nichts gesendet.",
-          "event": "Ereignis",
-          "headers": "Header",
-          "loadError": "Das Beispiel konnte nicht erstellt werden",
-          "request": "Anfrage",
-          "title": "Beispielnachricht an {name}"
-        },
-        "previewAction": "Beispiel anzeigen",
-        "saved": "Webhook gespeichert",
-        "search": "Name oder URL suchen",
-        "secretCopied": "Secret kopiert",
-        "secretHint": "Signiert jede Nachricht, damit der Empfänger prüfen kann, dass sie von dieser Anwendung stammt. Mehrere Webhooks können dasselbe Secret verwenden. Leer lassen, um eines zu erzeugen.",
-        "secretPlaceholder": "Wird beim Speichern erzeugt",
-        "skipTlsVerifyHint": "Sendet an eine https-Adresse, ohne ihr Zertifikat zu prüfen, zum Beispiel ein selbstsigniertes im lokalen Netz. Der Empfänger kann die Nachrichten weiterhin über die Signatur prüfen, andere im Netz könnten sie aber mitlesen.",
-        "status": "Status",
-        "testAction": "Test senden",
-        "testDelivered": "Testnachricht zugestellt",
-        "testFailed": "Testnachricht nicht zugestellt",
-        "urlHint": "Adresse, an die die Nachrichten gesendet werden, mit http oder https."
+          "meetReloadedHint": "Die ganze Veranstaltung nach jedem Neuladen"
+        }
       }
     },
     "dashboard": {
       "arOverlays": "AR-Overlays",
       "copyUrl": "URL kopieren",
-      "help": {
-        "arOverlays": "Ein AR-Overlay pro Preset aus dem Editor. Es blendet Platz, Name und Zeit auf den Bahnen im Kamerabild ein und passt zu einer Browserquelle mit dem Seitenverhältnis seines Presets.",
-        "lanes": "Ein Overlay pro Bahn des aktuellen Laufs mit Name und Verein. Die Liste ändert sich mit jedem geladenen Lauf.",
-        "overlays": "Füge die URL als Browserquelle in der Streaming-Software ein, zum Beispiel in OBS oder vMix. Die Overlays haben einen transparenten Hintergrund und aktualisieren sich live."
-      },
       "lanes": "Bahnen",
       "loadError": "Die Übersicht konnte nicht geladen werden.",
       "noHeat": "Kein Lauf geladen",
@@ -494,7 +334,7 @@
         "tr": "Oben rechts"
       },
       "deleteDescription": "Das Preset „{name}“ wird endgültig gelöscht.",
-      "deleteSuccess": "Preset gelöscht.",
+      "deleteSuccess": "Preset gelöscht",
       "deleteTitle": "Preset löschen?",
       "downloadPreset": "Herunterladen",
       "draft": "Entwurf",
@@ -558,7 +398,7 @@
       "previewLastName": "Bahn {lane}",
       "renameDescription": "Das Preset „{from}“ wird als „{name}“ gespeichert und unter dem alten Namen gelöscht. Browserquellen mit der alten Adresse des AR-Overlays müssen angepasst werden.",
       "saveDescription": "Das Preset „{name}“ wird gespeichert. Ein geöffnetes AR-Overlay mit diesem Preset übernimmt es nach dem Neuladen.",
-      "saveSuccess": "Preset gespeichert.",
+      "saveSuccess": "Preset gespeichert",
       "saveTitle": "Preset speichern?",
       "searchPreset": "Preset suchen",
       "selectLaneHint": "Eine Bahn auf der Leinwand oder mit den Zifferntasten auswählen, um ihre Ecken zu bearbeiten.",
@@ -638,6 +478,11 @@
       "noEntries": "Keine Starts.",
       "scoreboard": "Anzeigetafel",
       "scoreboardHint": "Öffnet die Anzeigetafel des aktuellen Laufs in einem neuen Tab.",
+      "sections": {
+        "clubs": "Vereine",
+        "events": "Wettkämpfe",
+        "starts": "Starts"
+      },
       "starts": {
         "birthYear": "Jahrgang",
         "club": "Verein",
@@ -647,11 +492,6 @@
         "name": "Teilnehmende",
         "schedule": "Geplant",
         "unknown": "Unbekannt"
-      },
-      "tabs": {
-        "clubs": "Vereine",
-        "events": "Wettkämpfe",
-        "starts": "Starts"
       },
       "title": "Veranstaltung"
     },
@@ -667,17 +507,17 @@
         "LSTSTART": "Startliste",
         "LSTSTYLE": "Lagen"
       },
-      "filesHint": "Eine Datei pro Teil der Veranstaltungsdaten, zugeordnet über ihren Namen. Hochladen ersetzt die gespeicherte Datei, und eine fehlende Datei lässt ihren Teil leer.",
       "hint": "Die Dateien aus der Zeitmess-Software exportieren und hier hochladen. Hochgeladene Dateien werden nach dem Neuladen der Veranstaltungsdaten wirksam.",
       "loadError": "Die Dateien der Veranstaltungsdaten konnten nicht geladen werden.",
       "missing": "Fehlt",
       "reload": "Veranstaltungsdaten neu laden",
-      "reloadError": "Die Veranstaltungsdaten konnten nicht neu geladen werden",
+      "reloadError": "Die Veranstaltungsdaten konnten nicht neu geladen werden.",
       "reloadHint": "Liest alle hochgeladenen Dateien neu ein, und geöffnete Seiten übernehmen die neuen Daten sofort. Kann eine Datei nicht gelesen werden, bleiben die bisherigen Daten in Gebrauch.",
-      "reloadSuccess": "Veranstaltungsdaten neu geladen.",
+      "reloadSuccess": "Veranstaltungsdaten neu geladen",
+      "reloading": "Veranstaltungsdaten werden neu geladen",
       "title": "Veranstaltungsdaten",
       "upload": "Hochladen",
-      "uploadError": "{name} wurde nicht gespeichert",
+      "uploadError": "{name} wurde nicht gespeichert.",
       "uploadErrors": {
         "server_error": "Etwas ist schiefgelaufen. Bitte versuche es erneut.",
         "too_large": "Die Datei ist zu groß.",
@@ -686,8 +526,10 @@
       },
       "uploadMany": "Dateien der Veranstaltungsdaten hochladen",
       "uploadManyHint": "Die exportierten .txt-Dateien hier ablegen oder klicken, um sie auszuwählen. Jede Datei wird anhand ihres Namens zugeordnet.",
-      "uploadManySuccess": "{count} Datei gespeichert. | {count} Dateien gespeichert.",
-      "uploadSuccess": "{name} hochgeladen."
+      "uploadManySuccess": "{count} Datei gespeichert | {count} Dateien gespeichert",
+      "uploadingMany": "Dateien werden hochgeladen",
+      "uploadSuccess": "{name} hochgeladen",
+      "uploading": "{name} wird hochgeladen"
     },
     "scoreboard": {
       "club": "Verein",
@@ -726,11 +568,10 @@
   "update": {
     "available": "Version {version} ist verfügbar.",
     "check": "Nach Updates suchen",
-    "confirmDescription": "Die Anwendung startet nach der Installation neu. Die Overlays verbinden sich selbst wieder.",
+    "confirmDescription": "Die Anwendung startet nach der Installation neu.",
     "confirmTitle": "Version {version} installieren?",
     "current": "Installiert: {version}",
     "failed": "Das Update ist fehlgeschlagen.",
-    "hint": "Sucht nur auf Klick nach einer neueren Version. Installieren lädt sie herunter, prüft sie, ersetzt die Anwendung und startet sie neu. Die Overlays verbinden sich selbst wieder.",
     "install": "Installieren",
     "installing": "Das Update wird installiert…",
     "latest": "Die installierte Version ist aktuell.",
@@ -769,5 +610,160 @@
     "unsupported_type": "{field} hat einen nicht unterstützten Dateityp.",
     "url": "{field} muss eine http- oder https-URL sein.",
     "webhook_secret": "{field} muss aus whsec_ und 24 bis 64 Bytes in Base64 bestehen."
+  },
+  "webhook": {
+    "copySecret": "Secret kopieren",
+    "createdDescription": "Trage dieses Secret beim Empfänger ein, damit er die Signatur der Nachrichten prüfen kann. Es wird nur dieses eine Mal angezeigt.",
+    "createdTitle": "Webhook {name} angelegt",
+    "deleteDescription": "{name} erhält danach keine Live-Daten mehr.",
+    "deleteTitle": "Webhook löschen?",
+    "deleted": "Webhook {name} gelöscht",
+    "deliveries": {
+      "description": "Die letzten 25 Zustellungen seit dem Start, die neuesten zuerst.",
+      "duration": "Dauer",
+      "empty": "Seit dem Start keine Zustellungen.",
+      "event": "Ereignis",
+      "loadError": "Die Zustellungen konnten nicht geladen werden",
+      "milliseconds": "{value} ms",
+      "outcome": "Ergebnis",
+      "response": "Antwort",
+      "search": "Ereignis, Status oder Antwort suchen",
+      "status": "Status",
+      "time": "Zeit",
+      "title": "Zustellungen an {name}"
+    },
+    "deliveriesAction": "Zustellungen",
+    "edit": "Webhook bearbeiten",
+    "editAction": "Bearbeiten",
+    "empty": "Noch keine Webhooks. Ein Webhook sendet die Live-Daten an eine URL, zum Beispiel an eine Website.",
+    "errors": {
+      "blocked_address": "Die Adresse liegt in einem privaten oder lokalen Netz, das nicht erlaubt ist.",
+      "invalid_secret": "Das Secret ist ungültig.",
+      "invalid_url": "Die URL ist ungültig.",
+      "status": "Der Empfänger hat mit Status {status} geantwortet.",
+      "timeout": "Der Empfänger hat nicht rechtzeitig geantwortet.",
+      "unreachable": "Der Empfänger war nicht erreichbar.",
+      "untrusted_certificate": "Das Zertifikat des Empfängers konnte nicht geprüft werden. Schalte für ein selbstsigniertes Zertifikat „Jedes Zertifikat akzeptieren“ ein."
+    },
+    "failingSince": "{error}, {count} fehlgeschlagene Zustellungen in Folge, zuletzt am {time}",
+    "generateSecret": "Secret erzeugen",
+    "health": {
+      "disabled": "Aus",
+      "failing": "Fehler",
+      "ok": "OK",
+      "waiting": "Wartet"
+    },
+    "lastDelivered": "Zuletzt zugestellt am {time}",
+    "loadError": "Die Webhooks konnten nicht geladen werden",
+    "new": "Neuer Webhook",
+    "noDelivery": "Seit dem Start keine Zustellung",
+    "outcomes": {
+      "deferred": "Verschoben",
+      "delivered": "Zugestellt",
+      "gone": "Entfernt",
+      "rejected": "Abgelehnt",
+      "retry": "Wird wiederholt"
+    },
+    "preview": {
+      "body": "Inhalt",
+      "copied": "Inhalt kopiert",
+      "copy": "Inhalt kopieren",
+      "description": "Eine Nachricht mit den aktuellen Daten des Ereignisses, wie sie jetzt gesendet würde, signiert mit dem Secret des Webhooks. Es wird nichts gesendet.",
+      "event": "Ereignis",
+      "headers": "Header",
+      "loadError": "Das Beispiel konnte nicht erstellt werden",
+      "request": "Anfrage",
+      "title": "Beispielnachricht an {name}"
+    },
+    "previewAction": "Beispiel anzeigen",
+    "saved": "Webhook gespeichert",
+    "search": "Name oder URL suchen",
+    "secretCopied": "Secret kopiert",
+    "secretHint": "Signiert jede Nachricht, damit der Empfänger prüfen kann, dass sie von dieser Anwendung stammt. Mehrere Webhooks können dasselbe Secret verwenden. Leer lassen, um eines zu erzeugen.",
+    "secretKeepHint": "Signiert jede Nachricht, damit der Empfänger prüfen kann, dass sie von dieser Anwendung stammt. Leer lassen, um das aktuelle Secret zu behalten.",
+    "secretKeepPlaceholder": "Behält das aktuelle Secret",
+    "secretPlaceholder": "Wird beim Speichern erzeugt",
+    "skipTlsVerifyHint": "Sendet an eine https-Adresse, ohne ihr Zertifikat zu prüfen, zum Beispiel ein selbstsigniertes im lokalen Netz. Der Empfänger kann die Nachrichten weiterhin über die Signatur prüfen, andere im Netz könnten sie aber mitlesen.",
+    "status": "Status",
+    "testAction": "Test senden",
+    "testDelivered": "Testnachricht zugestellt",
+    "testFailed": "Testnachricht nicht zugestellt",
+    "urlHint": "Adresse, an die die Nachrichten gesendet werden, mit http oder https.",
+    "test": "Testnachricht"
+  },
+  "fields": {
+    "app": {
+      "env": "Umgebung",
+      "language": "Sprache",
+      "name": "Anwendungsname",
+      "secret": "Admin-Passwort"
+    },
+    "description": "Beschreibung",
+    "enabled": "Aktiv",
+    "events": "Ereignisse",
+    "file": "Datei",
+    "files": "Dateien",
+    "frameHeight": "Höhe",
+    "frameWidth": "Breite",
+    "laneGap": "Bahnabstand (%)",
+    "log": {
+      "channel": "Log-Kanal",
+      "compress": "Alte Logs komprimieren",
+      "format": "Log-Format",
+      "level": "Log-Level",
+      "maxAgeDays": "Aufbewahrung der Logs (Tage)",
+      "maxSizeMb": "Maximale Log-Größe (MB)",
+      "path": "Log-Verzeichnis"
+    },
+    "name": "Name",
+    "password": "Passwort",
+    "reverseLanes": "Reihenfolge der Bahnen",
+    "secret": "Secret",
+    "server": {
+      "corsAllowCredentials": "CORS mit Cookies erlauben",
+      "corsAllowedOrigins": "Erlaubte CORS-Origins",
+      "host": "Host",
+      "port": "Port",
+      "sslCertFile": "TLS-Zertifikatspfad",
+      "sslEnabled": "HTTPS aktivieren",
+      "sslKeyFile": "TLS-Schlüsselpfad",
+      "trustedProxies": "Vertrauenswürdige Proxys"
+    },
+    "skipTlsVerify": "Jedes Zertifikat akzeptieren",
+    "storage": {
+      "driver": "Speichertreiber",
+      "path": "Speicherpfad",
+      "s3": {
+        "accessKey": "S3 Access Key",
+        "bucket": "S3-Bucket",
+        "endpoint": "S3-Endpunkt",
+        "region": "S3-Region",
+        "secretKey": "S3 Secret Key",
+        "usePathStyle": "Path-Style-Adressierung verwenden"
+      }
+    },
+    "textAnchor": "Kameraposition",
+    "textSize": "Textgröße (%)",
+    "theme": {
+      "error": "Fehler",
+      "info": "Info",
+      "neutral": "Neutral",
+      "primary": "Primär",
+      "secondary": "Sekundär",
+      "success": "Erfolg",
+      "warning": "Warnung"
+    },
+    "timing": {
+      "baudRate": "Baudrate",
+      "poolLength": "Beckenlänge",
+      "recording": "Aufzeichnung",
+      "replayPath": "Abgespielte Aufzeichnung",
+      "serialPort": "Serielle Schnittstelle",
+      "simulateEvent": "Simulierter Wettkampf"
+    },
+    "url": "URL",
+    "webhook": {
+      "allowedNetworks": "Erlaubte private Netze"
+    }
   }
 }

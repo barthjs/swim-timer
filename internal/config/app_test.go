@@ -106,11 +106,6 @@ func TestNormalizeEnv(t *testing.T) {
 			env:  "",
 			want: EnvProduction,
 		},
-		{
-			name: "selects production for an unknown environment",
-			env:  "unknown",
-			want: EnvProduction,
-		},
 	}
 
 	for _, tt := range tests {

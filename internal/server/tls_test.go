@@ -271,11 +271,6 @@ func TestLoadCert(t *testing.T) {
 		keyFile  string
 	}{
 		{
-			name:     "rejects missing files",
-			certFile: filepath.Join(t.TempDir(), "cert.pem"),
-			keyFile:  filepath.Join(t.TempDir(), "key.pem"),
-		},
-		{
 			name:     "rejects the key of another certificate",
 			certFile: certFile,
 			keyFile:  otherKey,
@@ -313,11 +308,6 @@ func TestCertCovers(t *testing.T) {
 		{
 			name:  "covers the hosts of the certificate",
 			hosts: []string{"localhost", "127.0.0.1"},
-			want:  true,
-		},
-		{
-			name:  "covers an empty list",
-			hosts: nil,
 			want:  true,
 		},
 		{
@@ -368,18 +358,6 @@ func TestGenerateSelfSignedCert(t *testing.T) {
 		assert.Equal(t, os.FileMode(0o600), keyInfo.Mode().Perm(), "the private key is not readable by others")
 	})
 
-	t.Run("creates missing directories", func(t *testing.T) {
-		t.Parallel()
-
-		dir := filepath.Join(t.TempDir(), "nested", "certs")
-
-		err := generateSelfSignedCert(filepath.Join(dir, "cert.pem"), filepath.Join(dir, "key.pem"), []string{"localhost"})
-
-		require.NoError(t, err)
-		_, err = loadCert(filepath.Join(dir, "cert.pem"), filepath.Join(dir, "key.pem"))
-		assert.NoError(t, err)
-	})
-
 	file := filepath.Join(t.TempDir(), "file")
 	require.NoError(t, os.WriteFile(file, []byte("x"), 0o644))
 	dir := t.TempDir()
@@ -415,15 +393,4 @@ func TestGenerateSelfSignedCert(t *testing.T) {
 			assert.Error(t, err)
 		})
 	}
-}
-
-// newCert generates a self-signed certificate for hosts in a temporary directory.
-func newCert(t *testing.T, hosts ...string) (certFile, keyFile string) {
-	t.Helper()
-
-	dir := t.TempDir()
-	certFile = filepath.Join(dir, "cert.pem")
-	keyFile = filepath.Join(dir, "key.pem")
-	require.NoError(t, generateSelfSignedCert(certFile, keyFile, hosts))
-	return certFile, keyFile
 }

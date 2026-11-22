@@ -61,9 +61,8 @@ func testS3Storage(ctx context.Context, options Options) error {
 	return storage.TestConnection(ctx)
 }
 
-// newS3Client creates an s3Storage for the S3 endpoint of options without checking the connection.
-// Without options.S3Transport, the client gets a transport of its own, whose idle connections the returned function closes.
-// With a transport of the caller, the function does nothing.
+// newS3Client creates an s3Storage without checking the connection and a function that closes the idle connections
+// of a transport it created itself.
 func newS3Client(options Options) (*s3Storage, func(), error) {
 	endpoint, err := url.Parse(options.S3Endpoint)
 	if err != nil {

@@ -58,16 +58,6 @@ func TestBlankMissing(t *testing.T) {
 			data: nil,
 			want: "[][][][][][][][]",
 		},
-		{
-			name: "keeps present values",
-			data: map[string]any{
-				"Name":  "Ada",
-				"User":  map[string]string{"Name": "Bob"},
-				"Items": []int{1, 2},
-				"Set":   "x",
-			},
-			want: "[Ada][Bob][][12][Bob][Ada][][x]",
-		},
 	}
 
 	for _, tt := range tests {

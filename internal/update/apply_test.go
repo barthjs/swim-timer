@@ -405,8 +405,8 @@ func openArchive(t *testing.T, content []byte) *os.File {
 	return archive
 }
 
-// zipWithMethod returns a zip archive that holds content under name with method as the compression
-// in its central directory, which the reader uses to open the file.
+// zipWithMethod returns a zip archive that holds content under name
+// with method as the compression in its central directory, which the reader uses to open the file.
 func zipWithMethod(name string, content []byte, method uint16) []byte {
 	archive := zipWith(name, content)
 	header := bytes.Index(archive, []byte("PK\x01\x02"))

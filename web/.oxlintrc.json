@@ -5,6 +5,28 @@
     "browser": true
   },
   "categories": {
-    "correctness": "error"
-  }
+    "correctness": "error",
+    "suspicious": "error",
+    "perf": "error"
+  },
+  "rules": {
+    "unicorn/no-array-reverse": "off",
+    "unicorn/no-array-sort": "off",
+    "oxc/no-map-spread": "off",
+    "eslint/no-await-in-loop": "off"
+  },
+  "overrides": [
+    {
+      "files": ["src/**/*.test.ts", "src/**/test/**"],
+      "rules": {
+        "unicorn/consistent-function-scoping": "off"
+      }
+    },
+    {
+      "files": ["pwa/serviceWorker.ts"],
+      "rules": {
+        "eslint/no-underscore-dangle": "off"
+      }
+    }
+  ]
 }

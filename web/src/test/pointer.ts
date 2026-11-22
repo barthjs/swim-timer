@@ -1,5 +1,5 @@
 /**
- * pointer creates a pointer event as the browser dispatches it, for the primary button and pointer.
+ * Creates a pointer event as the browser dispatches it, for the primary button and pointer.
  */
 export function pointer(type: string, init: PointerEventInit = {}): PointerEvent {
   return new PointerEvent(type, {

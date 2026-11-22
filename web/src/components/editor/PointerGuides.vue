@@ -3,10 +3,10 @@
 // The lines are placed in pixels of the canvas area, the coordinates are whole units of the content,
 // as the fields of the editor show them.
 defineProps<{
-  // The position of the pointer in the canvas area.
+  // The position of the pointer in the canvas area
   x: number;
   y: number;
-  // The position of the pointer in units of the content.
+  // The position of the pointer in units of the content
   contentX: number;
   contentY: number;
 }>();

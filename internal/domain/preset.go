@@ -27,8 +27,8 @@ type LanePreset struct {
 // Preset describes how the AR overlay maps the lane texts onto the camera image.
 // It carries JSON tags because the preset store persists it as JSON.
 type Preset struct {
-	Name    string  `json:"name"`
-	Comment *string `json:"comment"`
+	Name        string  `json:"name"`
+	Description *string `json:"description"`
 	// FrameWidth and FrameHeight are the reference resolution of the output image.
 	// They set the aspect ratio the editor draws the preset in and the pixels it shows,
 	// while the lanes are stored as fractions.

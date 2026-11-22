@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { webhookRepository } from '@/api/repositories/webhook';
-import type { WebhookCreateRequest, WebhookUpdateRequest } from '@/api/types';
+import type { WebhookCreateRequest, WebhookUpdateRequest } from '@/api/types/webhook';
 import { jsonResponse, useFetchMock } from '@/test/fetchMock';
 
 describe('webhookRepository', () => {

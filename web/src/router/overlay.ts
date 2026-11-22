@@ -15,7 +15,7 @@ const routes: RouteRecordRaw[] = [
             preset: String(route.params.preset),
           }),
         },
-        component: () => import('@/pages/overlays/AROverlay.vue'),
+        component: async () => import('@/pages/overlays/AROverlay.vue'),
       },
       {
         path: 'info',
@@ -23,7 +23,7 @@ const routes: RouteRecordRaw[] = [
         meta: {
           titleKey: 'overlays.info',
         },
-        component: () => import('@/pages/overlays/InfoOverlay.vue'),
+        component: async () => import('@/pages/overlays/InfoOverlay.vue'),
       },
       {
         path: 'lane/:number',
@@ -34,7 +34,7 @@ const routes: RouteRecordRaw[] = [
             number: String(route.params.number),
           }),
         },
-        component: () => import('@/pages/overlays/LaneOverlay.vue'),
+        component: async () => import('@/pages/overlays/LaneOverlay.vue'),
       },
       {
         path: 'splits',
@@ -42,7 +42,7 @@ const routes: RouteRecordRaw[] = [
         meta: {
           titleKey: 'overlays.splits',
         },
-        component: () => import('@/pages/overlays/SplitsOverlay.vue'),
+        component: async () => import('@/pages/overlays/SplitsOverlay.vue'),
       },
       {
         path: 'startlist',
@@ -50,7 +50,7 @@ const routes: RouteRecordRaw[] = [
         meta: {
           titleKey: 'overlays.startList',
         },
-        component: () => import('@/pages/overlays/StartListOverlay.vue'),
+        component: async () => import('@/pages/overlays/StartListOverlay.vue'),
       },
       {
         path: 'timer',
@@ -58,14 +58,14 @@ const routes: RouteRecordRaw[] = [
         meta: {
           titleKey: 'overlays.timer',
         },
-        component: () => import('@/pages/overlays/TimerOverlay.vue'),
+        component: async () => import('@/pages/overlays/TimerOverlay.vue'),
       },
     ],
   },
 ];
 
 /**
- * overlayRouter only knows the overlay pages. An unknown path renders nothing,
+ * Only knows the overlay pages. An unknown path renders nothing,
  * since no fallback page makes sense in a video.
  */
 export const overlayRouter = createRouter({

@@ -8,27 +8,27 @@ import EditorImageControl from '@/components/editor/EditorImageControl.vue';
 import type { BackgroundImage } from '@/composables/editor/useBackgroundImage';
 import type { EditorGuides } from '@/composables/editor/useEditorGuides';
 import type { EditorViewOptions, EditorWorkspace } from '@/composables/editor/useEditorWorkspace';
-import type { History } from '@/composables/useHistory';
-import { useShortcutLabels } from '@/composables/useShortcutLabels';
+import type { History } from '@/composables/editor/useHistory';
+import { useShortcutLabels } from '@/composables/ui/useShortcutLabels';
 import type { AlignEdge, DistributeAxis } from '@/lib/editor/align';
 import { EDITOR_SHORTCUTS, shortcutKeys, type EditorShortcut } from '@/lib/editor/shortcuts';
 
-// The toolbar above the canvas of an editor. The first group holds undo, redo, the zoom, and the zoom to the selection,
-// the second one the view options, the tools of the editor in the default slot, the alignment, the image,
-// and on the right the view mode, the fullscreen mode, the sidebar, and the help. A group that does not fit beside
-// the first one takes its own row, and its buttons wrap where even that row is too narrow. Every tooltip names its shortcut. The view mode hides the view options, so their buttons
-// are disabled meanwhile.
+// The toolbar above the canvas of an editor. The first group holds the help, undo, redo, the zoom, and the zoom to the selection,
+// the second one the view options, the tools of the editor in the default slot, the alignment,
+// the image, and on the right the view mode, the fullscreen mode, and the sidebar.
+// A group that does not fit beside the first one takes its own row, and its buttons wrap where even that row is too narrow.
+// Every tooltip names its shortcut. The view mode hides the view options, so their buttons are disabled meanwhile.
 const props = defineProps<{
   workspace: EditorWorkspace;
   history: History;
-  // The zoom relative to the actual size of the content.
+  // The zoom relative to the actual size of the content
   zoom: number;
-  // Whether items are selected that the zoom to the selection can show.
+  // Whether items are selected that the zoom to the selection can show
   hasSelection: boolean;
-  // The number of selected items that can move, which the alignment works on.
+  // The number of selected items that can move, which the alignment works on
   alignCount: number;
   image: BackgroundImage;
-  // What the editor calls its image, such as a background image.
+  // What the editor calls its image, such as a background image
   imageLabel: string;
   guides: EditorGuides;
 }>();
@@ -38,7 +38,7 @@ const emit = defineEmits<{
   zoomOut: [];
   resetZoom: [];
   zoomToSelection: [];
-  // Zooms to a share of the actual size, such as 1 for 100 percent.
+  // Zooms to a share of the actual size, such as 1 for 100 percent
   zoomTo: [factor: number];
   align: [edge: AlignEdge];
   distribute: [axis: DistributeAxis];
@@ -49,10 +49,10 @@ const emit = defineEmits<{
 const { t, locale } = useI18n();
 const { keyLabels } = useShortcutLabels();
 
-// The zoom levels the menu at the zoom offers, as shares of the actual size.
+// The zoom levels the menu at the zoom offers, as shares of the actual size
 const ZOOM_LEVELS = [0.25, 0.5, 1, 2, 4];
 
-/** percent formats a share as a percentage in the language of the page. */
+/** Formats a share as a percentage in the language of the page. */
 function percent(value: number): string {
   return new Intl.NumberFormat(locale.value, {
     style: 'percent',
@@ -86,13 +86,13 @@ const viewMode = computed(() => props.workspace.viewMode.value);
 const sidebar = computed(() => props.workspace.sidebarOpen.value);
 const fullscreen = computed(() => props.workspace.fullscreen.isFullscreen.value);
 
-/** kbds returns the key labels of an editor shortcut for a tooltip. */
+/** Returns the key labels of an editor shortcut for a tooltip. */
 function kbds(shortcut: EditorShortcut): string[] {
   return keyLabels(shortcutKeys(EDITOR_SHORTCUTS[shortcut]));
 }
 
-// The view options in the order of the toolbar, with their icons.
-const TOGGLES: Array<{ key: keyof EditorViewOptions; icon: string }> = [
+// The view options in the order of the toolbar, with their icons
+const TOGGLES: { key: keyof EditorViewOptions; icon: string }[] = [
   {
     key: 'grid',
     icon: 'i-lucide-grid-3x3',
@@ -129,7 +129,7 @@ const toggles = computed(() =>
   })),
 );
 
-/** onToggle switches a view option. */
+/** Switches a view option. */
 function onToggle(key: keyof EditorViewOptions): void {
   props.workspace.toggle(props.workspace.view[key]);
 }
@@ -138,6 +138,19 @@ function onToggle(key: keyof EditorViewOptions): void {
 <template>
   <div class="bg-elevated border-default flex flex-wrap items-center gap-1 rounded-md border p-1">
     <div class="flex flex-wrap items-center gap-1">
+      <UTooltip :text="t('editor.help')" :kbds="kbds('help')">
+        <UButton
+          icon="i-lucide-circle-help"
+          size="sm"
+          color="neutral"
+          variant="ghost"
+          :aria-label="t('editor.help')"
+          @click="workspace.openHelp()"
+        />
+      </UTooltip>
+
+      <div class="bg-accented mx-1 h-5 w-px"></div>
+
       <UTooltip :text="t('editor.undo')" :kbds="kbds('undo')">
         <UButton
           icon="i-lucide-undo-2"
@@ -161,7 +174,7 @@ function onToggle(key: keyof EditorViewOptions): void {
         />
       </UTooltip>
 
-      <div class="bg-accented mx-1 h-5 w-px" />
+      <div class="bg-accented mx-1 h-5 w-px"></div>
 
       <UTooltip :text="t('editor.zoomOut')" :kbds="kbds('zoomOut')">
         <UButton
@@ -216,7 +229,7 @@ function onToggle(key: keyof EditorViewOptions): void {
       </UTooltip>
     </div>
 
-    <div class="bg-accented mx-1 hidden h-5 w-px sm:block" />
+    <div class="bg-accented mx-1 hidden h-5 w-px sm:block"></div>
 
     <div class="flex grow flex-wrap items-center gap-1">
       <UTooltip
@@ -225,15 +238,17 @@ function onToggle(key: keyof EditorViewOptions): void {
         :text="toggle.label"
         :kbds="toggle.kbds"
       >
-        <UButton
+        <UToggle
+          :model-value="toggle.active"
           :icon="toggle.icon"
           size="sm"
-          :color="toggle.active ? 'primary' : 'neutral'"
-          :variant="toggle.active ? 'soft' : 'ghost'"
+          color="neutral"
+          variant="ghost"
+          active-color="primary"
+          active-variant="soft"
           :aria-label="toggle.label"
-          :aria-pressed="toggle.active"
           :disabled="viewMode"
-          @click="onToggle(toggle.key)"
+          @update:model-value="onToggle(toggle.key)"
         />
       </UTooltip>
 
@@ -249,7 +264,7 @@ function onToggle(key: keyof EditorViewOptions): void {
         />
       </UTooltip>
 
-      <div class="bg-accented mx-1 h-5 w-px" />
+      <div class="bg-accented mx-1 h-5 w-px"></div>
       <slot />
       <EditorAlignMenu
         :count="alignCount"
@@ -259,9 +274,9 @@ function onToggle(key: keyof EditorViewOptions): void {
       <EditorImageControl
         :label="imageLabel"
         :opacity="image.opacity.value"
-        @update:opacity="image.setOpacity"
         :has-image="!!image.image.value"
         :kbds="kbds('image')"
+        @update:opacity="image.setOpacity"
         @pick="emit('pickImage')"
         @clear="emit('clearImage')"
       />
@@ -271,14 +286,16 @@ function onToggle(key: keyof EditorViewOptions): void {
           :text="viewMode ? t('editor.exitViewMode') : t('editor.viewMode')"
           :kbds="kbds('viewMode')"
         >
-          <UButton
+          <UToggle
+            :model-value="viewMode"
             icon="i-lucide-scan-eye"
             size="sm"
-            :color="viewMode ? 'primary' : 'neutral'"
-            :variant="viewMode ? 'soft' : 'ghost'"
+            color="neutral"
+            variant="ghost"
+            active-color="primary"
+            active-variant="soft"
             :aria-label="viewMode ? t('editor.exitViewMode') : t('editor.viewMode')"
-            :aria-pressed="viewMode"
-            @click="workspace.toggleViewMode()"
+            @update:model-value="workspace.toggleViewMode()"
           />
         </UTooltip>
         <UTooltip
@@ -286,38 +303,32 @@ function onToggle(key: keyof EditorViewOptions): void {
           :text="fullscreen ? t('editor.exitFullscreen') : t('editor.fullscreen')"
           :kbds="kbds('fullscreen')"
         >
-          <UButton
+          <UToggle
+            :model-value="fullscreen"
             :icon="fullscreen ? 'i-lucide-minimize-2' : 'i-lucide-maximize-2'"
             size="sm"
-            :color="fullscreen ? 'primary' : 'neutral'"
-            :variant="fullscreen ? 'soft' : 'ghost'"
+            color="neutral"
+            variant="ghost"
+            active-color="primary"
+            active-variant="soft"
             :aria-label="fullscreen ? t('editor.exitFullscreen') : t('editor.fullscreen')"
-            :aria-pressed="fullscreen"
-            @click="void workspace.fullscreen.toggle()"
+            @update:model-value="void workspace.fullscreen.toggle()"
           />
         </UTooltip>
         <UTooltip
           :text="sidebar ? t('editor.hideSidebar') : t('editor.showSidebar')"
           :kbds="kbds('sidebar')"
         >
-          <UButton
+          <UToggle
+            :model-value="sidebar"
             :icon="sidebar ? 'i-lucide-panel-right-close' : 'i-lucide-panel-right-open'"
             size="sm"
             color="neutral"
             variant="ghost"
+            active-color="neutral"
+            active-variant="ghost"
             :aria-label="sidebar ? t('editor.hideSidebar') : t('editor.showSidebar')"
-            :aria-pressed="sidebar"
-            @click="workspace.toggle(workspace.sidebarOpen)"
-          />
-        </UTooltip>
-        <UTooltip :text="t('editor.help')" :kbds="kbds('help')">
-          <UButton
-            icon="i-lucide-circle-help"
-            size="sm"
-            color="neutral"
-            variant="ghost"
-            :aria-label="t('editor.help')"
-            @click="workspace.openHelp()"
+            @update:model-value="workspace.toggle(workspace.sidebarOpen)"
           />
         </UTooltip>
       </div>

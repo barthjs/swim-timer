@@ -2,14 +2,13 @@ import type { useToast } from '@nuxt/ui/composables';
 import { vi } from 'vitest';
 
 import type { presetRepository } from '@/api/repositories/preset';
-import type { downloadJSON } from '@/lib/download';
-import type { KeyValueStore } from '@/lib/keyValueStore';
+import type { downloadJSON } from '@/lib/browser/download';
+import type { KeyValueStore } from '@/lib/browser/keyValueStore';
 import type { ConfirmOptions } from '@/composables/ui/useConfirm';
 
 /**
- * The mocks the preset form needs, shared by the tests of the editor composables. Each test file registers them
- * with vi.mock and factories importing this module, since vi.mock only works in the test file.
- * It imports only types of the app, so the mock factories cannot form an import cycle.
+ * The mocks the preset form needs, which each test file registers with vi.mock and a factory importing this module,
+ * importing only types of the app, so the factories cannot form an import cycle.
  */
 export const presetFormMocks = {
   toast: {
@@ -30,7 +29,7 @@ export const presetFormMocks = {
   },
 };
 
-/** resetPresetFormMocks restores the default behavior of every preset form mock. */
+/** Restores the default behavior of every preset form mock. */
 export function resetPresetFormMocks(): void {
   presetFormMocks.toast.add.mockReset();
   presetFormMocks.confirm.mockReset().mockResolvedValue(true);

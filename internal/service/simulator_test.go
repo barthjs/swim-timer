@@ -827,17 +827,6 @@ func TestReplayWindows(t *testing.T) {
 	})
 }
 
-// loadFrame encodes the load frame of a heat.
-func loadFrame(event, heat int) []byte {
-	return omega.Encode(omega.FrameData{
-		Kind:      omega.KindLoad,
-		UsedLanes: []int{4},
-		LapCount:  2,
-		Event:     event,
-		Heat:      heat,
-	})
-}
-
 // officialFrame encodes the official frame of a heat.
 func officialFrame(event, heat int) []byte {
 	return omega.Encode(omega.FrameData{

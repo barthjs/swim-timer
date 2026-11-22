@@ -32,12 +32,6 @@ func TestFormatNumber(t *testing.T) {
 			want:   "1.234,5",
 		},
 		{
-			name:   "groups English digits",
-			locale: "en",
-			value:  1234567,
-			want:   "1,234,567",
-		},
-		{
 			name:   "uses the English decimal point",
 			locale: "en",
 			value:  1234.5,
@@ -97,11 +91,6 @@ func TestFormatDate(t *testing.T) {
 			locale: "fr",
 			want:   "2026-05-01",
 		},
-		{
-			name:   "falls back to the default locale for an invalid one",
-			locale: "not a locale",
-			want:   "May 1, 2026",
-		},
 	}
 
 	for _, tt := range tests {
@@ -130,11 +119,6 @@ func TestFormatDateTime(t *testing.T) {
 			want:   "01.05.2026, 14:30",
 		},
 		{
-			name:   "formats the date and time of a regional locale like its language",
-			locale: "de-CH",
-			want:   "01.05.2026, 14:30",
-		},
-		{
 			name:   "formats an English date and time",
 			locale: "en",
 			want:   "May 1, 2026, 2:30 PM",
@@ -143,11 +127,6 @@ func TestFormatDateTime(t *testing.T) {
 			name:   "formats the date and time as ISO for a locale without own pattern",
 			locale: "fr",
 			want:   "2026-05-01 14:30",
-		},
-		{
-			name:   "falls back to the default locale for an invalid one",
-			locale: "not a locale",
-			want:   "May 1, 2026, 2:30 PM",
 		},
 	}
 

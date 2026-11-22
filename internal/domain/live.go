@@ -40,8 +40,8 @@ type LiveHeat struct {
 	FirstLane int        `json:"firstLane"`
 	Status    HeatStatus `json:"status"`
 	StartTime *time.Time `json:"startTime,omitzero"`
-	// StopTime is the heat time in milliseconds the timer stops at once every lane the device reports in use
-	// has finished, the highest finish time among them. It is 0 while a lane in use has not finished.
+	// StopTime is the heat time in milliseconds the timer stops at once every lane the device reports in use has finished,
+	// the highest finish time among them. It is 0 while a lane in use has not finished.
 	StopTime int           `json:"stopTime,omitzero"`
 	Lanes    map[int]*Lane `json:"lanes"`
 }

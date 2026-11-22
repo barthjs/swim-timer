@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 
 import de from '@/locales/de.json';
 import en from '@/locales/en.json';
-import { EDITOR_SHORTCUTS, shortcutDefinition, shortcutKeys } from '@/lib/editor/shortcuts';
+import { EDITOR_SHORTCUTS, shortcutKeys } from '@/lib/editor/shortcuts';
+import { shortcutDefinition } from '@/lib/ui/shortcuts';
 
 describe('EDITOR_SHORTCUTS', () => {
   const definitions = Object.values(EDITOR_SHORTCUTS).map(shortcutDefinition);
@@ -33,30 +34,5 @@ describe('shortcutKeys', () => {
     const again = shortcutKeys(EDITOR_SHORTCUTS.undo);
 
     expect(again).toEqual(['meta', 'z']);
-  });
-});
-
-describe('shortcutDefinition', () => {
-  it.each([
-    {
-      shortcut: 'undo',
-      expected: 'meta_z',
-    },
-    {
-      shortcut: 'resetZoom',
-      expected: 'shift_f',
-    },
-    {
-      shortcut: 'fullscreen',
-      expected: 'f',
-    },
-    {
-      shortcut: 'zoomOut',
-      expected: '-',
-    },
-  ] as const)('joins the keys of $shortcut with underscores', ({ shortcut, expected }) => {
-    const definition = shortcutDefinition(EDITOR_SHORTCUTS[shortcut]);
-
-    expect(definition).toBe(expected);
   });
 });

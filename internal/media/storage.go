@@ -73,8 +73,8 @@ type Options struct {
 	// A custom transport can trust a private certificate authority.
 	S3Transport http.RoundTripper
 
-	// SignedURLBase is the URL prefix of the signed URLs of the local driver, where SignedHandler is mounted,
-	// for example "/media" or "https://example.com/media". See Storage.SignedURL.
+	// SignedURLBase is the absolute or root-relative URL prefix of the signed URLs of the local driver,
+	// where SignedHandler is mounted.
 	SignedURLBase string
 	// SigningKey signs the URLs of the local driver, a random key generated at startup if empty.
 	SigningKey []byte
@@ -95,10 +95,7 @@ func New(options Options) (Storage, error) {
 	}
 }
 
-// Test checks that a storage with options would work, for settings that are not saved yet. Unlike New,
-// it changes nothing: it creates no directory and leaves the temporary files of interrupted writes alone.
-// The local driver checks that the directory, or its nearest existing parent, is writable.
-// The S3 driver checks that the bucket exists and releases its connections afterward.
+// Test checks that a storage with options would work without changing anything, for settings not saved yet.
 func Test(ctx context.Context, options Options) error {
 	switch options.Driver {
 	case DriverLocal:
@@ -127,8 +124,8 @@ func ReadAll(ctx context.Context, s Storage, path string) ([]byte, error) {
 }
 
 // validatePath rejects empty, absolute, or traversal storage paths.
-// A name that only starts with two dots, such as "..file", stays inside the root and is valid.
 func validatePath(path string) error {
+	// A name that only starts with two dots stays inside the root
 	cleaned := filepath.Clean(path)
 	if cleaned == "." || !filepath.IsLocal(cleaned) {
 		return ErrInvalidPath

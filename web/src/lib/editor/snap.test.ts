@@ -15,7 +15,7 @@ import {
   type Segment,
 } from '@/lib/editor/snap';
 
-// The corners and edges of a rectangle from 100, 100 to 900, 150 and the border of a 1920 x 1080 content.
+// The corners and edges of a rectangle from 100, 100 to 900, 150 and the border of a 1920 x 1080 content
 const pointTargets: PointTargets = {
   corners: [
     {

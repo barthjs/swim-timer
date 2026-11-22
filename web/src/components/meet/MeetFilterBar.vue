@@ -5,17 +5,23 @@ import { useI18n } from 'vue-i18n';
 import TableFilterField from '@/components/table/TableFilterField.vue';
 import TableToolbar from '@/components/table/TableToolbar.vue';
 import { tableFilterPill } from '@/lib/table/filters';
-import { EventKind, facetValues, formatDay, type MeetFilters, type MeetIndex } from '@/lib/meet';
+import {
+  EventKind,
+  facetValues,
+  formatDay,
+  type MeetFilters,
+  type MeetIndex,
+} from '@/lib/meet/meet';
 
 // The search and the filters of the meet overview in the toolbar of the tables. Every menu offers only values
 // that occur in the meet. #actions sits next to the search, for example the column menu of the shown table.
-const filters = defineModel<MeetFilters>({
-  required: true,
-});
-
 const props = defineProps<{
   index: MeetIndex;
 }>();
+
+const filters = defineModel<MeetFilters>({
+  required: true,
+});
 
 const emit = defineEmits<{
   reset: [];
@@ -53,7 +59,7 @@ const kindItems = computed(() => [
   },
 ]);
 
-/** listPill returns the pill of a filter with several values, which removes all of them. */
+/** Returns the pill of a filter with several values, which removes all of them. */
 function listPill(
   key: 'days' | 'styles' | 'distances' | 'categories' | 'clubs',
   label: string,
@@ -94,11 +100,9 @@ const canReset = computed(() => filters.value.query !== '' || filterPills.value.
 </script>
 
 <template>
-  <!-- The shortcut of the browser search jumps to the search of the meet -->
   <TableToolbar
     v-model:search="filters.query"
     :placeholder="t('pages.meet.filters.search')"
-    :search-shortcut="['meta', 'f']"
     :active-filters="filterPills"
     :can-reset="canReset"
     storage-key="meet"

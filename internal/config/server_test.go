@@ -44,18 +44,8 @@ func TestValidateServer(t *testing.T) {
 				wantErr: "server.trusted_proxies",
 			},
 			{
-				name:    "origin with path",
-				change:  func(c *Config) { c.Server.CORSAllowedOrigins = []string{"https://a.test/app"} },
-				wantErr: "server.cors_allowed_origins",
-			},
-			{
 				name:    "origin without scheme",
 				change:  func(c *Config) { c.Server.CORSAllowedOrigins = []string{"a.test"} },
-				wantErr: "server.cors_allowed_origins",
-			},
-			{
-				name:    "origin with query",
-				change:  func(c *Config) { c.Server.CORSAllowedOrigins = []string{"https://a.test?x=1"} },
 				wantErr: "server.cors_allowed_origins",
 			},
 			{

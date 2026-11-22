@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, useTemplateRef, watch } from 'vue';
 
-import { HeatStatus } from '@/api/types';
-import { formatSwimtime } from '@/lib/time';
+import { HeatStatus } from '@/api/types/live';
+import { formatSwimtime } from '@/lib/live/time';
 import { useLiveStore } from '@/stores/live';
 
 // Shows the heat time. While the heat runs, the element's text is written directly on every animation frame
@@ -13,18 +13,18 @@ import { useLiveStore } from '@/stores/live';
 const liveStore = useLiveStore();
 const element = useTemplateRef<HTMLElement>('element');
 
-// The heat start on the performance.now() clock, or null while the heat is not running.
+// The heat start on the performance.now() clock, or null while the heat is not running
 let heatStartTime: number | null = null;
 let frame: number | null = null;
 
-/** write replaces the displayed text. */
+/** Replaces the displayed text. */
 function write(text: string): void {
   if (element.value) {
     element.value.textContent = text;
   }
 }
 
-/** tick shows the elapsed heat time and schedules the next frame while the heat runs. */
+/** Shows the elapsed heat time and schedules the next frame while the heat runs. */
 function tick(): void {
   if (heatStartTime === null) {
     frame = null;
@@ -35,7 +35,7 @@ function tick(): void {
 }
 
 /**
- * sync re-derives the start and the stop on every state change. The server sends the start on its own clock,
+ * Re-derives the start and the stop on every state change. The server sends the start on its own clock,
  * which the live store converts to the monotonic performance clock of this client.
  */
 function sync(): void {
@@ -45,9 +45,7 @@ function sync(): void {
 
   if (state?.status === HeatStatus.Start && startTime !== null && stopTime === 0) {
     heatStartTime = startTime;
-    if (frame === null) {
-      frame = requestAnimationFrame(tick);
-    }
+    frame ??= requestAnimationFrame(tick);
     return;
   }
 

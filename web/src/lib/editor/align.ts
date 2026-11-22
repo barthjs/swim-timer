@@ -1,12 +1,12 @@
 import { sizeBounds, unionBounds, type Bounds, type Point, type Size } from '@/lib/editor/geometry';
 
-/** AlignEdge is the edge or the center line that items are lined up at. */
+/** The edge or the center line that items are lined up at. */
 export type AlignEdge = 'left' | 'centerX' | 'right' | 'top' | 'centerY' | 'bottom';
 
-/** DistributeAxis is the direction in which items are spaced evenly. */
+/** The direction in which items are spaced evenly. */
 export type DistributeAxis = 'x' | 'y';
 
-/** ALIGN_EDGES lists the edges in the order of a menu, the horizontal ones first. */
+/** Lists the edges in the order of a menu, the horizontal ones first. */
 export const ALIGN_EDGES: readonly AlignEdge[] = [
   'left',
   'centerX',
@@ -16,11 +16,11 @@ export const ALIGN_EDGES: readonly AlignEdge[] = [
   'bottom',
 ];
 
-/** DISTRIBUTE_MIN is the number of items distributing needs, since two items have no gap to even out. */
+/** The number of items distributing needs, since two items have no gap to even out. */
 export const DISTRIBUTE_MIN = 3;
 
 /**
- * alignReference returns what items are aligned to: the bounds of several items together,
+ * Returns what items are aligned to: the bounds of several items together,
  * or the content for a single item, so one item can be centered or moved to the border.
  */
 export function alignReference(list: readonly Bounds[], content: Size): Bounds {
@@ -28,7 +28,7 @@ export function alignReference(list: readonly Bounds[], content: Size): Bounds {
   return unionBounds(list) ?? sizeBounds(content);
 }
 
-/** alignOffsets returns the shift of each bounds that lines it up with an edge of the reference. */
+/** Returns the shift of each bounds that lines it up with an edge of the reference. */
 export function alignOffsets(list: readonly Bounds[], edge: AlignEdge, reference: Bounds): Point[] {
   return list.map((bounds) => {
     switch (edge) {
@@ -48,11 +48,7 @@ export function alignOffsets(list: readonly Bounds[], edge: AlignEdge, reference
   });
 }
 
-/**
- * distributeOffsets returns the shift of each bounds that spaces them evenly along an axis. The items keep
- * the order of their start, the first and the last one stay in place, and the others move so that all gaps
- * between neighbors are equal. Fewer than DISTRIBUTE_MIN items stay in place.
- */
+/** Returns the shift of each bounds that spaces them evenly along an axis between the first and the last. */
 export function distributeOffsets(list: readonly Bounds[], axis: DistributeAxis): Point[] {
   if (list.length < DISTRIBUTE_MIN) return list.map(() => offset(0, 0));
 
@@ -78,7 +74,7 @@ export function distributeOffsets(list: readonly Bounds[], axis: DistributeAxis)
   return shifts.map((shift) => (axis === 'x' ? offset(shift, 0) : offset(0, shift)));
 }
 
-/** offset builds a shift by x and y. */
+/** Builds a shift by x and y. */
 function offset(x: number, y: number): Point {
   return {
     x,
@@ -86,7 +82,7 @@ function offset(x: number, y: number): Point {
   };
 }
 
-/** center returns the middle between two values. */
+/** Returns the middle between two values. */
 function center(start: number, end: number): number {
   return (start + end) / 2;
 }

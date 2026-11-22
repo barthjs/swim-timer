@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import HelpHint from '@/components/form/HelpHint.vue';
 
-// The hint slot of a form field: an optional character count and an optional explanation
-// behind a question mark, so explanations do not take up space below every field.
+// The hint slot of a form field: an optional character count and an optional explanation behind a question mark,
+// so explanations do not take up space below every field.
 defineProps<{
   help?: string;
   count?: string;

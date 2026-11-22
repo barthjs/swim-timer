@@ -1,4 +1,4 @@
-/** SidebarNode is the part of a Starlight sidebar entry that the breadcrumbs read. */
+/** The part of a Starlight sidebar entry that the breadcrumbs read. */
 export type SidebarNode =
   | {
       type: 'link';
@@ -12,14 +12,14 @@ export type SidebarNode =
       entries: SidebarNode[];
     };
 
-/** Crumb is one step of the breadcrumbs, a group of the sidebar without a link or a page with one. */
-export interface Crumb {
+/** One step of the breadcrumbs, a group of the sidebar without a link or a page with one. */
+export type Crumb = {
   label: string;
   href?: string;
-}
+};
 
 /**
- * breadcrumbs returns the groups of the sidebar that lead to the current page, followed by the page itself,
+ * Returns the groups of the sidebar that lead to the current page, followed by the page itself,
  * or an empty list if the sidebar does not list the current page.
  */
 export function breadcrumbs(entries: SidebarNode[]): Crumb[] {

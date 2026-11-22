@@ -4,20 +4,33 @@ import { useI18n } from 'vue-i18n';
 import type { TableColumn } from '@nuxt/ui';
 
 import { webhookDeliveryRepository } from '@/api/repositories/webhookDelivery';
-import type { WebhookDeliveryResponse, WebhookResponse } from '@/api/types';
+import type { WebhookResponse } from '@/api/types/webhook';
+import type { WebhookDeliveryResponse } from '@/api/types/webhookDelivery';
 import DataTable from '@/components/table/DataTable.vue';
 import TableColumnMenu from '@/components/table/TableColumnMenu.vue';
 import TableEmpty from '@/components/table/TableEmpty.vue';
 import TableToolbar from '@/components/table/TableToolbar.vue';
 import { useTableColumnState } from '@/composables/table/useTableColumnState';
 import { useTableView } from '@/composables/table/useTableView';
-import { useApiError } from '@/composables/useApiError';
-import { useWebhookTexts } from '@/composables/useWebhookTexts';
-import { formatWebhookTime, matchesDeliverySearch } from '@/lib/webhook';
+import { useApiError } from '@/composables/form/useApiError';
+import { useWebhookTexts } from '@/composables/webhook/useWebhookTexts';
+import { useDates } from '@/composables/ui/useDates';
+import { matchesDeliverySearch, type WebhookEventOption } from '@/lib/webhook/webhook';
 
+// The last deliveries to a webhook since the start. The log holds one page, so the table searches, sorts,
+// and pages on the client, and keeps its view in memory, since the table of the webhooks below keeps its own in the URL.
+const props = defineProps<{
+  webhook: WebhookResponse | null;
+  events: WebhookEventOption[];
+}>();
+
+const open = defineModel<boolean>('open', {
+  required: true,
+});
+
+// The columns the deliveries can be sorted by
 const SORTABLE = ['attemptedAt', 'event', 'outcome', 'statusCode', 'durationMs'] as const;
 
-// The colors of the outcomes of a delivery.
 const OUTCOME_COLORS = {
   delivered: 'success',
   retry: 'warning',
@@ -26,24 +39,15 @@ const OUTCOME_COLORS = {
   rejected: 'error',
 } as const;
 
-// The last deliveries to a webhook since the start. The log holds one page, so the table searches, sorts,
-// and pages on the client, and keeps its view in memory, since the table of the webhooks below keeps its in the URL.
-const props = defineProps<{
-  webhook: WebhookResponse | null;
-}>();
-
-const open = defineModel<boolean>('open', {
-  required: true,
-});
-
-const { t, locale } = useI18n();
+const { t } = useI18n();
+const { formatDateTimeNumeric } = useDates();
 const { messageFor } = useApiError();
-const { eventLabel, problem } = useWebhookTexts();
+const { eventLabel, problem } = useWebhookTexts(() => props.events);
 
 const columnState = useTableColumnState('webhook-deliveries');
 
 /**
- * answer describes what came back: the reason for a delivery without a response,
+ * Describes what came back: the reason for a delivery without a response,
  * or the start of the response body.
  */
 function answer(delivery: WebhookDeliveryResponse): string {
@@ -56,7 +60,7 @@ const loading = ref(false);
 const loadError = ref<unknown>(null);
 const search = ref('');
 
-/** load reads the deliveries of the webhook. */
+/** Reads the deliveries of the webhook. */
 async function load(): Promise<void> {
   if (!props.webhook) return;
   loading.value = true;
@@ -84,45 +88,46 @@ const filtered = computed(() =>
 
 const view = useTableView(filtered, {
   sortable: SORTABLE,
-  value: (delivery, id) => delivery[id as (typeof SORTABLE)[number]],
+  value: (delivery, id) => delivery[id],
   resetOn: search,
   inUrl: false,
 });
 
 const columns = computed<TableColumn<WebhookDeliveryResponse>[]>(() => [
   {
-    accessorKey: 'attemptedAt',
-    header: t('pages.config.webhook.deliveries.time'),
-    enableSorting: true,
-    size: 190,
-  },
-  {
     accessorKey: 'event',
-    header: t('pages.config.webhook.deliveries.event'),
+    header: t('webhook.deliveries.event'),
     enableSorting: true,
-    size: 150,
   },
   {
     accessorKey: 'outcome',
-    header: t('pages.config.webhook.deliveries.outcome'),
+    header: t('webhook.deliveries.outcome'),
     enableSorting: true,
-    size: 150,
   },
   {
     accessorKey: 'statusCode',
-    header: t('pages.config.webhook.deliveries.status'),
+    header: t('webhook.deliveries.status'),
     enableSorting: true,
-    size: 100,
   },
   {
     accessorKey: 'durationMs',
-    header: t('pages.config.webhook.deliveries.duration'),
+    meta: {
+      numeric: true,
+    },
+    header: t('webhook.deliveries.duration'),
     enableSorting: true,
-    size: 110,
   },
   {
     id: 'response',
-    header: t('pages.config.webhook.deliveries.response'),
+    meta: {
+      grow: true,
+    },
+    header: t('webhook.deliveries.response'),
+  },
+  {
+    accessorKey: 'attemptedAt',
+    header: t('webhook.deliveries.time'),
+    enableSorting: true,
   },
 ]);
 </script>
@@ -130,9 +135,9 @@ const columns = computed<TableColumn<WebhookDeliveryResponse>[]>(() => [
 <template>
   <UModal
     v-model:open="open"
-    :title="t('pages.config.webhook.deliveries.title', { name: webhook?.name ?? '' })"
-    :description="t('pages.config.webhook.deliveries.description')"
-    :ui="{ content: 'h-[85dvh] sm:max-w-5xl', body: 'flex min-h-0 flex-col' }"
+    :title="t('webhook.deliveries.title', { name: webhook?.name ?? '' })"
+    :description="t('webhook.deliveries.description')"
+    :ui="{ content: 'h-dialog sm:max-w-5xl', body: 'flex min-h-0 flex-col' }"
   >
     <!--
       The dialog has a fixed height and the table takes what the toolbar leaves, so its rows scroll inside it
@@ -142,7 +147,7 @@ const columns = computed<TableColumn<WebhookDeliveryResponse>[]>(() => [
       <div class="flex min-h-0 flex-1 flex-col gap-3">
         <TableToolbar
           v-model:search="search"
-          :placeholder="t('pages.config.webhook.deliveries.search')"
+          :placeholder="t('webhook.deliveries.search')"
           :can-reset="!!search"
           :loading="loading"
           :on-reload="load"
@@ -155,18 +160,18 @@ const columns = computed<TableColumn<WebhookDeliveryResponse>[]>(() => [
 
         <UAlert
           v-if="loadError"
-          :title="t('pages.config.webhook.deliveries.loadError')"
+          :title="t('webhook.deliveries.loadError')"
           :description="messageFor(loadError)"
           icon="i-lucide-circle-alert"
           color="error"
         />
         <DataTable
           v-else
-          class="min-h-0"
           v-model:column-state="columnState"
           v-model:sorting="view.sorting.value"
           v-model:page="view.page.value"
           v-model:limit="view.pageSize.value"
+          class="min-h-0"
           :data="view.visible.value"
           :total="view.total.value"
           :columns="columns"
@@ -176,7 +181,7 @@ const columns = computed<TableColumn<WebhookDeliveryResponse>[]>(() => [
           "
         >
           <template #attemptedAt-cell="{ row }">
-            {{ formatWebhookTime(row.original.attemptedAt, locale) }}
+            {{ formatDateTimeNumeric(row.original.attemptedAt) }}
           </template>
 
           <template #event-cell="{ row }">
@@ -185,7 +190,7 @@ const columns = computed<TableColumn<WebhookDeliveryResponse>[]>(() => [
 
           <template #outcome-cell="{ row }">
             <UBadge
-              :label="t(`pages.config.webhook.outcomes.${row.original.outcome}`)"
+              :label="t(`webhook.outcomes.${row.original.outcome}`)"
               :color="OUTCOME_COLORS[row.original.outcome]"
               variant="subtle"
             />
@@ -196,9 +201,7 @@ const columns = computed<TableColumn<WebhookDeliveryResponse>[]>(() => [
           </template>
 
           <template #durationMs-cell="{ row }">
-            {{
-              t('pages.config.webhook.deliveries.milliseconds', { value: row.original.durationMs })
-            }}
+            {{ t('webhook.deliveries.milliseconds', { value: row.original.durationMs }) }}
           </template>
 
           <template #response-cell="{ row }">
@@ -214,7 +217,7 @@ const columns = computed<TableColumn<WebhookDeliveryResponse>[]>(() => [
           <template #empty>
             <TableEmpty
               icon="i-lucide-history"
-              :text="t('pages.config.webhook.deliveries.empty')"
+              :text="t('webhook.deliveries.empty')"
               :filtered="!!search"
               @reset="search = ''"
             />

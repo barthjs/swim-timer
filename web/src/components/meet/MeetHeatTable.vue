@@ -3,10 +3,10 @@ import { computed, h, resolveComponent } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { TableColumn } from '@nuxt/ui';
 
-import type { CompetitorResponse } from '@/api/types';
-import { useHeatLabel } from '@/composables/useHeatLabel';
-import { useMeetLinks } from '@/composables/useMeetLinks';
-import { eventName, type MeetHeat, type MeetStartEntryRow } from '@/lib/meet';
+import type { CompetitorResponse } from '@/api/types/meet';
+import { useHeatLabel } from '@/composables/live/useHeatLabel';
+import { useMeetLinks } from '@/composables/meet/useMeetLinks';
+import { eventName, type MeetHeat, type MeetStartEntryRow } from '@/lib/meet/meet';
 import { tableRowClass } from '@/lib/table/rows';
 
 // Heats stacked below each other, each as a table with one row per lane.
@@ -15,7 +15,7 @@ import { tableRowClass } from '@/lib/table/rows';
 const props = defineProps<{
   heats: MeetHeat[];
   showEvent?: boolean;
-  // The heat to highlight, usually the live heat.
+  // The heat to highlight, usually the live heat
   highlight?: { event: number; heat: number } | null;
 }>();
 
@@ -55,7 +55,7 @@ const columns = computed<TableColumn<MeetStartEntryRow>[]>(() => [
     },
     cell: ({ row }) => {
       const competitor = row.original.competitor;
-      if (!competitor)
+      if (!competitor) {
         return h(
           'span',
           {
@@ -63,6 +63,7 @@ const columns = computed<TableColumn<MeetStartEntryRow>[]>(() => [
           },
           t('pages.meet.starts.unknown'),
         );
+      }
       return competitorLink(competitor, () => emit('showCompetitor', competitor));
     },
   },
@@ -91,12 +92,12 @@ const columns = computed<TableColumn<MeetStartEntryRow>[]>(() => [
   },
 ]);
 
-/** isHighlighted reports whether a heat is the highlighted one. */
+/** Reports whether a heat is the highlighted one. */
 function isHighlighted(heat: MeetHeat): boolean {
   return props.highlight?.event === heat.event.number && props.highlight.heat === heat.heat;
 }
 
-/** heatLabel names a heat with its number and the heat count of its event. */
+/** Names a heat with its number and the heat count of its event. */
 function heatLabel(heat: MeetHeat): string {
   return formatHeat(heat.heat, heat.event.heatCount);
 }
@@ -106,10 +107,10 @@ function heatLabel(heat: MeetHeat): string {
   <div class="flex flex-col gap-3">
     <section
       v-for="heat in heats"
+      :id="`meet-heat-${heat.event.number}-${heat.heat}`"
       :key="`${heat.event.number}-${heat.heat}`"
       class="border-default bg-default scroll-mt-24 overflow-hidden rounded-md border"
       :class="{ 'ring-primary ring-2': isHighlighted(heat) }"
-      :id="`meet-heat-${heat.event.number}-${heat.heat}`"
     >
       <header class="border-default bg-elevated/50 flex items-center gap-2 border-b px-4 py-2">
         <component

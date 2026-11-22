@@ -5,12 +5,10 @@ import type { TableColumn } from '@nuxt/ui';
 
 import DataTable from '@/components/table/DataTable.vue';
 import TableEmpty from '@/components/table/TableEmpty.vue';
-import { useMeetLinks } from '@/composables/useMeetLinks';
+import { useMeetLinks } from '@/composables/meet/useMeetLinks';
 import { useTableView } from '@/composables/table/useTableView';
 import type { TableColumnState } from '@/lib/table/columns';
-import type { MeetClub, MeetFilters } from '@/lib/meet';
-
-const SORTABLE = ['name', 'competitorCount', 'startCount'] as const;
+import type { MeetClub, MeetFilters } from '@/lib/meet/meet';
 
 // The clubs of the meet with their number of competitors and starts. Selecting a club filters the overview by it.
 const props = defineProps<{
@@ -27,6 +25,8 @@ const emit = defineEmits<{
   selectClub: [name: string];
 }>();
 
+const SORTABLE = ['name', 'competitorCount', 'startCount'] as const;
+
 const { t } = useI18n();
 const { clubLink } = useMeetLinks({
   button: resolveComponent('UButton'),
@@ -35,28 +35,35 @@ const { clubLink } = useMeetLinks({
 
 const view = useTableView(() => props.clubs, {
   sortable: SORTABLE,
-  value: (club, id) => club[id as (typeof SORTABLE)[number]],
+  value: (club, id) => club[id],
   resetOn: () => props.filters,
 });
 
 const columns = computed<TableColumn<MeetClub>[]>(() => [
   {
     accessorKey: 'name',
+    meta: {
+      grow: true,
+    },
     header: t('pages.meet.clubs.name'),
     enableSorting: true,
     cell: ({ row }) => clubLink(row.original.name, () => emit('selectClub', row.original.name)),
   },
   {
     accessorKey: 'competitorCount',
+    meta: {
+      numeric: true,
+    },
     header: t('pages.meet.clubs.competitors'),
     enableSorting: true,
-    size: 160,
   },
   {
     accessorKey: 'startCount',
+    meta: {
+      numeric: true,
+    },
     header: t('pages.meet.clubs.starts'),
     enableSorting: true,
-    size: 160,
   },
 ]);
 

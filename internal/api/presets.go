@@ -4,7 +4,6 @@ import (
 	"net/http"
 	"regexp"
 
-	"github.com/go-chi/chi/v5"
 	"github.com/go-playground/validator/v10"
 
 	"github.com/barthjs/swim-timer/internal/domain"
@@ -22,7 +21,7 @@ import (
 func (a *API) presetListHandler(w http.ResponseWriter, r *http.Request) {
 	names, err := a.presetService.List(r.Context())
 	if err != nil {
-		a.serverErrorResponse(w, r, err)
+		a.respondError(w, r, err)
 		return
 	}
 
@@ -41,7 +40,7 @@ func (a *API) presetListHandler(w http.ResponseWriter, r *http.Request) {
 //	@Failure		500		{object}	ErrorResponse
 //	@Router			/presets/{name} [get]
 func (a *API) presetGetHandler(w http.ResponseWriter, r *http.Request) {
-	preset, err := a.presetService.Get(r.Context(), chi.URLParam(r, "name"))
+	preset, err := a.presetService.Get(r.Context(), pathParam(r, "name"))
 	if err != nil {
 		a.respondError(w, r, err)
 		return
@@ -50,10 +49,9 @@ func (a *API) presetGetHandler(w http.ResponseWriter, r *http.Request) {
 	a.writeJSON(w, r, http.StatusOK, toPresetResponse(*preset), nil)
 }
 
-// PresetResponse is a stored preset.
 type PresetResponse struct {
 	Name         string                        `json:"name"`
-	Comment      *string                       `json:"comment"`
+	Description  *string                       `json:"description"`
 	FrameWidth   int                           `json:"frameWidth"`
 	FrameHeight  int                           `json:"frameHeight"`
 	TextSize     int                           `json:"textSize"`
@@ -63,7 +61,6 @@ type PresetResponse struct {
 	Lanes        map[string]PresetLaneResponse `json:"lanes"`
 }
 
-// PresetLaneResponse holds the corners and the text position of a lane.
 type PresetLaneResponse struct {
 	TL     PresetPointResponse `json:"tl"`
 	TR     PresetPointResponse `json:"tr"`
@@ -72,28 +69,27 @@ type PresetLaneResponse struct {
 	Locked bool                `json:"locked"`
 }
 
-// PresetPointResponse is a position in the output image as a fraction of its width and height, from 0 to 1.
 type PresetPointResponse struct {
+	// X is the horizontal position in the output image as a fraction of its width.
 	X float64 `json:"x"`
+	// Y is the vertical position in the output image as a fraction of its height.
 	Y float64 `json:"y"`
 }
 
-// PresetSaveRequest holds the preset to create or replace. The name has to match the name in the path.
-// It names the preset file, so 60 characters of at most 4 bytes each plus the extension
-// stay within the 255 bytes a file name may have.
 type PresetSaveRequest struct {
+	// Name matches the name in the path and names the file, so 60 characters of up to 4 bytes
+	// stay within the 255 bytes a file name may have.
 	Name         string                       `json:"name" validate:"required,min=1,max=60"`
-	Comment      *string                      `json:"comment" validate:"omitempty,min=1,max=1000"`
+	Description  *string                      `json:"description" validate:"omitempty,min=1,max=1000"`
 	FrameWidth   int                          `json:"frameWidth" validate:"required,min=1,max=100000"`
 	FrameHeight  int                          `json:"frameHeight" validate:"required,min=1,max=100000"`
 	TextSize     int                          `json:"textSize" validate:"required,min=10,max=100"`
 	LaneGap      int                          `json:"laneGap" validate:"min=0,max=100"`
 	ReverseLanes bool                         `json:"reverseLanes"`
-	TextAnchor   domain.TextAnchor            `json:"textAnchor" validate:"required,oneof=left right"`
+	TextAnchor   string                       `json:"textAnchor" validate:"required,oneof=left right"`
 	Lanes        map[string]PresetLaneRequest `json:"lanes" validate:"required,min=1,dive,keys,lane,endkeys"`
 }
 
-// PresetLaneRequest holds the corners and the text position of a lane.
 type PresetLaneRequest struct {
 	TL     PresetPointRequest `json:"tl" validate:"required"`
 	TR     PresetPointRequest `json:"tr" validate:"required"`
@@ -102,9 +98,10 @@ type PresetLaneRequest struct {
 	Locked bool               `json:"locked"`
 }
 
-// PresetPointRequest is a position in the output image as a fraction of its width and height, from 0 to 1.
 type PresetPointRequest struct {
+	// X is the horizontal position in the output image as a fraction of its width.
 	X float64 `json:"x" validate:"min=0,max=1"`
+	// Y is the vertical position in the output image as a fraction of its height.
 	Y float64 `json:"y" validate:"min=0,max=1"`
 }
 
@@ -131,7 +128,7 @@ func (a *API) presetSaveHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	preset := req.toPreset()
-	if err := a.presetService.Save(r.Context(), chi.URLParam(r, "name"), preset); err != nil {
+	if err := a.presetService.Save(r.Context(), pathParam(r, "name"), preset); err != nil {
 		a.respondError(w, r, err)
 		return
 	}
@@ -161,7 +158,7 @@ func toPresetResponse(p domain.Preset) PresetResponse {
 
 	return PresetResponse{
 		Name:         p.Name,
-		Comment:      p.Comment,
+		Description:  p.Description,
 		FrameWidth:   p.FrameWidth,
 		FrameHeight:  p.FrameHeight,
 		TextSize:     p.TextSize,
@@ -199,19 +196,27 @@ func (r PresetSaveRequest) toPreset() domain.Preset {
 
 	return domain.Preset{
 		Name:         r.Name,
-		Comment:      r.Comment,
+		Description:  r.Description,
 		FrameWidth:   r.FrameWidth,
 		FrameHeight:  r.FrameHeight,
 		TextSize:     r.TextSize,
 		LaneGap:      r.LaneGap,
 		ReverseLanes: r.ReverseLanes,
-		TextAnchor:   r.TextAnchor,
+		TextAnchor:   domain.TextAnchor(r.TextAnchor),
 		Lanes:        lanes,
 	}
 }
 
 // laneNumberPattern matches a lane number as a key of a preset: a positive integer without leading zeros.
 var laneNumberPattern = regexp.MustCompile(`^[1-9][0-9]*$`)
+
+// init registers the rules of the preset DTOs with the validator.
+func init() {
+	// The validator has no rule for a positive integer in a string, which the lanes of a preset are keyed by
+	if err := v.RegisterValidation("lane", validateLaneNumber); err != nil {
+		panic(err)
+	}
+}
 
 // validateLaneNumber reports whether a string is a lane number, see laneNumberPattern.
 func validateLaneNumber(fl validator.FieldLevel) bool {
@@ -231,7 +236,7 @@ func validateLaneNumber(fl validator.FieldLevel) bool {
 //	@Security		SessionAuth
 //	@Router			/presets/{name} [delete]
 func (a *API) presetDeleteHandler(w http.ResponseWriter, r *http.Request) {
-	if err := a.presetService.Delete(r.Context(), chi.URLParam(r, "name")); err != nil {
+	if err := a.presetService.Delete(r.Context(), pathParam(r, "name")); err != nil {
 		a.respondError(w, r, err)
 		return
 	}

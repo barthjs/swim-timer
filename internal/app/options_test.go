@@ -1,6 +1,7 @@
 package app
 
 import (
+	"net/netip"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -15,52 +16,44 @@ import (
 	"github.com/barthjs/swim-timer/internal/webhook"
 )
 
-func TestStorageOptions(t *testing.T) {
+func TestAPIOptions(t *testing.T) {
 	t.Parallel()
 
-	t.Run("maps the s3 settings", func(t *testing.T) {
+	t.Run("maps the settings the api reads", func(t *testing.T) {
 		t.Parallel()
 
 		f := apitest.Faker(t)
-		cfg := config.StorageConfig{
-			Driver: media.DriverS3,
-			S3: config.S3Config{
-				Endpoint:     f.URL(),
-				Region:       f.LetterN(8),
-				Bucket:       f.LetterN(8),
-				AccessKey:    f.LetterN(16),
-				SecretKey:    f.LetterN(32),
-				UsePathStyle: true,
-			},
-		}
-
-		got, err := StorageOptions(cfg)
-
+		cfg, err := config.Defaults()
 		require.NoError(t, err)
-		assert.Equal(t, media.Options{
-			Driver:         media.DriverS3,
-			S3Endpoint:     cfg.S3.Endpoint,
-			S3Region:       cfg.S3.Region,
-			S3Bucket:       cfg.S3.Bucket,
-			S3AccessKey:    cfg.S3.AccessKey,
-			S3SecretKey:    cfg.S3.SecretKey,
-			S3UsePathStyle: cfg.S3.UsePathStyle,
+		cfg.App.Name = f.LetterN(8)
+		cfg.App.Language = config.LanguageDE
+		cfg.Theme.Primary = f.Color()
+		cfg.Server.CORSAllowedOrigins = []string{
+			f.URL(),
+		}
+		cfg.Server.CORSAllowCredentials = true
+
+		got := apiOptions(cfg)
+
+		assert.Equal(t, api.Options{
+			Name:     cfg.App.Name,
+			Language: string(cfg.App.Language),
+			Theme: api.ThemeSettings{
+				Primary:   cfg.Theme.Primary,
+				Secondary: cfg.Theme.Secondary,
+				Success:   cfg.Theme.Success,
+				Info:      cfg.Theme.Info,
+				Warning:   cfg.Theme.Warning,
+				Error:     cfg.Theme.Error,
+				Neutral:   cfg.Theme.Neutral,
+			},
+			TrustedProxies:       cfg.Server.TrustedProxies,
+			CORSAllowedOrigins:   cfg.Server.CORSAllowedOrigins,
+			CORSAllowCredentials: cfg.Server.CORSAllowCredentials,
+			Docs:                 true,
 		}, got)
 	})
 
-	t.Run("keeps the configured path of the local driver", func(t *testing.T) {
-		t.Parallel()
-
-		path := t.TempDir()
-
-		got, err := StorageOptions(config.StorageConfig{
-			Driver: media.DriverLocal,
-			Path:   path,
-		})
-
-		require.NoError(t, err)
-		assert.Equal(t, path, got.LocalPath)
-	})
 }
 
 func TestAuthOptions(t *testing.T) {
@@ -78,65 +71,6 @@ func TestAuthOptions(t *testing.T) {
 		assert.Equal(t, service.AuthOptions{
 			Password: cfg.Secret,
 		}, got)
-	})
-}
-
-func TestSimulatorOptions(t *testing.T) {
-	t.Parallel()
-
-	t.Run("maps the simulated event, the pool length, and the replay path", func(t *testing.T) {
-		t.Parallel()
-
-		f := apitest.Faker(t)
-		cfg := config.TimingConfig{
-			PoolLength:    f.IntRange(25, 50),
-			SimulateEvent: f.IntRange(1, 99),
-			ReplayPath:    "recordings/" + f.LetterN(8) + ".jsonl",
-		}
-
-		got := simulatorOptions(cfg)
-
-		assert.Equal(t, service.SimulatorOptions{
-			Event:      cfg.SimulateEvent,
-			PoolLength: cfg.PoolLength,
-			ReplayPath: cfg.ReplayPath,
-		}, got)
-	})
-}
-
-func TestTimingOptions(t *testing.T) {
-	t.Parallel()
-
-	t.Run("maps the timing settings", func(t *testing.T) {
-		t.Parallel()
-
-		f := apitest.Faker(t)
-		cfg := config.TimingConfig{
-			SerialPort:    f.LetterN(8),
-			PoolLength:    f.IntRange(25, 50),
-			SimulateEvent: f.IntRange(1, 99),
-		}
-
-		got := timingOptions(cfg)
-
-		assert.Equal(t, service.TimingOptions{
-			PoolLength:     cfg.PoolLength,
-			ConfiguredPort: cfg.SerialPort,
-			SimulateEvent:  cfg.SimulateEvent,
-		}, got)
-	})
-
-	t.Run("shows only the name of the replayed recording", func(t *testing.T) {
-		t.Parallel()
-
-		name := apitest.Faker(t).LetterN(8) + ".jsonl"
-		cfg := config.TimingConfig{
-			ReplayPath: "recordings/" + name,
-		}
-
-		got := timingOptions(cfg)
-
-		assert.Equal(t, name, got.ReplayFile)
 	})
 }
 
@@ -198,44 +132,111 @@ func TestRecordingOptions(t *testing.T) {
 	})
 }
 
-func TestAPIOptions(t *testing.T) {
+func TestSimulatorOptions(t *testing.T) {
 	t.Parallel()
 
-	t.Run("maps the settings the api reads", func(t *testing.T) {
+	t.Run("maps the simulated event, the pool length, and the replay path", func(t *testing.T) {
 		t.Parallel()
 
 		f := apitest.Faker(t)
-		cfg, err := config.Defaults()
-		require.NoError(t, err)
-		cfg.App.Name = f.LetterN(8)
-		cfg.App.Language = config.LanguageDE
-		cfg.Theme.Primary = f.Color()
-		cfg.Server.CORSAllowedOrigins = []string{
-			f.URL(),
+		cfg := config.TimingConfig{
+			PoolLength:    f.IntRange(25, 50),
+			SimulateEvent: f.IntRange(1, 99),
+			ReplayPath:    "recordings/" + f.LetterN(8) + ".jsonl",
 		}
-		cfg.Server.CORSAllowCredentials = true
 
-		got := apiOptions(cfg)
+		got := simulatorOptions(cfg)
 
-		assert.Equal(t, api.Options{
-			Name:     cfg.App.Name,
-			Language: string(cfg.App.Language),
-			Theme: api.ThemeSettings{
-				Primary:   cfg.Theme.Primary,
-				Secondary: cfg.Theme.Secondary,
-				Success:   cfg.Theme.Success,
-				Info:      cfg.Theme.Info,
-				Warning:   cfg.Theme.Warning,
-				Error:     cfg.Theme.Error,
-				Neutral:   cfg.Theme.Neutral,
+		assert.Equal(t, service.SimulatorOptions{
+			Event:      cfg.SimulateEvent,
+			PoolLength: cfg.PoolLength,
+			ReplayPath: cfg.ReplayPath,
+		}, got)
+	})
+}
+
+func TestStorageOptions(t *testing.T) {
+	t.Parallel()
+
+	t.Run("maps the s3 settings", func(t *testing.T) {
+		t.Parallel()
+
+		f := apitest.Faker(t)
+		cfg := config.StorageConfig{
+			Driver: media.DriverS3,
+			S3: config.S3Config{
+				Endpoint:     f.URL(),
+				Region:       f.LetterN(8),
+				Bucket:       f.LetterN(8),
+				AccessKey:    f.LetterN(16),
+				SecretKey:    f.LetterN(32),
+				UsePathStyle: true,
 			},
-			TrustedProxies:       cfg.Server.TrustedProxies,
-			CORSAllowedOrigins:   cfg.Server.CORSAllowedOrigins,
-			CORSAllowCredentials: cfg.Server.CORSAllowCredentials,
-			Docs:                 true,
+		}
+
+		got, err := StorageOptions(cfg)
+
+		require.NoError(t, err)
+		assert.Equal(t, media.Options{
+			Driver:         media.DriverS3,
+			S3Endpoint:     cfg.S3.Endpoint,
+			S3Region:       cfg.S3.Region,
+			S3Bucket:       cfg.S3.Bucket,
+			S3AccessKey:    cfg.S3.AccessKey,
+			S3SecretKey:    cfg.S3.SecretKey,
+			S3UsePathStyle: cfg.S3.UsePathStyle,
 		}, got)
 	})
 
+	t.Run("keeps the configured path of the local driver", func(t *testing.T) {
+		t.Parallel()
+
+		path := t.TempDir()
+
+		got, err := StorageOptions(config.StorageConfig{
+			Driver: media.DriverLocal,
+			Path:   path,
+		})
+
+		require.NoError(t, err)
+		assert.Equal(t, path, got.LocalPath)
+	})
+}
+
+func TestTimingOptions(t *testing.T) {
+	t.Parallel()
+
+	t.Run("maps the timing settings", func(t *testing.T) {
+		t.Parallel()
+
+		f := apitest.Faker(t)
+		cfg := config.TimingConfig{
+			SerialPort:    f.LetterN(8),
+			PoolLength:    f.IntRange(25, 50),
+			SimulateEvent: f.IntRange(1, 99),
+		}
+
+		got := timingOptions(cfg)
+
+		assert.Equal(t, service.TimingOptions{
+			PoolLength:     cfg.PoolLength,
+			ConfiguredPort: cfg.SerialPort,
+			SimulateEvent:  cfg.SimulateEvent,
+		}, got)
+	})
+
+	t.Run("shows only the name of the replayed recording", func(t *testing.T) {
+		t.Parallel()
+
+		name := apitest.Faker(t).LetterN(8) + ".jsonl"
+		cfg := config.TimingConfig{
+			ReplayPath: "recordings/" + name,
+		}
+
+		got := timingOptions(cfg)
+
+		assert.Equal(t, name, got.ReplayFile)
+	})
 }
 
 func TestWebhookOptions(t *testing.T) {
@@ -245,10 +246,13 @@ func TestWebhookOptions(t *testing.T) {
 		t.Parallel()
 
 		version := apitest.Faker(t).AppVersion()
-		cfg, err := config.Defaults()
-		require.NoError(t, err)
-		cfg.Webhook.RawAllowedNetworks = "192.168.1.0/24"
-		require.NoError(t, config.Validate(&cfg))
+		cfg := config.Config{
+			Webhook: config.WebhookConfig{
+				AllowedNetworks: []netip.Prefix{
+					netip.MustParsePrefix("192.168.1.0/24"),
+				},
+			},
+		}
 
 		got := webhookOptions(cfg, version)
 

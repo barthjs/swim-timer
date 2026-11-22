@@ -32,4 +32,4 @@ Passwords and other secrets are never shown again after saving. Leaving their fi
 
 ## Colors
 
-The Theme tab of the configuration page changes the colors of the web interface.
+The Theme section of the configuration page changes the colors of the web interface.

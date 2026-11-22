@@ -1,31 +1,31 @@
-import { apiFetch } from '@/api/client';
-import type { PresetResponse, PresetSaveRequest } from '@/api/types';
+import { apiFetch } from '@/api/client/client';
+import type { PresetResponse, PresetSaveRequest } from '@/api/types/preset';
 
 export const presetRepository = {
-  /** list returns the names of every preset. */
-  list(): Promise<string[]> {
+  /** Returns the names of every preset. */
+  async list(): Promise<string[]> {
     return apiFetch('/presets', {
       method: 'GET',
     });
   },
 
-  /** get returns the preset with the given name. */
-  get(name: string): Promise<PresetResponse> {
+  /** Returns the preset with the given name. */
+  async get(name: string): Promise<PresetResponse> {
     return apiFetch(`/presets/${encodeURIComponent(name)}`, {
       method: 'GET',
     });
   },
 
-  /** save creates or replaces the preset with the given name. */
-  save(name: string, payload: PresetSaveRequest): Promise<PresetResponse> {
+  /** Creates or replaces the preset with the given name. */
+  async save(name: string, payload: PresetSaveRequest): Promise<PresetResponse> {
     return apiFetch(`/presets/${encodeURIComponent(name)}`, {
       method: 'PUT',
       body: payload,
     });
   },
 
-  /** delete removes the preset with the given name. */
-  delete(name: string): Promise<void> {
+  /** Removes the preset with the given name. */
+  async delete(name: string): Promise<void> {
     return apiFetch(`/presets/${encodeURIComponent(name)}`, {
       method: 'DELETE',
     });

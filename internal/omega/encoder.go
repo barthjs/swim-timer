@@ -25,12 +25,11 @@ type FrameData struct {
 	Button int
 }
 
-// Encode builds both parts of a timing frame in the layout a device sends,
-// as the simulator and tests send it in place of a device.
-// Numbers are right-aligned with spaces, the event and heat with leading zeros.
-// Load and official frames leave the lane, lap, and time fields of part 2 empty,
-// a start frame carries lane 1, lap 0, and rank 0 with the time of day.
+// Encode builds both parts of a timing frame in the layout a device sends, for a simulator in place of a device.
 func Encode(d FrameData) []byte {
+	// Numbers are right-aligned with spaces, the event and heat with leading zeros.
+	// Load and official frames leave the lane, lap, and time fields of part 2 empty,
+	// and a start frame carries lane 1, lap 0, and rank 0 with the time of day.
 	msgType, msgKind := kindBytes(d.Kind)
 	usedLanes := usedLanesMask(d.UsedLanes)
 

@@ -38,4 +38,16 @@ only emits theme variables that a utility class uses, while Nuxt UI references t
 
   /* The grid of the preset editor, which has to stay visible on a dark page as well. */
   --color-editor-grid: color-mix(in srgb, var(--ui-text-muted) 35%, transparent);
+
+  /*
+  The rows of an import: a column of the target, the column of the file, and an example value,
+  and a value of the file, an arrow, and the value it is translated into, which needs the most room.
+  */
+  --grid-template-columns-import-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 0.8fr);
+  --grid-template-columns-import-values: minmax(0, 1fr) auto minmax(0, 1.6fr);
+}
+
+/* The canvas of the preset editor leaves room for the fields around it. */
+@utility max-h-canvas {
+  max-height: 80vh;
 }

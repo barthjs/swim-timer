@@ -3,11 +3,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { EditorCanvasActions } from '@/composables/editor/useEditorShortcuts';
 import { useEditorShortcuts } from '@/composables/editor/useEditorShortcuts';
 import { useEditorWorkspace } from '@/composables/editor/useEditorWorkspace';
-import { useHistory } from '@/composables/useHistory';
+import { useHistory } from '@/composables/editor/useHistory';
 import { withSetup } from '@/test/withSetup';
 
-const registered = vi.hoisted(() => ({
-  shortcuts: {} as Record<string, () => void>,
+const registered = vi.hoisted((): { shortcuts: Record<string, () => void> } => ({
+  shortcuts: {},
 }));
 
 vi.mock('@nuxt/ui/composables', () => ({
@@ -24,7 +24,7 @@ describe('useEditorShortcuts', () => {
   });
   afterEach(() => unmount());
 
-  /** mount registers the shortcuts of an editor whose actions are spies. */
+  /** Registers the shortcuts of an editor whose actions are spies. */
   function mount(busy = false) {
     const canvas: EditorCanvasActions = {
       zoomBy: vi.fn<(factor: number) => void>(),
@@ -79,7 +79,7 @@ describe('useEditorShortcuts', () => {
   it('switches a view option', () => {
     const { workspace } = mount();
 
-    registered.shortcuts['g']!();
+    registered.shortcuts.g!();
 
     expect(workspace.view.grid.value).toBe(false);
   });
@@ -87,7 +87,7 @@ describe('useEditorShortcuts', () => {
   it('moves the selected items with the arrow keys', () => {
     const { actions } = mount();
 
-    registered.shortcuts['arrowleft']!();
+    registered.shortcuts.arrowleft!();
 
     expect(actions.nudge).toHaveBeenCalledWith(-1, 0);
   });
@@ -95,7 +95,7 @@ describe('useEditorShortcuts', () => {
   it('moves the selected items farther with Shift', () => {
     const { actions } = mount();
 
-    registered.shortcuts['shift_arrowdown']!();
+    registered.shortcuts.shift_arrowdown!();
 
     expect(actions.nudge).toHaveBeenCalledWith(0, 10);
   });
@@ -103,7 +103,7 @@ describe('useEditorShortcuts', () => {
   it('runs the shortcuts of the editor itself', () => {
     const { actions } = mount();
 
-    registered.shortcuts['l']!();
+    registered.shortcuts.l!();
 
     expect(actions.extra).toHaveBeenCalledOnce();
   });
@@ -119,7 +119,7 @@ describe('useEditorShortcuts', () => {
   it('keeps the items in place during a gesture', () => {
     const { actions } = mount(true);
 
-    registered.shortcuts['arrowleft']!();
+    registered.shortcuts.arrowleft!();
 
     expect(actions.nudge).not.toHaveBeenCalled();
   });
@@ -128,7 +128,7 @@ describe('useEditorShortcuts', () => {
     const { workspace, actions } = mount();
     workspace.toggleViewMode();
 
-    registered.shortcuts['arrowleft']!();
+    registered.shortcuts.arrowleft!();
 
     expect(actions.nudge).not.toHaveBeenCalled();
   });

@@ -20,34 +20,122 @@ func TestValidateFuture(t *testing.T) {
 		},
 	}
 
+	// A form sends the time as an RFC 3339 string, a decoded body as a time
 	type request struct {
-		ExpiresAt *time.Time `json:"expiresAt" validate:"omitempty,future"`
+		ExpiresAt   *time.Time `json:"expiresAt" validate:"omitempty,future"`
+		ExpiresText string     `json:"expiresText" validate:"omitempty,future"`
 	}
 
 	tests := []struct {
-		name      string
-		expiresAt *time.Time
-		valid     bool
+		name    string
+		request request
+		// field is the field whose time is rejected, empty for an accepted request
+		field string
 	}{
 		{
-			name:      "accepts a missing time",
-			expiresAt: nil,
-			valid:     true,
+			name:    "accepts a missing time",
+			request: request{},
 		},
 		{
-			name:      "accepts a time after the clock",
-			expiresAt: new(clock.Add(time.Duration(f.IntRange(1, 1000)) * time.Hour)),
-			valid:     true,
+			name: "accepts a time after the clock",
+			request: request{
+				ExpiresAt: new(clock.Add(time.Duration(f.IntRange(1, 1000)) * time.Hour)),
+			},
 		},
 		{
-			name:      "rejects the time of the clock",
-			expiresAt: new(clock),
-			valid:     false,
+			name: "accepts an RFC 3339 string after the clock",
+			request: request{
+				ExpiresText: clock.Add(time.Duration(f.IntRange(1, 1000)) * time.Hour).Format(time.RFC3339),
+			},
 		},
 		{
-			name:      "rejects a time before the clock",
-			expiresAt: new(clock.Add(-time.Duration(f.IntRange(1, 1000)) * time.Hour)),
-			valid:     false,
+			name: "rejects the time of the clock",
+			request: request{
+				ExpiresAt: new(clock),
+			},
+			field: "expiresAt",
+		},
+		{
+			name: "rejects a time before the clock",
+			request: request{
+				ExpiresAt: new(clock.Add(-time.Duration(f.IntRange(1, 1000)) * time.Hour)),
+			},
+			field: "expiresAt",
+		},
+		{
+			name: "rejects a value that is no time",
+			request: request{
+				ExpiresText: f.LetterN(10),
+			},
+			field: "expiresText",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			errs, err := a.validate(t.Context(), tt.request)
+
+			require.NoError(t, err)
+			if tt.field == "" {
+				assert.Nil(t, errs)
+				return
+			}
+			assert.Equal(t, FieldErrors{
+				tt.field: {
+					{
+						Tag: "future",
+					},
+				},
+			}, errs)
+		})
+	}
+}
+
+func TestValidatePast(t *testing.T) {
+	t.Parallel()
+	f := apitest.Faker(t)
+	clock := f.Date()
+	a := &API{
+		now: func() time.Time {
+			return clock
+		},
+	}
+
+	type request struct {
+		OccurredAt string `json:"occurredAt" validate:"omitempty,past"`
+	}
+
+	tests := []struct {
+		name       string
+		occurredAt string
+		valid      bool
+	}{
+		{
+			name:       "accepts a missing time",
+			occurredAt: "",
+			valid:      true,
+		},
+		{
+			name:       "accepts a time before the clock",
+			occurredAt: clock.Add(-time.Duration(f.IntRange(1, 1000)) * time.Hour).Format(time.RFC3339),
+			valid:      true,
+		},
+		{
+			name:       "accepts the time of the clock",
+			occurredAt: clock.Format(time.RFC3339),
+			valid:      true,
+		},
+		{
+			name:       "rejects a time after the clock",
+			occurredAt: clock.Add(time.Duration(f.IntRange(1, 1000)) * time.Hour).Format(time.RFC3339),
+			valid:      false,
+		},
+		{
+			name:       "rejects a value that is no time",
+			occurredAt: f.LetterN(10),
+			valid:      false,
 		},
 	}
 
@@ -56,7 +144,7 @@ func TestValidateFuture(t *testing.T) {
 			t.Parallel()
 
 			errs, err := a.validate(t.Context(), request{
-				ExpiresAt: tt.expiresAt,
+				OccurredAt: tt.occurredAt,
 			})
 			require.NoError(t, err)
 			if tt.valid {
@@ -64,9 +152,9 @@ func TestValidateFuture(t *testing.T) {
 				return
 			}
 			assert.Equal(t, FieldErrors{
-				"expiresAt": {
+				"occurredAt": {
 					{
-						Tag: "future",
+						Tag: "past",
 					},
 				},
 			}, errs)

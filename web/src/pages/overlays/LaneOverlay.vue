@@ -2,8 +2,8 @@
 import { computed } from 'vue';
 import { useRoute } from 'vue-router';
 
-import type { Lane } from '@/api/types';
-import { fullName } from '@/lib/names';
+import type { Lane } from '@/api/types/live';
+import { fullName } from '@/lib/live/names';
 import { useLiveStore } from '@/stores/live';
 
 const route = useRoute();
@@ -11,11 +11,11 @@ const liveStore = useLiveStore();
 
 const lane = computed<Lane | null>(() => {
   const state = liveStore.state;
-  if (!state || !state.status) return null;
+  if (!state?.status) return null;
   return state.lanes[String(route.params.number)] ?? null;
 });
 
-// A lane without a competitor only shows its number.
+// A lane without a competitor only shows its number
 const name = computed(() =>
   lane.value ? fullName(lane.value.firstName, lane.value.lastName) : '',
 );

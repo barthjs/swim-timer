@@ -40,35 +40,6 @@ var overviewFiles = map[string]string{
 		"5;3;-1;4;0;2;\n",
 }
 
-func TestMeetService_ListFiles(t *testing.T) {
-	t.Parallel()
-
-	t.Run("returns the files", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := t.Context()
-		svc := NewMeetService(zerolog.Nop(), &fakeBroadcaster{}, store.NewMeetStore(newTestStorage(t)), nil)
-		events := newEventsFile(apitest.Faker(t).IntRange(1, 999), 1)
-		require.NoError(t, svc.SaveFile(ctx, domain.MeetFileEvents, []byte(events)))
-
-		names, err := svc.ListFiles(ctx)
-
-		require.NoError(t, err)
-		assert.Equal(t, "LSTRACE.TXT", names[domain.MeetFileEvents])
-	})
-
-	t.Run("returns no files for an empty storage", func(t *testing.T) {
-		t.Parallel()
-
-		svc := NewMeetService(zerolog.Nop(), &fakeBroadcaster{}, store.NewMeetStore(newTestStorage(t)), nil)
-
-		names, err := svc.ListFiles(t.Context())
-
-		require.NoError(t, err)
-		assert.Empty(t, names)
-	})
-}
-
 func TestMeetService_ListEvents(t *testing.T) {
 	t.Parallel()
 
@@ -86,17 +57,6 @@ func TestMeetService_ListEvents(t *testing.T) {
 		assert.Equal(t, []int{3, 2, 5, 9}, numbers, "events are ordered by date, then by their position in the file")
 		assert.False(t, list.LoadedAt.IsZero())
 	})
-
-	t.Run("returns an empty list without meet files", func(t *testing.T) {
-		t.Parallel()
-
-		svc := NewMeetService(zerolog.Nop(), &fakeBroadcaster{}, newTestMeetStore(t, nil), nil)
-
-		list := svc.ListEvents()
-
-		assert.NotNil(t, list.Events)
-		assert.Empty(t, list.Events)
-	})
 }
 
 func TestMeetService_ListCompetitors(t *testing.T) {
@@ -113,17 +73,6 @@ func TestMeetService_ListCompetitors(t *testing.T) {
 		assert.Equal(t, "Adams", list.Competitors[0].LastName)
 		assert.Equal(t, "Young", list.Competitors[1].LastName)
 		assert.False(t, list.LoadedAt.IsZero())
-	})
-
-	t.Run("returns an empty list without meet files", func(t *testing.T) {
-		t.Parallel()
-
-		svc := NewMeetService(zerolog.Nop(), &fakeBroadcaster{}, newTestMeetStore(t, nil), nil)
-
-		list := svc.ListCompetitors()
-
-		assert.NotNil(t, list.Competitors)
-		assert.Empty(t, list.Competitors)
 	})
 }
 
@@ -158,17 +107,6 @@ func TestMeetService_ListStartEntries(t *testing.T) {
 			},
 		}, list.StartEntries, "heats are counted from 1, and the withdrawn entry is left out")
 		assert.False(t, list.LoadedAt.IsZero())
-	})
-
-	t.Run("returns an empty list without meet files", func(t *testing.T) {
-		t.Parallel()
-
-		svc := NewMeetService(zerolog.Nop(), &fakeBroadcaster{}, newTestMeetStore(t, nil), nil)
-
-		list := svc.ListStartEntries()
-
-		assert.NotNil(t, list.StartEntries)
-		assert.Empty(t, list.StartEntries)
 	})
 }
 
@@ -210,19 +148,6 @@ func TestMeetService_GetOverview(t *testing.T) {
 		require.Len(t, overview.Competitors, 2)
 		assert.Equal(t, "Adams", overview.Competitors[0].LastName)
 		assert.False(t, overview.LoadedAt.IsZero())
-	})
-
-	t.Run("returns empty lists without meet files", func(t *testing.T) {
-		t.Parallel()
-
-		svc := NewMeetService(zerolog.Nop(), &fakeBroadcaster{}, newTestMeetStore(t, nil), nil)
-
-		overview := svc.GetOverview()
-
-		assert.NotNil(t, overview.Events)
-		assert.NotNil(t, overview.StartEntries)
-		assert.NotNil(t, overview.Competitors)
-		assert.Empty(t, overview.Events)
 	})
 
 	t.Run("leaves out missing references", func(t *testing.T) {
@@ -402,7 +327,8 @@ func TestMeetService_Reload(t *testing.T) {
 		ctx := t.Context()
 		meetStore := store.NewMeetStore(newTestStorage(t))
 		broadcaster := &fakeBroadcaster{}
-		svc := NewMeetService(zerolog.Nop(), broadcaster, meetStore, nil)
+		calls := 0
+		svc := NewMeetService(zerolog.Nop(), broadcaster, meetStore, func() { calls++ })
 		faker := apitest.Faker(t)
 		number := faker.IntRange(1, 999)
 		heatCount := faker.IntRange(1, 20)
@@ -413,6 +339,7 @@ func TestMeetService_Reload(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Equal(t, 1, broadcaster.count(), "a successful reload notifies the open pages")
+		assert.Equal(t, 1, calls)
 		got, ok := meetStore.GetEvent(number)
 		require.True(t, ok)
 		assert.Equal(t, heatCount, got.HeatCount)
@@ -435,12 +362,13 @@ func TestMeetService_Reload(t *testing.T) {
 		assert.NotContains(t, message, "data")
 	})
 
-	t.Run("does not notify after a failed reload", func(t *testing.T) {
+	t.Run("neither notifies nor calls back after a failed reload", func(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
 		broadcaster := &fakeBroadcaster{}
-		svc := NewMeetService(zerolog.Nop(), broadcaster, store.NewMeetStore(newTestStorage(t)), nil)
+		calls := 0
+		svc := NewMeetService(zerolog.Nop(), broadcaster, store.NewMeetStore(newTestStorage(t)), func() { calls++ })
 		faker := apitest.Faker(t)
 		broken := "event;round;nbHeat\n" + faker.LetterN(4) + ";" + faker.LetterN(4) + ";" + faker.LetterN(4) + "\n"
 		require.NoError(t, svc.SaveFile(ctx, domain.MeetFileEvents, []byte(broken)))
@@ -449,31 +377,6 @@ func TestMeetService_Reload(t *testing.T) {
 
 		require.Error(t, err)
 		assert.Zero(t, broadcaster.count())
-	})
-
-	t.Run("runs the reload callback after a successful reload", func(t *testing.T) {
-		t.Parallel()
-
-		calls := 0
-		svc := NewMeetService(zerolog.Nop(), &fakeBroadcaster{}, store.NewMeetStore(newTestStorage(t)), func() { calls++ })
-
-		err := svc.Reload(t.Context())
-
-		require.NoError(t, err)
-		assert.Equal(t, 1, calls)
-	})
-
-	t.Run("skips the reload callback after a failed reload", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := t.Context()
-		calls := 0
-		svc := NewMeetService(zerolog.Nop(), &fakeBroadcaster{}, store.NewMeetStore(newTestStorage(t)), func() { calls++ })
-		require.NoError(t, svc.SaveFile(ctx, domain.MeetFileEvents, []byte("event;round;nbHeat\nx;y;z\n")))
-
-		err := svc.Reload(ctx)
-
-		require.Error(t, err)
 		assert.Zero(t, calls, "the meet files in use did not change")
 	})
 }

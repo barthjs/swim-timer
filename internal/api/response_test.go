@@ -75,13 +75,6 @@ func TestWriteJSON(t *testing.T) {
 			body: `{"timeout":1000000000}`,
 		},
 		{
-			name: "drops a zero number with omitzero",
-			data: struct {
-				Count int `json:"count,omitzero"`
-			}{},
-			body: `{}`,
-		},
-		{
 			name: "does not escape html",
 			data: map[string]string{"text": "<b>&</b>"},
 			body: `{"text":"<b>&</b>"}`,

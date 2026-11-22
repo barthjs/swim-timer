@@ -2,11 +2,11 @@
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import { TextAnchor } from '@/api/types';
+import { TextAnchor } from '@/api/types/preset';
 import EditorPanel from '@/components/editor/EditorPanel.vue';
 import HelpHint from '@/components/form/HelpHint.vue';
-import { usePresetForm } from '@/composables/usePresetForm';
-import { useRatioLock } from '@/composables/useRatioLock';
+import { usePresetForm } from '@/composables/preset/usePresetForm';
+import { useRatioLock } from '@/composables/editor/useRatioLock';
 import { aspectRatioDiffers } from '@/lib/editor/geometry';
 import {
   FRAME_ASPECTS,
@@ -14,21 +14,21 @@ import {
   findAspect,
   type FrameAspect,
   type FrameSize,
-} from '@/lib/frame';
+} from '@/lib/preset/frame';
 import {
   DIMENSION_MAX,
   DIMENSION_MIN,
-  PRESET_COMMENT_MAX,
+  PRESET_DESCRIPTION_MAX,
   PRESET_NAME_MAX,
   TEXT_SIZE_MAX,
   TEXT_SIZE_MIN,
   frameOf,
-} from '@/lib/lanes';
+} from '@/lib/preset/lanes';
 import { countLabel } from '@/lib/form/validation';
 
 type LaneOrder = 'normal' | 'reversed';
 
-// The selection of the aspect ratio: a common one, or any ratio the fields below give.
+// The selection of the aspect ratio: a common one, or any ratio the fields below give
 type AspectChoice = FrameAspect['key'] | 'free';
 
 // The settings that apply to all lanes of the open preset, with undo and redo.
@@ -37,9 +37,9 @@ const { t } = useI18n();
 const presetForm = usePresetForm();
 const { preset, dirtyForm } = presetForm;
 
-// While the ratio is locked, the other dimension of the resolution follows a changed one. lockedAspect is
-// the common aspect ratio the lock was set to. The selection keeps showing it, although sizes rounded to whole pixels
-// do not match it exactly.
+// While the ratio is locked, the other dimension of the resolution follows a changed one.
+// lockedAspect is the common aspect ratio the lock was set to. The selection keeps showing it,
+// although sizes rounded to whole pixels do not match it exactly.
 const ratioLock = useRatioLock();
 const lockedAspect = ref<FrameAspect['key'] | null>(null);
 
@@ -64,8 +64,9 @@ watch(frame, (next) => {
       width: ratioLock.ratio.value,
       height: 1,
     })
-  )
+  ) {
     return;
+  }
   lockToFrame();
 });
 
@@ -77,7 +78,7 @@ const laneOrder = computed<LaneOrder>({
   },
 });
 
-const laneOrderItems = computed(() => [
+const laneOrderItems = computed((): { label: string; value: LaneOrder }[] => [
   {
     label: t('pages.editor.topLaneOne'),
     value: 'normal',
@@ -104,8 +105,8 @@ const aspectChoice = computed<AspectChoice>({
   },
 });
 
-// The common aspect ratios first, then the free ratio.
-const aspectItems = computed(() => [
+// The common aspect ratios first, then the free ratio
+const aspectItems = computed((): { label: string; value: AspectChoice }[] => [
   ...FRAME_ASPECTS.map((aspect) => ({
     label: aspect.key,
     value: aspect.key,
@@ -116,13 +117,13 @@ const aspectItems = computed(() => [
   },
 ]);
 
-// The common resolutions of the selected aspect ratio, or of the ratio the free size has.
+// The common resolutions of the selected aspect ratio, or of the ratio the free size has
 const resolutions = computed<readonly FrameSize[]>(() => {
   const selected = FRAME_ASPECTS.find((aspect) => aspect.key === aspectChoice.value);
   return (selected ?? findAspect(frame.value))?.resolutions ?? [];
 });
 
-// The sides of a lane the text can start at.
+// The sides of a lane the text can start at
 const textAnchorItems = computed(() => [
   {
     label: t('pages.editor.anchorLeft'),
@@ -134,7 +135,7 @@ const textAnchorItems = computed(() => [
   },
 ]);
 
-/** lockToFrame locks the ratio at the common aspect ratio of the frame, or unlocks it for any other. */
+/** Locks the ratio at the common aspect ratio of the frame, or unlocks it for any other. */
 function lockToFrame(): void {
   const aspect = findAspect(frame.value);
   if (aspect) {
@@ -144,13 +145,13 @@ function lockToFrame(): void {
   unlockRatio();
 }
 
-/** lockAspect locks the ratio of the resolution at a common aspect ratio. */
+/** Locks the ratio of the resolution at a common aspect ratio. */
 function lockAspect(aspect: FrameAspect): void {
   lockedAspect.value = aspect.key;
   ratioLock.lock(aspect.width / aspect.height);
 }
 
-/** toggleRatioLock locks the ratio of the resolution at its current value, or unlocks it. */
+/** Locks the ratio of the resolution at its current value, or unlocks it. */
 function toggleRatioLock(): void {
   if (ratioLock.locked.value) {
     unlockRatio();
@@ -160,13 +161,13 @@ function toggleRatioLock(): void {
   ratioLock.toggle(preset.frameWidth / preset.frameHeight);
 }
 
-/** unlockRatio lets the width and the height of the resolution change independently. */
+/** Lets the width and the height of the resolution change independently. */
 function unlockRatio(): void {
   ratioLock.unlock();
   lockedAspect.value = null;
 }
 
-/** onFrameWidth changes the width of the reference resolution, keeping the lanes in place. */
+/** Changes the width of the reference resolution, keeping the lanes in place. */
 function onFrameWidth(width: number | null | undefined): void {
   if (typeof width !== 'number') return;
   const height = ratioLock.locked.value
@@ -175,7 +176,7 @@ function onFrameWidth(width: number | null | undefined): void {
   presetForm.setFrameSize(width, height);
 }
 
-/** onFrameHeight changes the height of the reference resolution, keeping the lanes in place. */
+/** Changes the height of the reference resolution, keeping the lanes in place. */
 function onFrameHeight(height: number | null | undefined): void {
   if (typeof height !== 'number') return;
   const width = ratioLock.locked.value
@@ -184,12 +185,12 @@ function onFrameHeight(height: number | null | undefined): void {
   presetForm.setFrameSize(width, height);
 }
 
-/** clampDimension rounds a derived dimension to whole pixels in the range the backend accepts. */
+/** Rounds a derived dimension to whole pixels in the range the backend accepts. */
 function clampDimension(value: number): number {
   return Math.min(DIMENSION_MAX, Math.max(DIMENSION_MIN, Math.round(value)));
 }
 
-/** isCurrentResolution reports whether the preset has the given resolution. */
+/** Reports whether the preset has the given resolution. */
 function isCurrentResolution(resolution: FrameSize): boolean {
   return resolution.width === preset.frameWidth && resolution.height === preset.frameHeight;
 }
@@ -202,8 +203,8 @@ function isCurrentResolution(resolution: FrameSize): boolean {
       <UBadge
         v-if="presetForm.isDraft.value"
         :label="t('pages.editor.draft')"
-        color="neutral"
-        variant="soft"
+        color="info"
+        variant="solid"
       />
       <UBadge
         v-if="presetForm.isDirty.value"
@@ -228,16 +229,16 @@ function isCurrentResolution(resolution: FrameSize): boolean {
     </UFormField>
 
     <UFormField
-      :label="t('fields.comment')"
-      :hint="countLabel(preset.comment ?? '', PRESET_COMMENT_MAX)"
-      name="comment"
+      :label="t('fields.description')"
+      :hint="countLabel(preset.description ?? '', PRESET_DESCRIPTION_MAX)"
+      name="description"
     >
       <UInput
-        :model-value="preset.comment ?? ''"
-        v-bind="dirtyForm.fieldProps('comment')"
-        :maxlength="PRESET_COMMENT_MAX"
+        :model-value="preset.description ?? ''"
+        v-bind="dirtyForm.fieldProps('description')"
+        :maxlength="PRESET_DESCRIPTION_MAX"
         class="w-full"
-        @update:model-value="(value: string) => (preset.comment = value || null)"
+        @update:model-value="(value: string) => (preset.description = value || null)"
         @change="() => presetForm.editor.history.commit()"
       />
     </UFormField>
@@ -271,15 +272,17 @@ function isCurrentResolution(resolution: FrameSize): boolean {
             ratioLock.locked.value ? t('pages.editor.unlockRatio') : t('pages.editor.lockRatio')
           "
         >
-          <UButton
+          <UToggle
+            :model-value="ratioLock.locked.value"
             :icon="ratioLock.locked.value ? 'i-lucide-link' : 'i-lucide-link-2-off'"
-            :color="ratioLock.locked.value ? 'primary' : 'neutral'"
+            color="neutral"
             variant="soft"
+            active-color="primary"
+            active-variant="soft"
             :aria-label="
               ratioLock.locked.value ? t('pages.editor.unlockRatio') : t('pages.editor.lockRatio')
             "
-            :aria-pressed="ratioLock.locked.value"
-            @click="toggleRatioLock"
+            @update:model-value="toggleRatioLock"
           />
         </UTooltip>
         <UFormField

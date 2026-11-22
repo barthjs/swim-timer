@@ -7,8 +7,8 @@ import { EDITOR_SURFACE_ATTRIBUTE, useEditorCanvas } from '@/composables/editor/
 import { useEditorGuides } from '@/composables/editor/useEditorGuides';
 import { useEditorSelection } from '@/composables/editor/useEditorSelection';
 
-// One item of 100 x 50 in content units at the origin.
-const ITEMS: Array<[string, Bounds]> = [
+// One item of 100 x 50 in content units at the origin
+const ITEMS: [string, Bounds][] = [
   [
     'a',
     {
@@ -28,7 +28,7 @@ describe('useEditorCanvas', () => {
     unmount();
   });
 
-  /** mount creates the canvas over a 200 x 100 content, with a gesture and a view mode the test sets. */
+  /** Creates the canvas over a 200 x 100 content, with a gesture and a view mode the test sets. */
   function mount(state = { gesture: false, viewMode: false }) {
     const mounted = withSetup(() => {
       const selection = useEditorSelection(() => ['a']);

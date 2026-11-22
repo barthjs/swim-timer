@@ -18,7 +18,7 @@ describe('useDraftRecovery', () => {
     vi.useRealTimers();
   });
 
-  /** mount creates the recovery of a saved document with a count and a confirmation the test answers. */
+  /** Creates the recovery of a saved document with a count and a confirmation the test answers. */
   function mount(answer = true) {
     const state = reactive({
       count: 0,

@@ -24,7 +24,6 @@ func (a *API) timingStatusGetHandler(w http.ResponseWriter, r *http.Request) {
 	}, nil)
 }
 
-// TimingStatusResponse describes the connection to the timing device.
 type TimingStatusResponse struct {
 	Connected      bool   `json:"connected"`
 	Port           string `json:"port"`

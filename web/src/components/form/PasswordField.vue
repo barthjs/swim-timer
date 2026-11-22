@@ -2,25 +2,29 @@
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-// A UInput bound to type="password" with a trailing toggle to reveal the value in plain text.
-const model = defineModel<string>({
-  required: true,
-});
-
+// A UInput bound to type="password" with a trailing toggle to reveal the value in plain text
 withDefaults(
   defineProps<{
     color?: 'warning';
     highlight?: boolean;
     maxlength?: number;
     placeholder?: string;
+    autocomplete?: string;
+    autofocus?: boolean;
   }>(),
   {
     color: undefined,
     highlight: false,
     maxlength: undefined,
     placeholder: undefined,
+    autocomplete: undefined,
+    autofocus: false,
   },
 );
+
+const model = defineModel<string>({
+  required: true,
+});
 
 const { t } = useI18n();
 const visible = ref(false);
@@ -34,6 +38,8 @@ const visible = ref(false);
     :highlight="highlight"
     :maxlength="maxlength"
     :placeholder="placeholder"
+    :autocomplete="autocomplete"
+    :autofocus="autofocus"
     class="w-full"
   >
     <template #trailing>

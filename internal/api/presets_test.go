@@ -2,7 +2,6 @@ package api_test
 
 import (
 	"net/http"
-	"net/url"
 	"slices"
 	"strings"
 	"testing"
@@ -217,9 +216,9 @@ func TestPresetSaveHandler(t *testing.T) {
 				tag:    "oneof",
 			},
 			{
-				name:   "empty comment",
-				change: func(r *api.PresetSaveRequest, _ *gofakeit.Faker) { empty := ""; r.Comment = &empty },
-				field:  "comment",
+				name:   "empty description",
+				change: func(r *api.PresetSaveRequest, _ *gofakeit.Faker) { empty := ""; r.Description = &empty },
+				field:  "description",
 				tag:    "min",
 			},
 			{
@@ -299,6 +298,12 @@ func TestPresetSaveHandler(t *testing.T) {
 			{
 				name:   "name outside the folder",
 				change: func(r *api.PresetSaveRequest, _ *gofakeit.Faker) { r.Name = ".." },
+				field:  "name",
+				tag:    "invalid",
+			},
+			{
+				name:   "name a file system refuses",
+				change: func(r *api.PresetSaveRequest, _ *gofakeit.Faker) { r.Name += ":" },
 				field:  "name",
 				tag:    "invalid",
 			},
@@ -399,9 +404,4 @@ func TestPresetDeleteHandler(t *testing.T) {
 
 		h.Client.GET(presetPath(preset.Name)).AssertOK()
 	})
-}
-
-// presetPath returns the API path of a preset.
-func presetPath(name string) string {
-	return "/api/presets/" + url.PathEscape(name)
 }
