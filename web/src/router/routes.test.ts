@@ -46,7 +46,7 @@ describe('routes', () => {
     expect(hasKey(de, titleKey ?? '')).toBe(true);
   });
 
-  it.each(['dashboard', 'meet', 'meetData', 'editor', 'config'])(
+  it.each(['dashboard', 'meet', 'meetData', 'records', 'editor', 'config'])(
     'shows %s in the admin layout',
     (name) => {
       const layout = routes.find((record) => record.component === AdminLayout);
@@ -55,7 +55,7 @@ describe('routes', () => {
     },
   );
 
-  it.each(['meetData', 'config', 'editor'])('requires a login for %s', (name) => {
+  it.each(['meetData', 'records', 'config', 'editor'])('requires a login for %s', (name) => {
     const meta = byName.get(name)?.meta;
 
     expect(meta?.requiresAuth).toBe(true);
@@ -74,9 +74,9 @@ describe('routes', () => {
     expect(meta?.requiresGuest).toBe(true);
   });
 
-  it('gives only the editor and the meet overview the viewport height', () => {
+  it('gives only the editor, the meet overview, and the records the viewport height', () => {
     for (const [name, route] of byName) {
-      const expected = ['editor', 'meet'].includes(name) ? true : undefined;
+      const expected = ['editor', 'meet', 'records'].includes(name) ? true : undefined;
       expect(route.meta?.fillViewport).toBe(expected);
     }
   });

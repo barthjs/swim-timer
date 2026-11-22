@@ -24,6 +24,11 @@ const webhookEvents = computed<WebhookEventOption[]>(() => [
     label: t('pages.config.webhook.events.meetReloaded'),
     description: t('pages.config.webhook.events.meetReloadedHint'),
   },
+  {
+    value: WebhookEvent.RecordSet,
+    label: t('pages.config.webhook.events.recordSet'),
+    description: t('pages.config.webhook.events.recordSetHint'),
+  },
 ]);
 
 /** Stops Enter in a field of the webhook table, which would submit the form of the configuration around it. */

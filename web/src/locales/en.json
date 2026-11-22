@@ -7,7 +7,8 @@
       "dashboard": "Dashboard",
       "editor": "Editor",
       "meet": "Meet",
-      "meetData": "Meet data"
+      "meetData": "Meet data",
+      "records": "Records"
     },
     "openScoreboard": "Open scoreboard",
     "pageDocs": "Open the documentation of this page",
@@ -153,6 +154,128 @@
     "timeout": "That took too long. Please try again.",
     "validation_failed": "Please check your input."
   },
+  "export": {
+    "columns": "Columns",
+    "download": "Download"
+  },
+  "fields": {
+    "abbreviation": "Abbreviation",
+    "ageFrom": "Age from",
+    "ageTo": "Age to",
+    "app": {
+      "env": "Environment",
+      "language": "Language",
+      "name": "Application name",
+      "secret": "Admin password"
+    },
+    "approved": "Approved",
+    "birthYear": "Year of birth",
+    "club": "Club",
+    "course": "Course",
+    "date": "Date",
+    "description": "Description",
+    "distance": "Distance",
+    "enabled": "Enabled",
+    "events": "Events",
+    "file": "File",
+    "files": "Files",
+    "frameHeight": "Height",
+    "frameWidth": "Width",
+    "gender": "Category",
+    "laneGap": "Lane gap (%)",
+    "log": {
+      "channel": "Log channel",
+      "compress": "Compress old logs",
+      "format": "Log format",
+      "level": "Log level",
+      "maxAgeDays": "Log retention (days)",
+      "maxSizeMb": "Maximum log size (MB)",
+      "path": "Log directory"
+    },
+    "name": "Name",
+    "password": "Password",
+    "place": "Place",
+    "relayCount": "Swimmers per team",
+    "reverseLanes": "Lane order",
+    "row": "Row",
+    "secret": "Secret",
+    "server": {
+      "corsAllowCredentials": "Allow CORS with cookies",
+      "corsAllowedOrigins": "Allowed CORS origins",
+      "host": "Host",
+      "port": "Port",
+      "sslCertFile": "TLS certificate path",
+      "sslEnabled": "Enable HTTPS",
+      "sslKeyFile": "TLS private key path",
+      "trustedProxies": "Trusted proxies"
+    },
+    "skipTlsVerify": "Accept any certificate",
+    "storage": {
+      "driver": "Storage driver",
+      "path": "Storage path",
+      "s3": {
+        "accessKey": "S3 access key",
+        "bucket": "S3 bucket",
+        "endpoint": "S3 endpoint",
+        "region": "S3 region",
+        "secretKey": "S3 secret key",
+        "usePathStyle": "Use path-style addressing"
+      }
+    },
+    "stroke": "Stroke",
+    "textAnchor": "Camera position",
+    "textSize": "Text size (%)",
+    "theme": {
+      "error": "Error",
+      "info": "Info",
+      "neutral": "Neutral",
+      "primary": "Primary",
+      "secondary": "Secondary",
+      "success": "Success",
+      "warning": "Warning"
+    },
+    "time": "Time",
+    "timing": {
+      "baudRate": "Baud rate",
+      "poolLength": "Pool length",
+      "recording": "Recording",
+      "replayPath": "Replayed recording",
+      "serialPort": "Serial port",
+      "simulateEvent": "Simulated event"
+    },
+    "url": "URL",
+    "webhook": {
+      "allowedNetworks": "Allowed private networks"
+    }
+  },
+  "import": {
+    "changeFormat": "Change encoding and separator",
+    "chooseFile": "Choose a file or drop it here",
+    "chooseFileHint": "CSV, TSV, or TXT",
+    "fileRejected": "{name} is not a CSV, TSV, or TXT file.",
+    "chooseValue": "Choose a value",
+    "detect": "Detect",
+    "detected": "Detected: {encoding}, {separator}",
+    "exampleValue": "Example",
+    "fixedValues": "Only accepts {values}",
+    "hideFormat": "Hide encoding and separator",
+    "keepValue": "Keep value",
+    "line": "Line {line}",
+    "rowErrors": "{count} row could not be read, nothing was imported | {count} rows could not be read, nothing was imported",
+    "source": "Column in the file",
+    "steps": {
+      "columns": "Assign the columns",
+      "columnsHint": "Each column is assigned the column of the file that holds its value. Columns with a star are required.",
+      "file": "Choose the file",
+      "fileHint": "The encoding and the separator are detected when the file is read.",
+      "values": "Translate the values",
+      "valuesHint": "Columns with fixed or suggested values need their spelling. Deviating values of the file are translated here, common names are assigned already."
+    },
+    "suggestedValues": "Suggested values, other values are kept",
+    "target": "Column",
+    "unassigned": "Leave empty",
+    "untranslated": "The value {values} is not translated yet. | The values {values} are not translated yet."
+  },
   "keys": {
     "alt": "Alt",
     "arrows": "Arrow keys",
@@ -172,6 +295,12 @@
     "heatNumber": "Heat {number}",
     "info": "Info",
     "lane": "Lane {number}",
+    "records": {
+      "badge": "Record",
+      "equalled": "Record equalled",
+      "new": "New record",
+      "previous": "Previous {time}"
+    },
     "splits": "Splits",
     "startList": "Start list",
     "timer": "Timer"
@@ -284,7 +413,9 @@
           "heatUpdated": "Live heat",
           "heatUpdatedHint": "Every change of the live heat",
           "meetReloaded": "Meet data",
-          "meetReloadedHint": "The whole meet after every reload"
+          "meetReloadedHint": "The whole meet after every reload",
+          "recordSet": "Records",
+          "recordSetHint": "The records of an official heat, once per record"
         }
       }
     },
@@ -531,6 +662,99 @@
       "uploadSuccess": "{name} uploaded",
       "uploading": "Uploading {name}"
     },
+    "records": {
+      "age": "Age {age}",
+      "ageFrom": "From {age}",
+      "ageOpen": "Open",
+      "ageRange": "{from}–{to}",
+      "ageTo": "Up to {age}",
+      "ages": "Ages",
+      "approved": "Approved",
+      "approvedNames": {
+        "false": "Pending",
+        "true": "Approved"
+      },
+      "breaks": {
+        "brokenAt": "Set at",
+        "clear": "Remove all",
+        "clearDescription": "The next heats are checked against the record tables again.",
+        "clearTitle": "Remove all records of the meet?",
+        "cleared": "Records of the meet removed",
+        "deleteDescription": "The record of {name} is removed. The next heats are checked against the record before it.",
+        "deleteTitle": "Remove record?",
+        "deleted": "Record removed",
+        "discipline": "Discipline",
+        "empty": "No records set.",
+        "equalled": "Equalled",
+        "heat": "Heat",
+        "heatLabel": "Event {event}, heat {heat}, lane {lane}",
+        "previous": "Previous record"
+      },
+      "columnHints": {
+        "ageFrom": "Empty or 0 for no lower bound",
+        "ageTo": "Empty or 0 for no upper bound",
+        "course": "25 m or 50 m pool",
+        "distance": "Meters per person",
+        "gender": "Abbreviation of the category in the meet data",
+        "relayCount": "1 for individual records",
+        "stroke": "Abbreviation of the style in the meet data",
+        "time": "Minutes, seconds, and hundredths"
+      },
+      "courseNames": {
+        "LCM": "50 m pool",
+        "SCM": "25 m pool"
+      },
+      "courses": {
+        "LCM": "50 m",
+        "SCM": "25 m"
+      },
+      "empty": "No records.",
+      "filters": {
+        "search": "Search holder, club, or place"
+      },
+      "loadError": "The records could not be loaded.",
+      "loadedAt": "Loaded {time}",
+      "notApproved": "Pending",
+      "reload": "Reload",
+      "reloadError": "The records could not be reloaded.",
+      "reloadHint": "Reads the record tables and the records set at the meet again from the data directory. A file that cannot be read keeps its previous data in use.",
+      "reloadSuccess": "Records reloaded",
+      "sections": {
+        "breaks": "Set at the meet",
+        "records": "Records"
+      },
+      "strokes": {
+        "BA": "Backstroke",
+        "BR": "Breaststroke",
+        "BU": "Butterfly",
+        "FR": "Freestyle",
+        "ME": "Medley"
+      },
+      "table": "Record table",
+      "tables": {
+        "abbreviationHint": "Marks the records of this table in the administration.",
+        "actions": "Record table",
+        "all": "All record tables",
+        "choose": "Choose a record table",
+        "deleteDescription": "The record table {name} and its records are removed. The records set at the meet stay.",
+        "deleteTitle": "Delete record table?",
+        "deleted": "Record table {name} deleted",
+        "disabled": "Disabled",
+        "edit": "Edit record table",
+        "enabledHint": "Only enabled tables take part in the record check.",
+        "exportAction": "Export",
+        "exportTitle": "Export {name}",
+        "importAction": "Import",
+        "importInto": "Import into {name}",
+        "imported": "Records imported",
+        "new": "New record table",
+        "order": "Change order",
+        "orderHint": "The tables are checked in this order. A lane counts for the first enabled table in which it breaks or equals a record.",
+        "orderSaved": "Order saved",
+        "saved": "Record table saved"
+      },
+      "title": "Records"
+    },
     "scoreboard": {
       "club": "Club",
       "laneAbbr": "Lane",
@@ -565,6 +789,19 @@
     "filterAll": "All",
     "rowActions": "Actions"
   },
+  "tableFormat": {
+    "encoding": "Encoding",
+    "encodings": {
+      "utf-8": "UTF-8",
+      "windows-1252": "Windows-1252"
+    },
+    "separator": "Separator",
+    "separators": {
+      "comma": "Comma",
+      "semicolon": "Semicolon",
+      "tab": "Tab"
+    }
+  },
   "update": {
     "available": "Version {version} is available.",
     "check": "Check for updates",
@@ -588,10 +825,16 @@
   },
   "validation": {
     "blocked_address": "{field} points to a private or local network that is not allowed.",
+    "boolean": "{field} must be true or false.",
+    "date": "{field} must be a date.",
+    "empty": "{field} is empty.",
+    "encoding": "{field} is encoded in neither UTF-8 nor Windows-1252.",
     "explicit_origins": "{field} requires explicit origins instead of *.",
+    "gtefield": "{field} must not be below the lower bound.",
     "hexcolor": "{field} must be a hex color.",
     "invalid": "{field} is invalid.",
     "lane": "{field} must be a lane number from 1 without leading zeros.",
+    "len": "{field} must be exactly {param}.",
     "listEntry": "{field}, entry {position}",
     "max": "{field} must be at most {param}.",
     "max_array": "{field} must have at most {param} entries.",
@@ -599,14 +842,21 @@
     "min": "{field} must be at least {param}.",
     "min_array": "{field} must have at least {param} entries.",
     "min_string": "{field} must be at least {param} characters.",
+    "missing": "{field} names a column that is not in the file.",
     "networks": "{field} must list IP addresses or CIDR ranges, separated by commas.",
+    "number": "{field} must be a number.",
     "oneof": "{field} must be one of: {param}.",
     "origin": "{field} must be * or an origin like https://example.com, without a path.",
     "required": "{field} is required.",
     "required_if": "{field} is required.",
     "required_unless": "{field} is required.",
     "required_with": "{field} is required.",
+    "short_row": "{field} has fewer values than the header names columns ({param}).",
+    "swimtime": "{field} must be a time.",
     "too_large": "{field} is too large.",
+    "unique": "{field} must not contain duplicates.",
+    "unreadable": "{field} cannot be read.",
+    "unreadable_line": "{field} cannot be read from line {param} on.",
     "unsupported_type": "{field} has an unsupported file type.",
     "url": "{field} must be an http or https URL.",
     "webhook_secret": "{field} must be whsec_ followed by 24 to 64 bytes in base64."
@@ -690,80 +940,5 @@
     "testFailed": "Test message not delivered",
     "urlHint": "The address the messages are sent to, with http or https.",
     "test": "Test message"
-  },
-  "fields": {
-    "app": {
-      "env": "Environment",
-      "language": "Language",
-      "name": "Application name",
-      "secret": "Admin password"
-    },
-    "description": "Description",
-    "enabled": "Enabled",
-    "events": "Events",
-    "file": "File",
-    "files": "Files",
-    "frameHeight": "Height",
-    "frameWidth": "Width",
-    "laneGap": "Lane gap (%)",
-    "log": {
-      "channel": "Log channel",
-      "compress": "Compress old logs",
-      "format": "Log format",
-      "level": "Log level",
-      "maxAgeDays": "Log retention (days)",
-      "maxSizeMb": "Maximum log size (MB)",
-      "path": "Log directory"
-    },
-    "name": "Name",
-    "password": "Password",
-    "reverseLanes": "Lane order",
-    "secret": "Secret",
-    "server": {
-      "corsAllowCredentials": "Allow CORS with cookies",
-      "corsAllowedOrigins": "Allowed CORS origins",
-      "host": "Host",
-      "port": "Port",
-      "sslCertFile": "TLS certificate path",
-      "sslEnabled": "Enable HTTPS",
-      "sslKeyFile": "TLS private key path",
-      "trustedProxies": "Trusted proxies"
-    },
-    "skipTlsVerify": "Accept any certificate",
-    "storage": {
-      "driver": "Storage driver",
-      "path": "Storage path",
-      "s3": {
-        "accessKey": "S3 access key",
-        "bucket": "S3 bucket",
-        "endpoint": "S3 endpoint",
-        "region": "S3 region",
-        "secretKey": "S3 secret key",
-        "usePathStyle": "Use path-style addressing"
-      }
-    },
-    "textAnchor": "Camera position",
-    "textSize": "Text size (%)",
-    "theme": {
-      "error": "Error",
-      "info": "Info",
-      "neutral": "Neutral",
-      "primary": "Primary",
-      "secondary": "Secondary",
-      "success": "Success",
-      "warning": "Warning"
-    },
-    "timing": {
-      "baudRate": "Baud rate",
-      "poolLength": "Pool length",
-      "recording": "Recording",
-      "replayPath": "Replayed recording",
-      "serialPort": "Serial port",
-      "simulateEvent": "Simulated event"
-    },
-    "url": "URL",
-    "webhook": {
-      "allowedNetworks": "Allowed private networks"
-    }
   }
 }

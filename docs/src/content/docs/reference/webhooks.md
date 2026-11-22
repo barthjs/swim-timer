@@ -2,7 +2,7 @@
 title: Webhooks
 description: Events, message format, delivery, and signature of the webhooks.
 sidebar:
-  order: 5
+  order: 6
 ---
 
 [Webhooks](../guides/webhooks.md) in the guides describes how to set up a webhook.
@@ -22,10 +22,14 @@ sidebar:
 
 ## Events
 
-| Event           | Sent                                           | Data                                         |
-| --------------- | ---------------------------------------------- | -------------------------------------------- |
-| `heat.updated`  | after every change of the live heat            | the live heat as the overlays receive it     |
-| `meet.reloaded` | after every successful reload of the meet data | the whole meet as the meet overview shows it |
+| Event           | Sent                                           | Data                                              |
+| --------------- | ---------------------------------------------- | ------------------------------------------------- |
+| `heat.updated`  | after every change of the live heat            | the live heat as the overlays receive it          |
+| `meet.reloaded` | after every successful reload of the meet data | the whole meet as the meet overview shows it      |
+| `record.set`    | once an official heat set or equalled records  | the new records as the list of records shows them |
+
+A heat that is made official again only sends `record.set` for a record it did not send before. A record the live heat
+shows before the heat is official is not sent with `record.set`, since the timing system can still correct the time.
 
 A message is a JSON object:
 
@@ -44,18 +48,19 @@ the running time from the start time of the live heat even if its own clock diff
 ## Delivery
 
 Every webhook has its own queue and sends one message at a time, so a slow receiver delays neither the overlays
-nor other webhooks. A new message replaces a waiting message of the same event, so a slow receiver gets fewer
-intermediate states but always the current one. The events take turns, so a failing message of one event
-does not hold back the other.
+nor other webhooks. A new message of `heat.updated` or `meet.reloaded` replaces a waiting message of the same event,
+so a slow receiver gets fewer intermediate states but always the current one. Every message of `record.set` carries
+other records, so these messages wait in order and each one is sent. The events take turns, so a failing message
+of one event does not hold back the other.
 
 The receiver confirms a message with a status from 200 to 299. Other answers are handled as follows:
 
-| Answer                                                     | Handling                                                                                                                                                              |
-| ---------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 410                                                        | The webhook is turned off, since the receiver no longer exists.                                                                                                       |
-| 429 or 503 with `Retry-After`                              | The message is sent again after the requested wait, at most five minutes.                                                                                             |
-| 408, 429, 5xx, no answer within ten seconds, network error | The message is sent again after a wait that starts at one second and doubles up to one minute. A newer message of the same event replaces it before the next attempt. |
-| any other status, including a redirect                     | The message is dropped. Redirects are not followed.                                                                                                                   |
+| Answer                                                     | Handling                                                                                                                                                         |
+| ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 410                                                        | The webhook is turned off, since the receiver no longer exists.                                                                                                  |
+| 429 or 503 with `Retry-After`                              | The message is sent again after the requested wait, at most five minutes.                                                                                        |
+| 408, 429, 5xx, no answer within ten seconds, network error | The message is sent again after a wait that starts at one second and doubles up to one minute. A newer message of `heat.updated` or `meet.reloaded` replaces it. |
+| any other status, including a redirect                     | The message is dropped. Redirects are not followed.                                                                                                              |
 
 A webhook is never turned off for failed deliveries alone. A message can arrive twice, for example if the answer
 of the receiver got lost, with the same `id` both times. After a restart, the deliveries start with the next change.

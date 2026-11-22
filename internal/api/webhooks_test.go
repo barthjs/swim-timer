@@ -521,6 +521,25 @@ func TestWebhookDeliveryListHandler(t *testing.T) {
 func TestWebhookPreviewGetHandler(t *testing.T) {
 	t.Parallel()
 
+	t.Run("returns the records of the heat that set the latest record", func(t *testing.T) {
+		t.Parallel()
+		h := newHarness(t, withWebhookReceivers())
+		admin := h.asAdmin()
+		created := admin.POST("/api/webhooks", newWebhookCreateRequest(h.Faker, newWebhookReceiver(t).URL())).
+			AssertCreated().Decode[api.WebhookResponse]()
+		recordBreak := h.storeRecordBreak()
+
+		response := admin.GET(webhookPath(created.ID) + "/preview?event=record.set")
+
+		preview := response.AssertOK().Decode[api.WebhookPreviewResponse]()
+		var message receivedWebhook
+		require.NoError(t, json.Unmarshal([]byte(preview.Body), &message))
+		var sent []api.RecordBreakResponse
+		require.NoError(t, json.Unmarshal(message.Data, &sent))
+		require.Len(t, sent, 1)
+		assert.Equal(t, recordBreak.ID, sent[0].ID)
+	})
+
 	t.Run("returns the signed message with the current data without sending it", func(t *testing.T) {
 		t.Parallel()
 		h := newHarness(t, withWebhookReceivers())

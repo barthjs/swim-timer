@@ -2,7 +2,7 @@
 title: Simulator and recordings
 description: Record the data of the timing system and replay it without a timing system.
 sidebar:
-  order: 8
+  order: 9
 ---
 
 Swim-Timer records the data of the Omega timing system during a meet. Its simulator plays such a recording back

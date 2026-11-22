@@ -141,7 +141,7 @@ type webhookTarget struct {
 
 	mu         sync.Mutex
 	webhook    domain.Webhook
-	pending    map[domain.WebhookEvent]webhook.Payload
+	pending    map[domain.WebhookEvent][]webhook.Payload
 	status     WebhookStatus
 	deliveries []WebhookDelivery
 }
@@ -483,7 +483,7 @@ func (s *WebhookService) addTargetLocked(wh domain.Webhook) *webhookTarget {
 	target := &webhookTarget{
 		wake:    make(chan struct{}, 1),
 		webhook: wh,
-		pending: make(map[domain.WebhookEvent]webhook.Payload),
+		pending: make(map[domain.WebhookEvent][]webhook.Payload),
 	}
 	s.targets[wh.ID] = target
 	return target
@@ -629,10 +629,16 @@ func (t *webhookTarget) subscription(event domain.WebhookEvent) (domain.Webhook,
 	return t.webhook, t.webhook.Subscribes(event)
 }
 
-// offer makes a message the pending one of its event, replacing an older one, and wakes the delivery goroutine.
+// offer adds a message to the pending ones of a queued event or replaces those of another event, and wakes the delivery goroutine.
 func (t *webhookTarget) offer(event domain.WebhookEvent, payload webhook.Payload) {
 	t.mu.Lock()
-	t.pending[event] = payload
+	if event.Queued() {
+		t.pending[event] = append(t.pending[event], payload)
+	} else {
+		t.pending[event] = []webhook.Payload{
+			payload,
+		}
+	}
 	t.mu.Unlock()
 
 	select {
@@ -649,24 +655,38 @@ func (t *webhookTarget) hasPending() bool {
 	return len(t.pending) > 0
 }
 
-// take removes and returns the pending message of an event.
+// take removes and returns the oldest pending message of an event.
 func (t *webhookTarget) take(event domain.WebhookEvent) (webhook.Payload, bool) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
-	payload, ok := t.pending[event]
-	if ok {
-		delete(t.pending, event)
+	payloads := t.pending[event]
+	if len(payloads) == 0 {
+		return webhook.Payload{}, false
 	}
-	return payload, ok
+	if len(payloads) == 1 {
+		delete(t.pending, event)
+	} else {
+		t.pending[event] = payloads[1:]
+	}
+	return payloads[0], true
 }
 
-// requeue returns a message that failed to the pending ones, unless a newer message of its event waits already.
+// requeue returns a message that failed to the front of the pending ones of a queued event,
+// or to those of another event unless a newer message of it waits already.
 func (t *webhookTarget) requeue(event domain.WebhookEvent, payload webhook.Payload) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	if _, ok := t.pending[event]; !ok {
-		t.pending[event] = payload
+
+	payloads := t.pending[event]
+	if event.Queued() {
+		t.pending[event] = append([]webhook.Payload{payload}, payloads...)
+		return
+	}
+	if len(payloads) == 0 {
+		t.pending[event] = []webhook.Payload{
+			payload,
+		}
 	}
 }
 

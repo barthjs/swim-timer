@@ -7,7 +7,8 @@
       "dashboard": "Dashboard",
       "editor": "Editor",
       "meet": "Veranstaltung",
-      "meetData": "Veranstaltungsdaten"
+      "meetData": "Veranstaltungsdaten",
+      "records": "Rekorde"
     },
     "openScoreboard": "Anzeigetafel öffnen",
     "pageDocs": "Dokumentation zu dieser Seite öffnen",
@@ -153,6 +154,128 @@
     "timeout": "Das hat zu lange gedauert. Bitte versuche es erneut.",
     "validation_failed": "Bitte überprüfe deine Eingabe."
   },
+  "export": {
+    "columns": "Spalten",
+    "download": "Herunterladen"
+  },
+  "fields": {
+    "abbreviation": "Kürzel",
+    "ageFrom": "Alter von",
+    "ageTo": "Alter bis",
+    "app": {
+      "env": "Umgebung",
+      "language": "Sprache",
+      "name": "Anwendungsname",
+      "secret": "Admin-Passwort"
+    },
+    "approved": "Anerkannt",
+    "birthYear": "Jahrgang",
+    "club": "Verein",
+    "course": "Becken",
+    "date": "Datum",
+    "description": "Beschreibung",
+    "distance": "Strecke",
+    "enabled": "Aktiv",
+    "events": "Ereignisse",
+    "file": "Datei",
+    "files": "Dateien",
+    "frameHeight": "Höhe",
+    "frameWidth": "Breite",
+    "gender": "Kategorie",
+    "laneGap": "Bahnabstand (%)",
+    "log": {
+      "channel": "Log-Kanal",
+      "compress": "Alte Logs komprimieren",
+      "format": "Log-Format",
+      "level": "Log-Level",
+      "maxAgeDays": "Aufbewahrung der Logs (Tage)",
+      "maxSizeMb": "Maximale Log-Größe (MB)",
+      "path": "Log-Verzeichnis"
+    },
+    "name": "Name",
+    "password": "Passwort",
+    "place": "Ort",
+    "relayCount": "Schwimmende pro Team",
+    "reverseLanes": "Reihenfolge der Bahnen",
+    "row": "Zeile",
+    "secret": "Secret",
+    "server": {
+      "corsAllowCredentials": "CORS mit Cookies erlauben",
+      "corsAllowedOrigins": "Erlaubte CORS-Origins",
+      "host": "Host",
+      "port": "Port",
+      "sslCertFile": "TLS-Zertifikatspfad",
+      "sslEnabled": "HTTPS aktivieren",
+      "sslKeyFile": "TLS-Schlüsselpfad",
+      "trustedProxies": "Vertrauenswürdige Proxys"
+    },
+    "skipTlsVerify": "Jedes Zertifikat akzeptieren",
+    "storage": {
+      "driver": "Speichertreiber",
+      "path": "Speicherpfad",
+      "s3": {
+        "accessKey": "S3 Access Key",
+        "bucket": "S3-Bucket",
+        "endpoint": "S3-Endpunkt",
+        "region": "S3-Region",
+        "secretKey": "S3 Secret Key",
+        "usePathStyle": "Path-Style-Adressierung verwenden"
+      }
+    },
+    "stroke": "Lage",
+    "textAnchor": "Kameraposition",
+    "textSize": "Textgröße (%)",
+    "theme": {
+      "error": "Fehler",
+      "info": "Info",
+      "neutral": "Neutral",
+      "primary": "Primär",
+      "secondary": "Sekundär",
+      "success": "Erfolg",
+      "warning": "Warnung"
+    },
+    "time": "Zeit",
+    "timing": {
+      "baudRate": "Baudrate",
+      "poolLength": "Beckenlänge",
+      "recording": "Aufzeichnung",
+      "replayPath": "Abgespielte Aufzeichnung",
+      "serialPort": "Serielle Schnittstelle",
+      "simulateEvent": "Simulierter Wettkampf"
+    },
+    "url": "URL",
+    "webhook": {
+      "allowedNetworks": "Erlaubte private Netze"
+    }
+  },
+  "import": {
+    "changeFormat": "Kodierung und Trennzeichen ändern",
+    "chooseFile": "Datei auswählen oder hier ablegen",
+    "chooseFileHint": "CSV, TSV oder TXT",
+    "fileRejected": "{name} ist keine CSV-, TSV- oder TXT-Datei.",
+    "chooseValue": "Wert auswählen",
+    "detect": "Erkennen",
+    "detected": "Erkannt: {encoding}, {separator}",
+    "exampleValue": "Beispiel",
+    "fixedValues": "Nimmt nur {values} an",
+    "hideFormat": "Kodierung und Trennzeichen ausblenden",
+    "keepValue": "Wert übernehmen",
+    "line": "Zeile {line}",
+    "rowErrors": "{count} Zeile konnte nicht gelesen werden, nichts wurde importiert | {count} Zeilen konnten nicht gelesen werden, nichts wurde importiert",
+    "source": "Spalte in der Datei",
+    "steps": {
+      "columns": "Spalten zuordnen",
+      "columnsHint": "Jeder Spalte wird die Spalte der Datei zugeordnet, in der ihr Wert steht. Spalten mit Stern sind Pflicht.",
+      "file": "Datei auswählen",
+      "fileHint": "Kodierung und Trennzeichen werden beim Lesen der Datei erkannt.",
+      "values": "Werte übersetzen",
+      "valuesHint": "Spalten mit festen oder vorgeschlagenen Werten brauchen deren Schreibweise. Abweichende Werte der Datei werden hier übersetzt, übliche Bezeichnungen sind bereits zugeordnet."
+    },
+    "suggestedValues": "Vorgeschlagene Werte, andere Werte bleiben erhalten",
+    "target": "Spalte",
+    "unassigned": "Leer lassen",
+    "untranslated": "Der Wert {values} ist noch nicht übersetzt. | Die Werte {values} sind noch nicht übersetzt."
+  },
   "keys": {
     "alt": "Alt",
     "arrows": "Pfeiltasten",
@@ -172,6 +295,12 @@
     "heatNumber": "Lauf {number}",
     "info": "Info",
     "lane": "Bahn {number}",
+    "records": {
+      "badge": "Rekord",
+      "equalled": "Rekord eingestellt",
+      "new": "Neuer Rekord",
+      "previous": "Bisher {time}"
+    },
     "splits": "Zwischenzeiten",
     "startList": "Startliste",
     "timer": "Timer"
@@ -284,7 +413,9 @@
           "heatUpdated": "Aktueller Lauf",
           "heatUpdatedHint": "Jede Änderung des aktuellen Laufs",
           "meetReloaded": "Veranstaltungsdaten",
-          "meetReloadedHint": "Die ganze Veranstaltung nach jedem Neuladen"
+          "meetReloadedHint": "Die ganze Veranstaltung nach jedem Neuladen",
+          "recordSet": "Rekorde",
+          "recordSetHint": "Die Rekorde eines offiziellen Laufs, einmal pro Rekord"
         }
       }
     },
@@ -531,6 +662,99 @@
       "uploadSuccess": "{name} hochgeladen",
       "uploading": "{name} wird hochgeladen"
     },
+    "records": {
+      "age": "Alter {age}",
+      "ageFrom": "Ab {age}",
+      "ageOpen": "Offen",
+      "ageRange": "{from}–{to}",
+      "ageTo": "Bis {age}",
+      "ages": "Alter",
+      "approved": "Anerkannt",
+      "approvedNames": {
+        "false": "Ausstehend",
+        "true": "Anerkannt"
+      },
+      "breaks": {
+        "brokenAt": "Aufgestellt",
+        "clear": "Alle entfernen",
+        "clearDescription": "Die nächsten Läufe werden wieder gegen die Rekordtabellen geprüft.",
+        "clearTitle": "Alle Rekorde der Veranstaltung entfernen?",
+        "cleared": "Rekorde der Veranstaltung entfernt",
+        "deleteDescription": "Der Rekord von {name} wird entfernt. Die nächsten Läufe werden gegen den Rekord davor geprüft.",
+        "deleteTitle": "Rekord entfernen?",
+        "deleted": "Rekord entfernt",
+        "discipline": "Disziplin",
+        "empty": "Keine Rekorde aufgestellt.",
+        "equalled": "Eingestellt",
+        "heat": "Lauf",
+        "heatLabel": "Wettkampf {event}, Lauf {heat}, Bahn {lane}",
+        "previous": "Bisheriger Rekord"
+      },
+      "columnHints": {
+        "ageFrom": "Leer oder 0 ohne Untergrenze",
+        "ageTo": "Leer oder 0 ohne Obergrenze",
+        "course": "25-m- oder 50-m-Becken",
+        "distance": "Meter pro Person",
+        "gender": "Kürzel der Kategorie aus den Veranstaltungsdaten",
+        "relayCount": "1 bei Einzelrekorden",
+        "stroke": "Kürzel der Lage aus den Veranstaltungsdaten",
+        "time": "Minuten, Sekunden und Hundertstel"
+      },
+      "courseNames": {
+        "LCM": "50-m-Becken",
+        "SCM": "25-m-Becken"
+      },
+      "courses": {
+        "LCM": "50 m",
+        "SCM": "25 m"
+      },
+      "empty": "Keine Rekorde vorhanden.",
+      "filters": {
+        "search": "Rekordhalter, Verein oder Ort suchen"
+      },
+      "loadError": "Die Rekorde konnten nicht geladen werden.",
+      "loadedAt": "Geladen {time}",
+      "notApproved": "Ausstehend",
+      "reload": "Neu laden",
+      "reloadError": "Die Rekorde konnten nicht neu geladen werden.",
+      "reloadHint": "Liest die Rekordtabellen und die bei der Veranstaltung aufgestellten Rekorde neu aus dem Datenverzeichnis. Kann eine Datei nicht gelesen werden, bleiben ihre bisherigen Daten in Gebrauch.",
+      "reloadSuccess": "Rekorde neu geladen",
+      "sections": {
+        "breaks": "Bei der Veranstaltung",
+        "records": "Rekorde"
+      },
+      "strokes": {
+        "BA": "Rücken",
+        "BR": "Brust",
+        "BU": "Schmetterling",
+        "FR": "Freistil",
+        "ME": "Lagen"
+      },
+      "table": "Rekordtabelle",
+      "tables": {
+        "abbreviationHint": "Kennzeichnet die Rekorde dieser Tabelle in der Verwaltung.",
+        "actions": "Rekordtabelle",
+        "all": "Alle Rekordtabellen",
+        "choose": "Rekordtabelle auswählen",
+        "deleteDescription": "Die Rekordtabelle {name} und ihre Rekorde werden gelöscht. Die bei der Veranstaltung aufgestellten Rekorde bleiben.",
+        "deleteTitle": "Rekordtabelle löschen?",
+        "deleted": "Rekordtabelle {name} gelöscht",
+        "disabled": "Inaktiv",
+        "edit": "Rekordtabelle bearbeiten",
+        "enabledHint": "Nur aktive Tabellen werden bei der Rekordprüfung berücksichtigt.",
+        "exportAction": "Exportieren",
+        "exportTitle": "{name} exportieren",
+        "importAction": "Importieren",
+        "importInto": "In {name} importieren",
+        "imported": "Rekorde importiert",
+        "new": "Neue Rekordtabelle",
+        "order": "Reihenfolge ändern",
+        "orderHint": "Die Tabellen werden in dieser Reihenfolge geprüft. Eine Bahn zählt für die erste aktive Tabelle, in der sie einen Rekord bricht oder einstellt.",
+        "orderSaved": "Reihenfolge gespeichert",
+        "saved": "Rekordtabelle gespeichert"
+      },
+      "title": "Rekorde"
+    },
     "scoreboard": {
       "club": "Verein",
       "laneAbbr": "Bahn",
@@ -565,6 +789,19 @@
     "filterAll": "Alle",
     "rowActions": "Aktionen"
   },
+  "tableFormat": {
+    "encoding": "Kodierung",
+    "encodings": {
+      "utf-8": "UTF-8",
+      "windows-1252": "Windows-1252"
+    },
+    "separator": "Trennzeichen",
+    "separators": {
+      "comma": "Komma",
+      "semicolon": "Semikolon",
+      "tab": "Tabulator"
+    }
+  },
   "update": {
     "available": "Version {version} ist verfügbar.",
     "check": "Nach Updates suchen",
@@ -588,10 +825,16 @@
   },
   "validation": {
     "blocked_address": "{field} zeigt in ein privates oder lokales Netz, das nicht erlaubt ist.",
+    "boolean": "{field} muss wahr oder falsch sein.",
+    "date": "{field} muss ein Datum sein.",
+    "empty": "{field} ist leer.",
+    "encoding": "{field} ist weder in UTF-8 noch in Windows-1252 kodiert.",
     "explicit_origins": "{field} erfordert konkrete Domains statt *.",
+    "gtefield": "{field} darf nicht unter der unteren Grenze liegen.",
     "hexcolor": "{field} muss ein Hex-Farbwert sein.",
     "invalid": "{field} ist ungültig.",
     "lane": "{field} muss eine Bahnnummer ab 1 ohne führende Nullen sein.",
+    "len": "{field} muss genau {param} sein.",
     "listEntry": "{field}, Eintrag {position}",
     "max": "{field} darf höchstens {param} sein.",
     "max_array": "{field} darf höchstens {param} Einträge enthalten.",
@@ -599,14 +842,21 @@
     "min": "{field} muss mindestens {param} sein.",
     "min_array": "{field} muss mindestens {param} Einträge enthalten.",
     "min_string": "{field} muss mindestens {param} Zeichen lang sein.",
+    "missing": "{field} nennt eine Spalte, die nicht in der Datei steht.",
     "networks": "{field} muss IP-Adressen oder Netze in CIDR-Schreibweise enthalten, durch Kommas getrennt.",
+    "number": "{field} muss eine Zahl sein.",
     "oneof": "{field} muss eines von: {param} sein.",
     "origin": "{field} muss * oder eine Domain wie https://example.com ohne Pfad sein.",
     "required": "{field} wird benötigt.",
     "required_if": "{field} wird benötigt.",
     "required_unless": "{field} wird benötigt.",
     "required_with": "{field} wird benötigt.",
+    "short_row": "{field} hat weniger Werte, als die Kopfzeile Spalten nennt ({param}).",
+    "swimtime": "{field} muss eine Zeit sein.",
     "too_large": "{field} ist zu groß.",
+    "unique": "{field} darf keine Einträge doppelt enthalten.",
+    "unreadable": "{field} kann nicht gelesen werden.",
+    "unreadable_line": "{field} kann ab Zeile {param} nicht gelesen werden.",
     "unsupported_type": "{field} hat einen nicht unterstützten Dateityp.",
     "url": "{field} muss eine http- oder https-URL sein.",
     "webhook_secret": "{field} muss aus whsec_ und 24 bis 64 Bytes in Base64 bestehen."
@@ -690,80 +940,5 @@
     "testFailed": "Testnachricht nicht zugestellt",
     "urlHint": "Adresse, an die die Nachrichten gesendet werden, mit http oder https.",
     "test": "Testnachricht"
-  },
-  "fields": {
-    "app": {
-      "env": "Umgebung",
-      "language": "Sprache",
-      "name": "Anwendungsname",
-      "secret": "Admin-Passwort"
-    },
-    "description": "Beschreibung",
-    "enabled": "Aktiv",
-    "events": "Ereignisse",
-    "file": "Datei",
-    "files": "Dateien",
-    "frameHeight": "Höhe",
-    "frameWidth": "Breite",
-    "laneGap": "Bahnabstand (%)",
-    "log": {
-      "channel": "Log-Kanal",
-      "compress": "Alte Logs komprimieren",
-      "format": "Log-Format",
-      "level": "Log-Level",
-      "maxAgeDays": "Aufbewahrung der Logs (Tage)",
-      "maxSizeMb": "Maximale Log-Größe (MB)",
-      "path": "Log-Verzeichnis"
-    },
-    "name": "Name",
-    "password": "Passwort",
-    "reverseLanes": "Reihenfolge der Bahnen",
-    "secret": "Secret",
-    "server": {
-      "corsAllowCredentials": "CORS mit Cookies erlauben",
-      "corsAllowedOrigins": "Erlaubte CORS-Origins",
-      "host": "Host",
-      "port": "Port",
-      "sslCertFile": "TLS-Zertifikatspfad",
-      "sslEnabled": "HTTPS aktivieren",
-      "sslKeyFile": "TLS-Schlüsselpfad",
-      "trustedProxies": "Vertrauenswürdige Proxys"
-    },
-    "skipTlsVerify": "Jedes Zertifikat akzeptieren",
-    "storage": {
-      "driver": "Speichertreiber",
-      "path": "Speicherpfad",
-      "s3": {
-        "accessKey": "S3 Access Key",
-        "bucket": "S3-Bucket",
-        "endpoint": "S3-Endpunkt",
-        "region": "S3-Region",
-        "secretKey": "S3 Secret Key",
-        "usePathStyle": "Path-Style-Adressierung verwenden"
-      }
-    },
-    "textAnchor": "Kameraposition",
-    "textSize": "Textgröße (%)",
-    "theme": {
-      "error": "Fehler",
-      "info": "Info",
-      "neutral": "Neutral",
-      "primary": "Primär",
-      "secondary": "Sekundär",
-      "success": "Erfolg",
-      "warning": "Warnung"
-    },
-    "timing": {
-      "baudRate": "Baudrate",
-      "poolLength": "Beckenlänge",
-      "recording": "Aufzeichnung",
-      "replayPath": "Abgespielte Aufzeichnung",
-      "serialPort": "Serielle Schnittstelle",
-      "simulateEvent": "Simulierter Wettkampf"
-    },
-    "url": "URL",
-    "webhook": {
-      "allowedNetworks": "Erlaubte private Netze"
-    }
   }
 }

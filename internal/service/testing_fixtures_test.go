@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -15,7 +16,9 @@ import (
 	"github.com/stretchr/testify/require"
 	"golang.org/x/text/encoding/charmap"
 
+	"github.com/barthjs/swim-timer/internal/apitest"
 	"github.com/barthjs/swim-timer/internal/apperr"
+	"github.com/barthjs/swim-timer/internal/domain"
 	"github.com/barthjs/swim-timer/internal/media"
 	"github.com/barthjs/swim-timer/internal/omega"
 	"github.com/barthjs/swim-timer/internal/recording"
@@ -54,6 +57,52 @@ func writeRawRecording(t *testing.T, content string) *store.RecordingStore {
 	_, err := recordings.Create(t.Context(), testReplayName, []byte(content))
 	require.NoError(t, err)
 	return recordings
+}
+
+// newTestRecordBreakService creates a record break service with the given record tables in their order.
+func newTestRecordBreakService(t *testing.T, tables ...store.RecordTableData) *RecordBreakService {
+	t.Helper()
+
+	storage := newTestStorage(t)
+	tableStore := store.NewRecordTableStore(storage)
+	for _, data := range tables {
+		require.NoError(t, tableStore.Save(t.Context(), data.Table, data.Records))
+	}
+	svc := NewRecordBreakService(zerolog.Nop(), store.NewRecordBreakStore(storage), tableStore, nil)
+	t.Cleanup(svc.Wait)
+	return svc
+}
+
+// newTestRecordTable returns a record table with random names and the given records.
+func newTestRecordTable(t *testing.T, enabled bool, records ...domain.Record) store.RecordTableData {
+	t.Helper()
+
+	faker := apitest.Faker(t)
+	for i := range records {
+		records[i].Name = faker.LastName() + ", " + faker.FirstName()
+	}
+	return store.RecordTableData{
+		Table: domain.RecordTable{
+			ID:           strings.ToLower(faker.LetterN(12)),
+			Name:         faker.LetterN(12),
+			Abbreviation: faker.LetterN(2),
+			Enabled:      enabled,
+		},
+		Records: records,
+	}
+}
+
+// testMeetRecord returns an open record of the 100 m backstroke in a 50 m pool of the category "O",
+// the discipline of testRecordCheck.
+func testMeetRecord(hundredths int) domain.Record {
+	return domain.Record{
+		Course:     domain.CourseLong,
+		Gender:     "O",
+		RelayCount: 1,
+		Distance:   100,
+		Stroke:     "BA",
+		Time:       hundredths,
+	}
 }
 
 // newTestStorage returns a local storage in a temporary directory of the test.

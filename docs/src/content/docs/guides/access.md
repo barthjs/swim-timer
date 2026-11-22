@@ -2,7 +2,7 @@
 title: Login and network access
 description: Protect the web interface, serve it over HTTPS, and run it behind a reverse proxy.
 sidebar:
-  order: 9
+  order: 10
 ---
 
 Swim-Timer is meant for a local network. This page describes the login, HTTPS, and what to set when a reverse proxy

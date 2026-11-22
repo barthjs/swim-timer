@@ -19,6 +19,9 @@ import (
 	"github.com/barthjs/swim-timer/internal/store"
 )
 
+// recordCheckTimeout bounds the check of a heat for records, which writes the storage once the heat is official.
+const recordCheckTimeout = 5 * time.Second
+
 // recentHeatCount bounds the heats kept with their times, so a late frame for a heat shown shortly before
 // shows it again with its times instead of starting it empty.
 const recentHeatCount = 8
@@ -84,6 +87,8 @@ type TimingService struct {
 	options     TimingOptions
 	// recorder records the received data, nil without recording.
 	recorder *recording.Writer
+	// records checks the heats for records, nil without the check.
+	records *RecordBreakService
 	// onPublish receives every published live heat, nil if nothing has to follow a change.
 	onPublish func(heat *domain.LiveHeat)
 
@@ -107,8 +112,9 @@ type TimingService struct {
 	heat *domain.LiveHeat
 }
 
-// NewTimingService creates a TimingService with an optional recorder of the received data
-// and an optional onPublish that receives every published live heat after the overlays and must not change it.
+// NewTimingService creates a TimingService with an optional recorder of the received data,
+// optional records to check the heats against, and an optional onPublish that receives every published live heat
+// after the overlays and must not change it.
 func NewTimingService(
 	logger zerolog.Logger,
 	options TimingOptions,
@@ -116,6 +122,7 @@ func NewTimingService(
 	device TimingDevice,
 	recorder *recording.Writer,
 	store *store.MeetStore,
+	records *RecordBreakService,
 	onPublish func(heat *domain.LiveHeat),
 ) *TimingService {
 	return &TimingService{
@@ -125,6 +132,7 @@ func NewTimingService(
 		device:      device,
 		options:     options,
 		recorder:    recorder,
+		records:     records,
 		onPublish:   onPublish,
 		clock:       newStartClock(logger, fixedZone(time.Now())),
 		heat: &domain.LiveHeat{
@@ -247,8 +255,8 @@ func (s *TimingService) correctStart(frame omega.Frame, now time.Time) startCorr
 	return s.clock.correct(frame, now)
 }
 
-// updateStatus applies a load or official frame to its heat and shows that heat. An official frame for a heat
-// not on display confirms an earlier result late, so it marks the heat as official without showing it.
+// updateStatus applies a load or official frame to its heat and shows that heat.
+// An official frame for a heat not on display confirms an earlier result late, so it marks the heat as official without showing it.
 func (s *TimingService) updateStatus(frame omega.Frame, status domain.HeatStatus) {
 	event, heat, lapCount, ok := s.parseHeat(frame)
 	if !ok {
@@ -270,6 +278,9 @@ func (s *TimingService) updateStatus(frame omega.Frame, status domain.HeatStatus
 
 	state := s.show(event, heat)
 	state.applyStatus(frame, lapCount, status)
+	if status == domain.HeatStatusOfficial {
+		s.applyRecords(state, true)
+	}
 
 	s.publish(state.liveHeat())
 }
@@ -281,6 +292,7 @@ func (s *TimingService) recordLateOfficial(frame omega.Frame, key heatKey, lapCo
 	for _, state := range s.recent {
 		if state.key == key {
 			state.applyStatus(frame, lapCount, domain.HeatStatusOfficial)
+			s.applyRecords(state, true)
 			return
 		}
 	}
@@ -386,8 +398,64 @@ func (s *TimingService) updateTime(frame omega.Frame, kind timeKind) {
 	}
 	state.updateLanes(s.getPoolLength(event, lapCount))
 	state.updateStopTime()
+	s.applyRecords(state, state.heat.Status == domain.HeatStatusOfficial)
 
 	s.publish(state.liveHeat())
+}
+
+// applyRecords checks a heat for records and shows them at its lanes, logging a failed check.
+func (s *TimingService) applyRecords(state *heatState, official bool) {
+	// Only lanes with a finish, a rank, and a competitor of the meet data take part.
+	// A running heat is checked with every time, so a record shows as soon as its lane touches,
+	// while only an official heat stores its records.
+	for _, lane := range state.heat.Lanes {
+		lane.Records = nil
+	}
+	if s.records == nil {
+		return
+	}
+	data, ok := s.store.GetHeat(state.key.event, state.key.heat-1)
+	if !ok {
+		return
+	}
+
+	// Entries sharing a lane show the one listed last, as at the lanes of the heat
+	competitors := make(map[int]*domain.Competitor, len(data.StartEntries))
+	for _, entry := range data.StartEntries {
+		competitors[entry.Lane] = entry.Competitor
+	}
+	input := RecordCheckInput{
+		Event:      data.Event,
+		Heat:       state.key.heat,
+		PoolLength: s.getPoolLength(state.key.event, state.heat.LapCount),
+	}
+	for number, lane := range state.heat.Lanes {
+		if !lane.Finished || lane.Rank <= 0 || lane.Time <= 0 {
+			continue
+		}
+		input.Lanes = append(input.Lanes, RecordCheckLane{
+			Lane:       number,
+			Time:       lane.Time,
+			Competitor: competitors[number],
+		})
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), recordCheckTimeout)
+	defer cancel()
+	check := s.records.Preview
+	if official {
+		check = s.records.Check
+	}
+	results, err := check(ctx, input)
+	if err != nil {
+		s.logger.Error().Err(err).Int("event", state.key.event).Int("heat", state.key.heat).Msg("failed to check the heat for records")
+		return
+	}
+	for number, records := range results {
+		if lane, ok := state.heat.Lanes[number]; ok {
+			lane.Records = records
+		}
+	}
 }
 
 // parseHeat returns the event, the heat, and the number of laps a frame belongs to,
@@ -637,6 +705,7 @@ func (h *heatState) clearResults() {
 		lane.Time = 0
 		lane.Rank = 0
 		lane.Finished = false
+		lane.Records = nil
 	}
 }
 

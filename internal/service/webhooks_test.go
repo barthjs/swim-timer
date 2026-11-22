@@ -236,6 +236,51 @@ func TestWebhookService_Publish(t *testing.T) {
 		receiver.assertNone(t)
 	})
 
+	t.Run("delivers every message of a queued event to a busy target", func(t *testing.T) {
+		t.Parallel()
+		svc := newTestWebhookService(t)
+		receiver := newWebhookReceiver(t)
+		release := receiver.holdFirst()
+		input := newWebhookCreateInput(t, receiver.URL())
+		input.Events = []domain.WebhookEvent{
+			domain.WebhookEventRecordSet,
+		}
+		_, err := svc.Create(t.Context(), input)
+		require.NoError(t, err)
+		runTestWebhookService(t, svc)
+		svc.Publish(domain.WebhookEventRecordSet, sampleData(1))
+		receiver.waitForRequests(t, 1)
+		svc.Publish(domain.WebhookEventRecordSet, sampleData(2))
+
+		svc.Publish(domain.WebhookEventRecordSet, sampleData(3))
+
+		release()
+		assert.Equal(t, "1", string(receiver.next(t).Data))
+		assert.Equal(t, "2", string(receiver.next(t).Data))
+		assert.Equal(t, "3", string(receiver.next(t).Data))
+		receiver.assertNone(t)
+	})
+
+	t.Run("retries a failed message of a queued event before the later ones", func(t *testing.T) {
+		t.Parallel()
+		svc := newTestWebhookService(t)
+		receiver := newWebhookReceiver(t, http.StatusInternalServerError, http.StatusNoContent, http.StatusNoContent)
+		input := newWebhookCreateInput(t, receiver.URL())
+		input.Events = []domain.WebhookEvent{
+			domain.WebhookEventRecordSet,
+		}
+		_, err := svc.Create(t.Context(), input)
+		require.NoError(t, err)
+		runTestWebhookService(t, svc)
+		svc.Publish(domain.WebhookEventRecordSet, sampleData(1))
+		assert.Equal(t, "1", string(receiver.next(t).Data))
+
+		svc.Publish(domain.WebhookEventRecordSet, sampleData(2))
+
+		assert.Equal(t, "1", string(receiver.next(t).Data), "the retry sends the failed message first")
+		assert.Equal(t, "2", string(receiver.next(t).Data))
+	})
+
 	t.Run("retries a failed delivery with the latest message", func(t *testing.T) {
 		t.Parallel()
 		svc := newTestWebhookService(t)

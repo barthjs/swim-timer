@@ -23,11 +23,13 @@ func TestLiveHeat_Copy(t *testing.T) {
 
 		assert.Equal(t, original, copied)
 		copied.Lanes[3].Time = 2000
+		copied.Lanes[3].Records[0].Abbreviation = "changed"
 		*copied.StartTime = start.Add(time.Hour)
 		copied.Lanes[4] = &Lane{
 			Number: 4,
 		}
 		assert.Equal(t, 1000, original.Lanes[3].Time, "changing a lane of the copy changes the original")
+		assert.NotEqual(t, "changed", original.Lanes[3].Records[0].Abbreviation, "changing a record of the copy changes the original")
 		assert.Equal(t, start, *original.StartTime, "changing the start of the copy changes the original")
 		assert.Len(t, original.Lanes, 1, "adding a lane to the copy changes the original")
 	})
@@ -62,6 +64,13 @@ func newLiveHeat(t *testing.T) *LiveHeat {
 			3: {
 				Number: 3,
 				Time:   1000,
+				Records: []LaneRecord{
+					{
+						Abbreviation: faker.LetterN(2),
+						TableName:    faker.LetterN(12),
+						PreviousTime: faker.IntRange(1, 600_000),
+					},
+				},
 			},
 		},
 	}

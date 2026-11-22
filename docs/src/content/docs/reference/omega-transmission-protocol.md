@@ -2,7 +2,7 @@
 title: Omega transmission protocol
 description: The frames the Omega timing device sends over its serial line.
 sidebar:
-  order: 6
+  order: 7
 ---
 
 - Norm: RS 485

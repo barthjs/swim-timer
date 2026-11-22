@@ -63,6 +63,16 @@ export const routes: RouteRecordRaw[] = [
         component: async () => import('@/pages/MeetDataPage.vue'),
       },
       {
+        path: 'records',
+        name: 'records',
+        meta: {
+          titleKey: 'pages.records.title',
+          requiresAuth: true,
+          fillViewport: true,
+        },
+        component: async () => import('@/pages/RecordsPage.vue'),
+      },
+      {
         path: 'editor',
         name: 'editor',
         meta: {

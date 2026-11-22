@@ -40,6 +40,41 @@ func TestParseWebhookEvent(t *testing.T) {
 	})
 }
 
+func TestWebhookEvent_Queued(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name  string
+		event WebhookEvent
+		want  bool
+	}{
+		{
+			name:  "queues the records, since every message carries other ones",
+			event: WebhookEventRecordSet,
+			want:  true,
+		},
+		{
+			name:  "replaces the live heat, since every message carries the whole state",
+			event: WebhookEventHeatUpdated,
+			want:  false,
+		},
+		{
+			name:  "replaces the meet, since every message carries the whole state",
+			event: WebhookEventMeetReloaded,
+			want:  false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			got := tt.event.Queued()
+
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
 func TestWebhook_Subscribes(t *testing.T) {
 	t.Parallel()
 

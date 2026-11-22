@@ -9,6 +9,7 @@ export const DOCS_PAGES = {
   dashboard: 'guides/overlays/',
   meet: 'guides/meet-data/#meet-overview',
   meetData: 'guides/meet-data/',
+  records: 'guides/records/',
   editor: 'guides/ar-presets/',
   configApp: 'guides/configuration/',
   configTiming: 'guides/timing-device/',

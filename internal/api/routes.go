@@ -100,6 +100,9 @@ func (a *API) apiRoutes(r chi.Router) {
 		a.liveRoutes(r)
 		a.meetRoutes(r)
 		a.presetRoutes(r)
+		a.recordRoutes(r)
+		a.recordBreakRoutes(r)
+		a.recordTableRoutes(r)
 		a.recordingRoutes(r)
 		a.timingRoutes(r)
 		a.updateRoutes(r)
@@ -181,6 +184,54 @@ func (a *API) presetRoutes(r chi.Router) {
 			r.Put("/{name}", a.presetSaveHandler)
 			r.Delete("/{name}", a.presetDeleteHandler)
 		})
+	})
+}
+
+// recordRoutes registers the public route of the records of every record table under "/records".
+func (a *API) recordRoutes(r chi.Router) {
+	r.Route("/records", func(r chi.Router) {
+		r.Get("/", a.recordListHandler)
+	})
+}
+
+// recordBreakRoutes registers the routes of the records set at the meet under "/record-breaks".
+// They are public like the meet data, while removing them requires an admin session.
+func (a *API) recordBreakRoutes(r chi.Router) {
+	r.Route("/record-breaks", func(r chi.Router) {
+		r.Get("/", a.recordBreakListHandler)
+
+		r.Group(func(r chi.Router) {
+			r.Use(a.sm.LoadAndSave, a.requireAuthentication)
+
+			r.Delete("/{id}", a.recordBreakDeleteHandler)
+			r.Delete("/", a.recordBreakClearHandler)
+		})
+	})
+}
+
+// recordTableRoutes registers the routes of the record tables under "/record-tables".
+// The tables are public like the meet data, while managing them requires an admin session.
+func (a *API) recordTableRoutes(r chi.Router) {
+	r.Route("/record-tables", func(r chi.Router) {
+		r.Get("/", a.recordTableListHandler)
+		r.Get("/{id}", a.recordTableGetHandler)
+
+		r.Group(func(r chi.Router) {
+			r.Use(a.sm.LoadAndSave, a.requireAuthentication)
+
+			// The routes that read a file raise the body limit and the timeout for it
+			upload := r.With(server.BodyLimit(uploadBodyLimit(maxRecordTableUploadMB)), server.Timeout(uploadTimeout))
+
+			upload.Post("/", a.recordTableCreateHandler)
+			r.Put("/{id}", a.recordTableUpdateHandler)
+			r.Delete("/{id}", a.recordTableDeleteHandler)
+			upload.Post("/preview", a.recordTablePreviewHandler)
+			upload.Post("/{id}/import", a.recordTableImportHandler)
+			r.Put("/order", a.recordTableReorderHandler)
+			r.With(a.rateLimitPerIP("record-tables:reload", recordTableReloadRateLimit, recordTableReloadRateLimitWindow)).Post("/reload", a.recordTableReloadHandler)
+		})
+
+		r.With(server.Timeout(downloadTimeout)).Get("/{id}/export", a.recordTableExportHandler)
 	})
 }
 

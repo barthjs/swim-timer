@@ -10,12 +10,15 @@ const (
 	WebhookEventHeatUpdated WebhookEvent = "heat.updated"
 	// WebhookEventMeetReloaded carries the whole meet after a reload.
 	WebhookEventMeetReloaded WebhookEvent = "meet.reloaded"
+	// WebhookEventRecordSet carries the records an official heat set or equalled.
+	WebhookEventRecordSet WebhookEvent = "record.set"
 )
 
 // webhookEvents lists every event a webhook can subscribe to.
 var webhookEvents = []WebhookEvent{
 	WebhookEventHeatUpdated,
 	WebhookEventMeetReloaded,
+	WebhookEventRecordSet,
 }
 
 // WebhookEvents returns every event a webhook can subscribe to.
@@ -32,6 +35,12 @@ func ParseWebhookEvent(name string) (WebhookEvent, bool) {
 		}
 	}
 	return "", false
+}
+
+// Queued reports whether every message of the event is delivered.
+// The messages of another event each carry the whole current state, so a newer one replaces a waiting one.
+func (e WebhookEvent) Queued() bool {
+	return e == WebhookEventRecordSet
 }
 
 // Webhook is an endpoint the application delivers the events it subscribes to, signed with its secret.

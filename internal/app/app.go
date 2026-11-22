@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"slices"
 	"sync"
 	"time"
 
@@ -107,15 +108,25 @@ func New(ctx context.Context, logger zerolog.Logger, cfg config.Config, deps Dep
 	// The preview of a webhook sends the current data of its event, which the services below hold
 	var timing *service.TimingService
 	var meetService *service.MeetService
+	var recordBreakService *service.RecordBreakService
 	a.webhooks = service.NewWebhookService(logger, webhook.New(webhookOptions(cfg, deps.Version)), stores.Webhook, func(event domain.WebhookEvent) any {
-		return webhookSample(event, timing, meetService)
+		return webhookSample(ctx, logger, event, timing, meetService, recordBreakService)
 	})
 
 	// The hub asks the timing service for the snapshot a newly connected overlay receives,
 	// while the timing service broadcasts through the hub, so the snapshot is resolved lazily.
 	// Clients can only connect once the application runs, after the timing service is assigned.
 	a.hub = ws.New(logger, func() ([]byte, error) { return timing.Snapshot() })
-	timing = service.NewTimingService(logger, timingOptions(cfg.Timing), a.hub, device, in.Recorder, meetStore, func(heat *domain.LiveHeat) {
+	// A record set in an official heat goes to the webhooks as the list of records shows it
+	recordBreakService = service.NewRecordBreakService(logger, stores.RecordBreak, stores.RecordTable, func(breaks []domain.RecordBreak) {
+		a.webhooks.Publish(domain.WebhookEventRecordSet, func() any { return toRecordBreakResponses(breaks) })
+	})
+	// Close waits for the record breaks of the last heats, which are written in the background
+	a.closers = append(a.closers, closerFunc(func() error {
+		recordBreakService.Wait()
+		return nil
+	}))
+	timing = service.NewTimingService(logger, timingOptions(cfg.Timing), a.hub, device, in.Recorder, meetStore, recordBreakService, func(heat *domain.LiveHeat) {
 		a.webhooks.Publish(domain.WebhookEventHeatUpdated, func() any { return heat })
 	})
 	a.timing = timing
@@ -143,12 +154,14 @@ func New(ctx context.Context, logger zerolog.Logger, cfg config.Config, deps Dep
 			FilePath: deps.ConfigFilePath,
 			Sources:  deps.ConfigSources,
 		}),
-		PresetService:    service.NewPresetService(presetStore),
-		MeetService:      meetService,
-		RecordingService: service.NewRecordingService(recordingOptions(cfg.Timing), in.Recorder, recordingStore),
-		TimingService:    timing,
-		UpdateService:    service.NewUpdateService(logger, in.Updater, deps.OnUpdated),
-		WebhookService:   a.webhooks,
+		PresetService:      service.NewPresetService(presetStore),
+		MeetService:        meetService,
+		RecordBreakService: recordBreakService,
+		RecordTableService: service.NewRecordTableService(stores.RecordTable, meetStore),
+		RecordingService:   service.NewRecordingService(recordingOptions(cfg.Timing), in.Recorder, recordingStore),
+		TimingService:      timing,
+		UpdateService:      service.NewUpdateService(logger, in.Updater, deps.OnUpdated),
+		WebhookService:     a.webhooks,
 	}).Routes()
 
 	return a, nil
@@ -233,13 +246,44 @@ func (f closerFunc) Close() error {
 }
 
 // webhookSample returns the data a webhook receives with an event, as it is now.
-func webhookSample(event domain.WebhookEvent, timing *service.TimingService, meetService *service.MeetService) any {
+// The sample of a record is the records of the heat that set the most recent one,
+// none before the first record or if they cannot be read.
+func webhookSample(
+	ctx context.Context,
+	logger zerolog.Logger,
+	event domain.WebhookEvent,
+	timing *service.TimingService,
+	meetService *service.MeetService,
+	recordBreakService *service.RecordBreakService,
+) any {
 	switch event {
 	case domain.WebhookEventHeatUpdated:
 		return timing.GetLiveHeat()
 	case domain.WebhookEventMeetReloaded:
 		return api.ToMeetResponse(meetService.GetOverview())
+	case domain.WebhookEventRecordSet:
+		breaks, err := recordBreakService.List(ctx)
+		if err != nil {
+			logger.Error().Err(err).Msg("failed to read the record breaks for the webhook sample")
+			return []api.RecordBreakResponse{}
+		}
+		if len(breaks) == 0 {
+			return []api.RecordBreakResponse{}
+		}
+		latest := breaks[0]
+		return toRecordBreakResponses(slices.DeleteFunc(breaks, func(b domain.RecordBreak) bool {
+			return b.Event != latest.Event || b.Heat != latest.Heat
+		}))
 	default:
 		return nil
 	}
+}
+
+// toRecordBreakResponses maps record breaks onto their responses.
+func toRecordBreakResponses(breaks []domain.RecordBreak) []api.RecordBreakResponse {
+	responses := make([]api.RecordBreakResponse, 0, len(breaks))
+	for _, b := range breaks {
+		responses = append(responses, api.ToRecordBreakResponse(b))
+	}
+	return responses
 }

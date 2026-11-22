@@ -895,6 +895,681 @@
                 }
             }
         },
+        "/record-breaks": {
+            "get": {
+                "description": "Returns every record set or equalled at the meet, the most recent first, with the record it broke. Times are in hundredths of a second.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "records"
+                ],
+                "summary": "List record breaks",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/RecordBreakResponse"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "SessionAuth": []
+                    }
+                ],
+                "description": "Removes every record break, such as before the next meet (Admin only).",
+                "tags": [
+                    "records"
+                ],
+                "summary": "Clear record breaks",
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/record-breaks/{id}": {
+            "delete": {
+                "security": [
+                    {
+                        "SessionAuth": []
+                    }
+                ],
+                "description": "Removes the record break with the given id, such as after a disqualification. The next heats are checked against the record that stood before it (Admin only).",
+                "tags": [
+                    "records"
+                ],
+                "summary": "Delete record break",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Record break id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/record-tables": {
+            "get": {
+                "description": "Returns every record table in the order they are checked, with the number of their records.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "records"
+                ],
+                "summary": "List record tables",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/RecordTableListResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "SessionAuth": []
+                    }
+                ],
+                "description": "Creates a record table under a generated id at the end of the order and imports its records from the file in the \"file\" field, mapped as the RecordTableCreateRequest in the \"data\" field describes. A file that cannot be read, a mapping that does not fit, or invalid rows fail with 422 on the fields \"file\", \"mapping.columns.\u003ckey\u003e\", \"mapping.values.\u003ckey\u003e\", and \"rows.\u003cline\u003e.\u003ckey\u003e\", and nothing is stored (Admin only).",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "records"
+                ],
+                "summary": "Create record table",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "Table of records",
+                        "name": "file",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "RecordTableCreateRequest as JSON",
+                        "name": "data",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/RecordTableResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/ValidationErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/record-tables/order": {
+            "put": {
+                "security": [
+                    {
+                        "SessionAuth": []
+                    }
+                ],
+                "description": "Puts the record tables in the order of the given ids, which decides the table a record counts for. The ids must name every table once, otherwise it fails with 422 on the field \"ids\" (Admin only).",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "records"
+                ],
+                "summary": "Reorder record tables",
+                "parameters": [
+                    {
+                        "description": "Order of the record tables",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/RecordTableReorderRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/ValidationErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/record-tables/preview": {
+            "post": {
+                "security": [
+                    {
+                        "SessionAuth": []
+                    }
+                ],
+                "description": "Reads the start of the file in the \"file\" field in the format of the RecordTablePreviewRequest in the \"data\" field, detects its empty fields, and guesses the mapping of its columns and values onto the columns of a record. A file that cannot be read fails with 422 on the field \"file\" (Admin only).",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "records"
+                ],
+                "summary": "Preview record table",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "Table of records",
+                        "name": "file",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "RecordTablePreviewRequest as JSON",
+                        "name": "data",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/ImportPreviewResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/ValidationErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/record-tables/reload": {
+            "post": {
+                "security": [
+                    {
+                        "SessionAuth": []
+                    }
+                ],
+                "description": "Reads every record table and the records set at the meet again from the storage. A file that cannot be read fails with 400, naming the file and the line, and its previous data stays in use (Admin only).",
+                "tags": [
+                    "records"
+                ],
+                "summary": "Reload record tables",
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/record-tables/{id}": {
+            "get": {
+                "description": "Returns the record table with the given id and the number of its records.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "records"
+                ],
+                "summary": "Get record table",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Record table id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/RecordTableResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "SessionAuth": []
+                    }
+                ],
+                "description": "Replaces the name, the abbreviation, and the state of the record table with the given id. Its records stay (Admin only).",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "records"
+                ],
+                "summary": "Update record table",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Record table id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Record table",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/RecordTableUpdateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/RecordTableResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/ValidationErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "SessionAuth": []
+                    }
+                ],
+                "description": "Removes the record table with the given id and its records. The records set at the meet stay (Admin only).",
+                "tags": [
+                    "records"
+                ],
+                "summary": "Delete record table",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Record table id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/record-tables/{id}/export": {
+            "get": {
+                "description": "Downloads the records of the record table with the given id as a CSV file with the keys of the columns as its header, which imports again without a mapping. The default is UTF-8 with a byte order mark, separated by semicolons, with every column.",
+                "produces": [
+                    "text/csv"
+                ],
+                "tags": [
+                    "records"
+                ],
+                "summary": "Export record table",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Record table id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "enum": [
+                            "utf-8",
+                            "windows-1252"
+                        ],
+                        "type": "string",
+                        "description": "Encoding",
+                        "name": "encoding",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "semicolon",
+                            "comma",
+                            "tab"
+                        ],
+                        "type": "string",
+                        "description": "Separator",
+                        "name": "separator",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Keys of the columns, comma-separated",
+                        "name": "columns",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/ValidationErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/record-tables/{id}/import": {
+            "post": {
+                "security": [
+                    {
+                        "SessionAuth": []
+                    }
+                ],
+                "description": "Replaces the records of the record table with the given id with the records of the file in the \"file\" field, mapped as the RecordTableImportRequest in the \"data\" field describes. It fails like the creation of a record table and keeps the records on failure (Admin only).",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "records"
+                ],
+                "summary": "Import record table",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Record table id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "file",
+                        "description": "Table of records",
+                        "name": "file",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "RecordTableImportRequest as JSON",
+                        "name": "data",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/RecordTableResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/ValidationErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/recordings": {
             "get": {
                 "security": [
@@ -1143,6 +1818,26 @@
                         "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/records": {
+            "get": {
+                "description": "Returns every record of every record table, in the order of the tables and of the records in their files. Times are in hundredths of a second.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "records"
+                ],
+                "summary": "List records",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/RecordListResponse"
                         }
                     }
                 }
@@ -1629,7 +2324,8 @@
                     {
                         "enum": [
                             "heat.updated",
-                            "meet.reloaded"
+                            "meet.reloaded",
+                            "record.set"
                         ],
                         "type": "string",
                         "description": "Event",
@@ -2099,6 +2795,98 @@
                 "HeatStatusOfficial"
             ]
         },
+        "ImportColumnResponse": {
+            "type": "object",
+            "properties": {
+                "choices": {
+                    "description": "Choices are the values the column accepts, empty for a column that accepts any text.",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "key": {
+                    "type": "string"
+                },
+                "required": {
+                    "type": "boolean"
+                },
+                "suggestions": {
+                    "description": "Suggestions are further values the values of the file can be translated into, while the column accepts any text.",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "ImportMapping": {
+            "type": "object",
+            "properties": {
+                "columns": {
+                    "description": "Columns holds the header of the file by the key of a column.",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "format": {
+                    "$ref": "#/definitions/TableFormat"
+                },
+                "values": {
+                    "description": "Values translates the values of the file into the values of a column, by its key and the value in the file.",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "ImportPreviewResponse": {
+            "type": "object",
+            "properties": {
+                "columns": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/ImportColumnResponse"
+                    }
+                },
+                "format": {
+                    "$ref": "#/definitions/TableFormat"
+                },
+                "header": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "mapping": {
+                    "$ref": "#/definitions/ImportMapping"
+                },
+                "sample": {
+                    "type": "array",
+                    "items": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "values": {
+                    "description": "Values holds the distinct values of every header with few of them, so they can be translated.",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "Lane": {
             "type": "object",
             "properties": {
@@ -2129,8 +2917,43 @@
                 "rank": {
                     "type": "integer"
                 },
+                "records": {
+                    "description": "Records holds the records the lane broke or equalled, filled once the lane finished.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/LaneRecord"
+                    }
+                },
                 "time": {
                     "type": "integer"
+                }
+            }
+        },
+        "LaneRecord": {
+            "type": "object",
+            "properties": {
+                "abbreviation": {
+                    "type": "string"
+                },
+                "ageFrom": {
+                    "description": "AgeFrom and AgeTo bound the age the record applies to, 0 for an open bound.",
+                    "type": "integer"
+                },
+                "ageTo": {
+                    "type": "integer"
+                },
+                "equalled": {
+                    "type": "boolean"
+                },
+                "previousName": {
+                    "type": "string"
+                },
+                "previousTime": {
+                    "description": "PreviousTime is the time of the record before in milliseconds, like the times of the lanes, and PreviousName its holder.",
+                    "type": "integer"
+                },
+                "tableName": {
+                    "type": "string"
                 }
             }
         },
@@ -2539,6 +3362,190 @@
                 }
             }
         },
+        "RecordBreakResponse": {
+            "type": "object",
+            "properties": {
+                "abbreviation": {
+                    "type": "string"
+                },
+                "brokenAt": {
+                    "type": "string"
+                },
+                "equalled": {
+                    "description": "Equalled reports a time equal to the record, which the competitor then holds together with its holder.",
+                    "type": "boolean"
+                },
+                "event": {
+                    "type": "integer"
+                },
+                "heat": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "lane": {
+                    "type": "integer"
+                },
+                "previous": {
+                    "$ref": "#/definitions/RecordResponse"
+                },
+                "record": {
+                    "$ref": "#/definitions/RecordResponse"
+                },
+                "tableId": {
+                    "type": "string"
+                },
+                "tableName": {
+                    "type": "string"
+                }
+            }
+        },
+        "RecordListResponse": {
+            "type": "object",
+            "properties": {
+                "loadedAt": {
+                    "type": "string"
+                },
+                "records": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/RecordResponse"
+                    }
+                }
+            }
+        },
+        "RecordResponse": {
+            "type": "object",
+            "properties": {
+                "ageFrom": {
+                    "description": "AgeFrom is the lowest age the record applies to, 0 for an open bound.",
+                    "type": "integer"
+                },
+                "ageTo": {
+                    "description": "AgeTo is the highest age the record applies to, 0 for an open bound.",
+                    "type": "integer"
+                },
+                "approved": {
+                    "type": "boolean"
+                },
+                "birthYear": {
+                    "description": "BirthYear is the year of birth of the record holder, 0 if unknown.",
+                    "type": "integer"
+                },
+                "club": {
+                    "type": "string"
+                },
+                "course": {
+                    "type": "string",
+                    "enum": [
+                        "SCM",
+                        "LCM"
+                    ]
+                },
+                "date": {
+                    "description": "Date is the day the record was set as YYYY-MM-DD, empty if unknown.",
+                    "type": "string"
+                },
+                "distance": {
+                    "description": "Distance is the distance each swimmer swims in meters, a relay leg for a relay.",
+                    "type": "integer"
+                },
+                "gender": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "place": {
+                    "type": "string"
+                },
+                "relayCount": {
+                    "description": "RelayCount is the number of swimmers per team, 1 for an individual event.",
+                    "type": "integer"
+                },
+                "stroke": {
+                    "type": "string"
+                },
+                "tableId": {
+                    "type": "string"
+                },
+                "time": {
+                    "description": "Time is the record time in hundredths of a second.",
+                    "type": "integer"
+                }
+            }
+        },
+        "RecordTableListResponse": {
+            "type": "object",
+            "properties": {
+                "loadedAt": {
+                    "type": "string"
+                },
+                "tables": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/RecordTableResponse"
+                    }
+                }
+            }
+        },
+        "RecordTableReorderRequest": {
+            "type": "object",
+            "required": [
+                "ids"
+            ],
+            "properties": {
+                "ids": {
+                    "type": "array",
+                    "maxItems": 100,
+                    "uniqueItems": true,
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "RecordTableResponse": {
+            "type": "object",
+            "properties": {
+                "abbreviation": {
+                    "type": "string"
+                },
+                "enabled": {
+                    "type": "boolean"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "recordCount": {
+                    "type": "integer"
+                }
+            }
+        },
+        "RecordTableUpdateRequest": {
+            "type": "object",
+            "required": [
+                "abbreviation",
+                "name"
+            ],
+            "properties": {
+                "abbreviation": {
+                    "type": "string",
+                    "maxLength": 10
+                },
+                "enabled": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 100
+                }
+            }
+        },
         "RecordingResponse": {
             "type": "object",
             "properties": {
@@ -2666,6 +3673,28 @@
                 },
                 "name": {
                     "type": "string"
+                }
+            }
+        },
+        "TableFormat": {
+            "type": "object",
+            "properties": {
+                "encoding": {
+                    "description": "Encoding is detected on import when empty.",
+                    "type": "string",
+                    "enum": [
+                        "utf-8",
+                        "windows-1252"
+                    ]
+                },
+                "separator": {
+                    "description": "Separator is detected on import when empty.",
+                    "type": "string",
+                    "enum": [
+                        "semicolon",
+                        "comma",
+                        "tab"
+                    ]
                 }
             }
         },
@@ -2828,14 +3857,15 @@
                 },
                 "events": {
                     "type": "array",
-                    "maxItems": 2,
+                    "maxItems": 3,
                     "minItems": 1,
                     "uniqueItems": true,
                     "items": {
                         "type": "string",
                         "enum": [
                             "heat.updated",
-                            "meet.reloaded"
+                            "meet.reloaded",
+                            "record.set"
                         ]
                     }
                 },
@@ -2953,7 +3983,8 @@
                         "type": "string",
                         "enum": [
                             "heat.updated",
-                            "meet.reloaded"
+                            "meet.reloaded",
+                            "record.set"
                         ]
                     }
                 },
@@ -3030,14 +4061,15 @@
                 },
                 "events": {
                     "type": "array",
-                    "maxItems": 2,
+                    "maxItems": 3,
                     "minItems": 1,
                     "uniqueItems": true,
                     "items": {
                         "type": "string",
                         "enum": [
                             "heat.updated",
-                            "meet.reloaded"
+                            "meet.reloaded",
+                            "record.set"
                         ]
                     }
                 },

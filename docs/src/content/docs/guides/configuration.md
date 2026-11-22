@@ -2,7 +2,7 @@
 title: Configuration
 description: Change the settings of Swim-Timer.
 sidebar:
-  order: 6
+  order: 7
 ---
 
 Most installations need only a few settings: a password for the login and the connection to the timing system.

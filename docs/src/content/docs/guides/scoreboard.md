@@ -2,7 +2,7 @@
 title: Scoreboard
 description: Show the live heat on a separate screen.
 sidebar:
-  order: 5
+  order: 6
 ---
 
 The scoreboard shows the live heat on a whole screen, for example on a monitor at the pool.

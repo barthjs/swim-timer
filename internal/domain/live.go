@@ -1,6 +1,9 @@
 package domain
 
-import "time"
+import (
+	"slices"
+	"time"
+)
 
 // HeatStatus is the state of the live heat as announced by the timing device.
 type HeatStatus string
@@ -23,6 +26,8 @@ type Lane struct {
 	Time      int    `json:"time"`
 	Rank      int    `json:"rank"`
 	Finished  bool   `json:"finished"`
+	// Records holds the records the lane broke or equalled, filled once the lane finished.
+	Records []LaneRecord `json:"records,omitempty"`
 }
 
 // LiveHeat holds the state of the heat the timing device currently reports.
@@ -66,7 +71,9 @@ func (h *LiveHeat) Copy() *LiveHeat {
 		*cp.StartTime = *h.StartTime
 	}
 	for k, v := range h.Lanes {
-		cp.Lanes[k] = new(*v)
+		lane := *v
+		lane.Records = slices.Clone(v.Records)
+		cp.Lanes[k] = &lane
 	}
 	return cp
 }

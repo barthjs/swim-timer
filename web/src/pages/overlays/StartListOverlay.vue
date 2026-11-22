@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import { HeatStatus } from '@/api/types/live';
 import HeatHeading from '@/components/overlay/HeatHeading.vue';
@@ -8,11 +9,12 @@ import { fullName } from '@/lib/live/names';
 import { formatSwimtime } from '@/lib/live/time';
 import { useLiveStore } from '@/stores/live';
 
+const { t } = useI18n();
 const liveStore = useLiveStore();
 
 const official = computed(() => liveStore.state?.status === HeatStatus.Official);
 
-// The start list is hidden before the first heat and while the heat runs, and shows the results once it is official.
+// The start list is hidden before the first heat and while the heat runs, and shows the results once it is official
 const visible = computed(
   () =>
     !!liveStore.state &&
@@ -21,7 +23,14 @@ const visible = computed(
     liveStore.state.status !== HeatStatus.Start,
 );
 
-// Official results are ordered by rank, the start list by lane, see compareResults.
+// The column of the records only appears in a heat where a lane broke one, so other results keep their layout
+const hasRecords = computed(
+  () =>
+    !!liveStore.state &&
+    Object.values(liveStore.state.lanes).some((lane) => (lane.records?.length ?? 0) > 0),
+);
+
+// Official results are ordered by rank, the start list by lane, see compareResults
 const sortedLanes = computed(() => {
   if (!liveStore.state) return [];
   const lanes = Object.values(liveStore.state.lanes);
@@ -61,6 +70,10 @@ const sortedLanes = computed(() => {
 
           <div v-if="official" class="time">
             <template v-if="lane.finished">{{ formatSwimtime(lane.time) }}</template>
+          </div>
+
+          <div v-if="official && hasRecords" class="record">
+            <span v-if="lane.records?.length" class="badge">{{ t('overlays.records.badge') }}</span>
           </div>
         </div>
       </div>
@@ -160,6 +173,24 @@ const sortedLanes = computed(() => {
   text-align: center;
   letter-spacing: 0.025em;
   font-variant-numeric: tabular-nums;
+}
+
+.record {
+  display: flex;
+  flex-shrink: 0;
+  justify-content: flex-start;
+  gap: 0.375rem;
+  width: 8rem;
+  padding-right: 1rem;
+}
+
+.badge {
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.25rem;
+  background: var(--overlay-accent);
+  color: var(--overlay-ink);
+  font-size: 1.125rem;
+  font-weight: 800;
 }
 
 .truncate {

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import type { Lane } from '@/api/types/live';
 import { TextAnchor } from '@/api/types/preset';
@@ -12,11 +13,13 @@ import { formatSwimtime } from '@/lib/live/time';
 // into the camera image, see LANE_CONTENT_WIDTH. All sizes follow the height of the box,
 // so the text size of the preset is the height of the text in percent of the lane height.
 const props = defineProps<{
-  lane: Pick<Lane, 'number' | 'rank' | 'firstName' | 'lastName' | 'time' | 'finished'>;
+  lane: Pick<Lane, 'number' | 'rank' | 'firstName' | 'lastName' | 'time' | 'finished' | 'records'>;
   textAnchor: TextAnchor;
   // The height of the text in percent of the height of the lane
   textSize: number;
 }>();
+
+const { t } = useI18n();
 
 const sizes = computed(() => ({
   '--lane-height': `${LANE_CONTENT_HEIGHT}px`,
@@ -44,6 +47,10 @@ const sizes = computed(() => ({
 
     <div v-if="lane.finished" class="time">
       {{ formatSwimtime(lane.time) }}
+    </div>
+
+    <div v-if="lane.records?.length" class="badge record">
+      {{ t('overlays.records.badge') }}
     </div>
   </div>
 </template>
@@ -81,6 +88,13 @@ const sizes = computed(() => ({
   justify-content: center;
   width: calc(var(--lane-height) * 0.8);
   height: 100%;
+}
+
+.badge.record {
+  width: auto;
+  padding: 0 calc(var(--lane-height) * 0.15);
+  background: var(--overlay-accent);
+  color: var(--overlay-ink);
 }
 
 .badge.rank {

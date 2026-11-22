@@ -30,14 +30,16 @@ type API struct {
 	rateLimiter ratelimiter.Limiter
 	sm          *scs.SessionManager
 
-	authService      *service.AuthService
-	configService    *service.ConfigService
-	presetService    *service.PresetService
-	meetService      *service.MeetService
-	recordingService *service.RecordingService
-	timingService    *service.TimingService
-	updateService    *service.UpdateService
-	webhookService   *service.WebhookService
+	authService        *service.AuthService
+	configService      *service.ConfigService
+	presetService      *service.PresetService
+	meetService        *service.MeetService
+	recordBreakService *service.RecordBreakService
+	recordTableService *service.RecordTableService
+	recordingService   *service.RecordingService
+	timingService      *service.TimingService
+	updateService      *service.UpdateService
+	webhookService     *service.WebhookService
 }
 
 // Options holds the settings the API reads at runtime.
@@ -71,14 +73,16 @@ type Deps struct {
 	RateLimiter ratelimiter.Limiter
 	Session     *scs.SessionManager
 
-	AuthService      *service.AuthService
-	ConfigService    *service.ConfigService
-	PresetService    *service.PresetService
-	MeetService      *service.MeetService
-	RecordingService *service.RecordingService
-	TimingService    *service.TimingService
-	UpdateService    *service.UpdateService
-	WebhookService   *service.WebhookService
+	AuthService        *service.AuthService
+	ConfigService      *service.ConfigService
+	PresetService      *service.PresetService
+	MeetService        *service.MeetService
+	RecordBreakService *service.RecordBreakService
+	RecordTableService *service.RecordTableService
+	RecordingService   *service.RecordingService
+	TimingService      *service.TimingService
+	UpdateService      *service.UpdateService
+	WebhookService     *service.WebhookService
 }
 
 // New creates an API. ctx ends with the application.
@@ -100,14 +104,16 @@ func New(ctx context.Context, d Deps) *API {
 		rateLimiter: d.RateLimiter,
 		sm:          d.Session,
 
-		authService:      d.AuthService,
-		configService:    d.ConfigService,
-		presetService:    d.PresetService,
-		meetService:      d.MeetService,
-		recordingService: d.RecordingService,
-		timingService:    d.TimingService,
-		updateService:    d.UpdateService,
-		webhookService:   d.WebhookService,
+		authService:        d.AuthService,
+		configService:      d.ConfigService,
+		presetService:      d.PresetService,
+		meetService:        d.MeetService,
+		recordBreakService: d.RecordBreakService,
+		recordTableService: d.RecordTableService,
+		recordingService:   d.RecordingService,
+		timingService:      d.TimingService,
+		updateService:      d.UpdateService,
+		webhookService:     d.WebhookService,
 	}
 }
 

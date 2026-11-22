@@ -2,7 +2,7 @@
 title: AR presets
 description: Set up the AR overlay, which shows the results on the lanes of the camera image.
 sidebar:
-  order: 4
+  order: 5
 ---
 
 The AR overlay shows the rank, the name, and the time of each swimmer directly on the lanes of the camera image,

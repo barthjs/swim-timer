@@ -38,7 +38,8 @@ never uses lane 0. An AR preset for ten lanes is then shifted by one lane.
 ## Disqualifications
 
 The timing system does not transmit disqualifications. A disqualified swimmer is ranked by the time like every
-other swimmer. A lane in which nobody started is hidden as long as it has no time.
+other swimmer and can set a record, which has to be removed by hand, see [Records](./records.md).
+A lane in which nobody started is hidden as long as it has no time.
 
 ## Heats loaded very late
 

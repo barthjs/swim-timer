@@ -2,7 +2,7 @@
 title: Recordings
 description: Recording, replay, and format of the recordings of the timing data.
 sidebar:
-  order: 4
+  order: 5
 ---
 
 [Simulator and recordings](../guides/simulator-and-recordings.md) describes how to record and replay

@@ -48,7 +48,7 @@ type WebhookResponse struct {
 	ID      string   `json:"id"`
 	Name    string   `json:"name"`
 	URL     string   `json:"url"`
-	Events  []string `json:"events" enums:"heat.updated,meet.reloaded"`
+	Events  []string `json:"events" enums:"heat.updated,meet.reloaded,record.set"`
 	Enabled bool     `json:"enabled"`
 	// Secret is only set in the response that created the webhook, since the secret is never shown again.
 	Secret        string                `json:"secret,omitzero"`
@@ -94,7 +94,7 @@ func (a *API) webhookGetHandler(w http.ResponseWriter, r *http.Request) {
 type WebhookCreateRequest struct {
 	Name    string   `json:"name" validate:"required,max=100"`
 	URL     string   `json:"url" validate:"required,max=2048"`
-	Events  []string `json:"events" validate:"required,min=1,max=2,unique,dive,oneof=heat.updated meet.reloaded" enums:"heat.updated,meet.reloaded"`
+	Events  []string `json:"events" validate:"required,min=1,max=3,unique,dive,oneof=heat.updated meet.reloaded record.set" enums:"heat.updated,meet.reloaded,record.set"`
 	Enabled bool     `json:"enabled"`
 	// Secret is generated when empty.
 	Secret        string `json:"secret" validate:"max=255"`
@@ -143,7 +143,7 @@ func (a *API) webhookCreateHandler(w http.ResponseWriter, r *http.Request) {
 type WebhookUpdateRequest struct {
 	Name    string   `json:"name" validate:"required,max=100"`
 	URL     string   `json:"url" validate:"required,max=2048"`
-	Events  []string `json:"events" validate:"required,min=1,max=2,unique,dive,oneof=heat.updated meet.reloaded" enums:"heat.updated,meet.reloaded"`
+	Events  []string `json:"events" validate:"required,min=1,max=3,unique,dive,oneof=heat.updated meet.reloaded record.set" enums:"heat.updated,meet.reloaded,record.set"`
 	Enabled bool     `json:"enabled"`
 	// Secret keeps the stored one when empty.
 	Secret        string `json:"secret" validate:"max=255"`
@@ -285,7 +285,7 @@ func (a *API) webhookDeliveryListHandler(w http.ResponseWriter, r *http.Request)
 //	@Tags			webhooks
 //	@Produce		json
 //	@Param			id		path		string	true	"Webhook id"
-//	@Param			event	query		string	true	"Event"	Enums(heat.updated, meet.reloaded)
+//	@Param			event	query		string	true	"Event"	Enums(heat.updated, meet.reloaded, record.set)
 //	@Success		200		{object}	WebhookPreviewResponse
 //	@Failure		400		{object}	ErrorResponse
 //	@Failure		401		{object}	ErrorResponse

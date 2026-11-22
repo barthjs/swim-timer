@@ -80,6 +80,13 @@ const navItems = computed<NavigationMenuItem[]>(() => [
     },
   },
   {
+    label: t('admin.nav.records'),
+    icon: 'i-lucide-trophy',
+    to: {
+      name: 'records',
+    },
+  },
+  {
     label: t('admin.nav.editor'),
     icon: 'i-lucide-scan',
     to: {

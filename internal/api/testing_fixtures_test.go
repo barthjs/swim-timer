@@ -78,6 +78,20 @@ func newConfigRequest(f *gofakeit.Faker, cfg config.Config) api.ConfigSaveReques
 	}
 }
 
+// storeRecordBreak loads a meet with a record table and breaks its record, and returns the record break.
+func (h *harness) storeRecordBreak() api.RecordBreakResponse {
+	h.t.Helper()
+
+	meet := newMeetFixture(h.Faker, 1)
+	h.loadMeet(meet)
+	h.storeRecordTable(newRecordTableFixture(h.Faker, meet, h.Config.Timing.PoolLength, 1))
+	h.breakRecord(meet)
+
+	breaks := h.Client.GET("/api/record-breaks").AssertOK().Decode[[]api.RecordBreakResponse]()
+	require.Len(h.t, breaks, 1)
+	return breaks[0]
+}
+
 // meetFixture is the content of the export files of a small meet with one event,
 // whose heats have a competitor in each of their eight lanes.
 type meetFixture struct {
@@ -394,6 +408,135 @@ func newRecordingUpload(t *testing.T, f *gofakeit.Faker) apitest.Multipart {
 			},
 		},
 	}
+}
+
+// recordTableFixture is a file of records with a header of the keys of the columns,
+// the mapping that reads it, and the records it holds.
+type recordTableFixture struct {
+	content string
+	mapping api.ImportMapping
+	records []api.RecordResponse
+}
+
+// newRecordTableFixture returns a file of open records of the discipline of the meet in a pool of poolLength,
+// each slower than any time a test sends.
+func newRecordTableFixture(f *gofakeit.Faker, meet meetFixture, poolLength, count int) recordTableFixture {
+	course := "LCM"
+	if poolLength == 25 {
+		course = "SCM"
+	}
+
+	fixture := recordTableFixture{
+		mapping: api.ImportMapping{
+			Columns: map[string]string{
+				"course":   "course",
+				"gender":   "gender",
+				"distance": "distance",
+				"stroke":   "stroke",
+				"time":     "time",
+				"name":     "holder",
+			},
+		},
+	}
+	var content strings.Builder
+	_, _ = content.WriteString("course;gender;distance;stroke;time;holder\r\n")
+	for range count {
+		record := api.RecordResponse{
+			Course:     course,
+			Gender:     meet.category.Abbreviation,
+			RelayCount: 1,
+			Distance:   meet.distance.Length,
+			Stroke:     meet.style.Abbreviation,
+			Time:       f.IntRange(300_000, 359_999),
+			Name:       f.LastName() + " " + f.FirstName(),
+		}
+		fixture.records = append(fixture.records, record)
+		_, _ = fmt.Fprintf(
+			&content,
+			"%s;%s;%d;%s;%d:%02d.%02d;%s\r\n",
+			record.Course,
+			record.Gender,
+			record.Distance,
+			record.Stroke,
+			record.Time/6000,
+			record.Time/100%60,
+			record.Time%100,
+			record.Name,
+		)
+	}
+	fixture.content = content.String()
+	return fixture
+}
+
+// storeRecordTable creates an enabled record table with the records of the fixture and returns it.
+func (h *harness) storeRecordTable(fixture recordTableFixture) api.RecordTableResponse {
+	h.t.Helper()
+
+	upload := recordUpload(h.t, fixture.content, newRecordTableCreateRequest(h.Faker, fixture))
+	return h.asAdmin().POST("/api/record-tables", upload).AssertCreated().Decode[api.RecordTableResponse]()
+}
+
+// recordUpload returns the multipart body of an upload of a file of records with the request as its data.
+func recordUpload(t *testing.T, content string, request any) apitest.Multipart {
+	t.Helper()
+
+	data, err := json.Marshal(request)
+	require.NoError(t, err)
+	return apitest.Multipart{
+		Fields: map[string]string{
+			"data": string(data),
+		},
+		Files: []apitest.File{
+			{
+				Field:   "file",
+				Name:    "records.csv",
+				Content: []byte(content),
+			},
+		},
+	}
+}
+
+// newRecordTableCreateRequest returns a new enabled record table with random names that reads the fixture.
+func newRecordTableCreateRequest(f *gofakeit.Faker, fixture recordTableFixture) api.RecordTableCreateRequest {
+	return api.RecordTableCreateRequest{
+		Name:         f.LetterN(12),
+		Abbreviation: strings.ToUpper(f.LetterN(2)),
+		Enabled:      true,
+		Mapping:      fixture.mapping,
+	}
+}
+
+// breakRecord swims the first heat of the meet with a finish in lane 1 and makes it official,
+// so it breaks the records of the enabled tables, and returns the live heat once it is official.
+func (h *harness) breakRecord(meet meetFixture) domain.LiveHeat {
+	h.t.Helper()
+
+	lapCount := h.lapCount(meet)
+	h.Device.Send(h.t,
+		omega.FrameData{
+			Kind:     omega.KindStart,
+			LapCount: lapCount,
+			Event:    meet.event.Number,
+			Heat:     1,
+		},
+		omega.FrameData{
+			Kind:     omega.KindFinish,
+			LapCount: lapCount,
+			Event:    meet.event.Number,
+			Heat:     1,
+			Rank:     1,
+			Lane:     1,
+			Lap:      lapCount,
+			Time:     time.Duration(h.Faker.IntRange(100_000, 200_000)) * 10 * time.Millisecond,
+		},
+		omega.FrameData{
+			Kind:     omega.KindOfficial,
+			LapCount: lapCount,
+			Event:    meet.event.Number,
+			Heat:     1,
+		},
+	)
+	return h.waitForLive(func(heat domain.LiveHeat) bool { return heat.Status == domain.HeatStatusOfficial }, "the heat is official")
 }
 
 // lapCount is the number of laps of the meet's event in a pool of the configured length.
