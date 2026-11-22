@@ -89,7 +89,9 @@ export default {
   },
   icon: {
     clientBundle: {
-      scan: true,
+      scan: {
+        globInclude: ['**/*.{vue,ts}'],
+      },
     },
   },
   ui: {

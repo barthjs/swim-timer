@@ -56,13 +56,6 @@ export function useRetry<T>(task: () => Promise<T>, onSuccess: (result: T) => vo
     void attempt(run);
   }
 
-  /** Runs a scheduled retry at once, as after the connection came back. */
-  function retryNow(): void {
-    if (!failed.value || timer === null) return;
-    clearTimer();
-    void attempt(run);
-  }
-
   /** Cancels the scheduled retry and drops the result of a run in progress. */
   function stop(): void {
     clearTimer();
@@ -77,7 +70,6 @@ export function useRetry<T>(task: () => Promise<T>, onSuccess: (result: T) => vo
   return {
     failed,
     start,
-    retryNow,
     stop,
   };
 }

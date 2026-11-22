@@ -1,6 +1,13 @@
 {
   "extends": "@tsconfig/node24/tsconfig.json",
-  "include": ["vite.config.*", "ui.config.*", "vitest.config.*", "eslint.config.*"],
+  "include": [
+    "vite.config.*",
+    "ui.config.*",
+    "vitest.config.*",
+    "eslint.config.*",
+    "pwa/plugin.ts",
+    "src/lib/pwa/offline.ts"
+  ],
   "compilerOptions": {
     "module": "preserve",
     "moduleResolution": "bundler",

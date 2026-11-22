@@ -5,6 +5,7 @@ package app
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -96,9 +97,12 @@ func New(ctx context.Context, logger zerolog.Logger, cfg config.Config, deps Dep
 	presetStore := stores.Preset
 	recordingStore := stores.Recording
 
+	// The device reports every opened and closed port, so the clients learn the state of the dependencies without polling.
+	// It is built before the checker, which pings it.
+	var checker *health.Checker
 	device := deps.Device
 	if device == nil {
-		built, err := a.newDevice(logger, cfg.Timing, meetStore, recordingStore)
+		built, err := a.newDevice(logger, cfg.Timing, meetStore, recordingStore, func(bool) { checker.Refresh() })
 		if err != nil {
 			return nil, err
 		}
@@ -113,10 +117,19 @@ func New(ctx context.Context, logger zerolog.Logger, cfg config.Config, deps Dep
 		return webhookSample(ctx, logger, event, timing, meetService, recordBreakService)
 	})
 
-	// The hub asks the timing service for the snapshot a newly connected overlay receives,
+	// The hub asks the timing service for the snapshot a newly connected client receives,
 	// while the timing service broadcasts through the hub, so the snapshot is resolved lazily.
 	// Clients can only connect once the application runs, after the timing service is assigned.
-	a.hub = ws.New(logger, func() ([]byte, error) { return timing.Snapshot() })
+	var server *api.API
+	a.hub = ws.New(logger, func() ([][]byte, error) { return realtimeSnapshot(deps.Version, server, checker, timing) })
+	// Without the timing device, the overlays, the editor, and the meet overview keep working,
+	// so a missing device degrades the application instead of making it unavailable.
+	checker = health.NewChecker(deps.Version, nil,
+		health.WithOptional("timing", device),
+		health.WithOnChecksChange(func(checks map[string]string) {
+			broadcast(logger, a.hub, domain.NewMessage(domain.MessageHealth, checks))
+		}),
+	)
 	// A record set in an official heat goes to the webhooks as the list of records shows it
 	recordBreakService = service.NewRecordBreakService(logger, stores.RecordBreak, stores.RecordTable, func(breaks []domain.RecordBreak) {
 		a.webhooks.Publish(domain.WebhookEventRecordSet, func() any { return toRecordBreakResponses(breaks) })
@@ -137,14 +150,12 @@ func New(ctx context.Context, logger zerolog.Logger, cfg config.Config, deps Dep
 		a.webhooks.Publish(domain.WebhookEventMeetReloaded, func() any { return api.ToMeetResponse(meetService.GetOverview()) })
 	})
 
-	a.handler = api.New(ctx, api.Deps{
+	server = api.New(ctx, api.Deps{
 		Options: apiOptions(cfg),
 		Logger:  logger,
 		WG:      &a.background,
 
-		// Without the timing device, the overlays, the editor, and the meet overview keep working,
-		// so a missing device degrades the application instead of making it unavailable.
-		Health:      health.NewChecker(deps.Version, nil, health.WithOptional("timing", device)),
+		Health:      checker,
 		Hub:         a.hub,
 		RateLimiter: in.RateLimiter,
 		Session:     in.Session,
@@ -154,7 +165,7 @@ func New(ctx context.Context, logger zerolog.Logger, cfg config.Config, deps Dep
 			FilePath: deps.ConfigFilePath,
 			Sources:  deps.ConfigSources,
 		}),
-		PresetService:      service.NewPresetService(presetStore),
+		PresetService:      service.NewPresetService(logger, a.hub, presetStore),
 		MeetService:        meetService,
 		RecordBreakService: recordBreakService,
 		RecordTableService: service.NewRecordTableService(stores.RecordTable, meetStore),
@@ -162,7 +173,10 @@ func New(ctx context.Context, logger zerolog.Logger, cfg config.Config, deps Dep
 		TimingService:      timing,
 		UpdateService:      service.NewUpdateService(logger, in.Updater, deps.OnUpdated),
 		WebhookService:     a.webhooks,
-	}).Routes()
+	})
+	a.handler = server.Routes()
+	// The snapshot of a new client sends the states the checker found last, so it finds them once now
+	checker.Refresh()
 
 	return a, nil
 }
@@ -204,6 +218,7 @@ func (a *App) newDevice(
 	cfg config.TimingConfig,
 	meetStore *store.MeetStore,
 	recordingStore *store.RecordingStore,
+	onChange func(connected bool),
 ) (service.TimingDevice, error) {
 	port := cfg.SerialPort
 
@@ -234,7 +249,7 @@ func (a *App) newDevice(
 		}
 	}
 
-	return serial.New(logger, port, omega.SerialMode(cfg.BaudRate)), nil
+	return serial.New(logger, port, omega.SerialMode(cfg.BaudRate), serial.WithOnChange(onChange)), nil
 }
 
 // closerFunc adapts a function to io.Closer.
@@ -286,4 +301,43 @@ func toRecordBreakResponses(breaks []domain.RecordBreak) []api.RecordBreakRespon
 		responses = append(responses, api.ToRecordBreakResponse(b))
 	}
 	return responses
+}
+
+// realtimeSnapshot returns the messages a newly connected client receives: the greeting with the version
+// and the settings of the application, the state of its dependencies, and the live heat.
+func realtimeSnapshot(version string, server *api.API, checker *health.Checker, timing *service.TimingService) ([][]byte, error) {
+	hello, err := json.Marshal(domain.NewMessage(domain.MessageHello, domain.Hello{
+		Version: version,
+		Meta:    server.MetaRevision(),
+	}))
+	if err != nil {
+		return nil, err
+	}
+
+	checks, err := json.Marshal(domain.NewMessage(domain.MessageHealth, checker.Reported()))
+	if err != nil {
+		return nil, err
+	}
+
+	heat, err := timing.Snapshot()
+	if err != nil {
+		return nil, err
+	}
+
+	return [][]byte{
+		hello,
+		checks,
+		heat,
+	}, nil
+}
+
+// broadcast sends a message to every connected client. A failed message is only logged,
+// since the clients receive the current state again on their next connect.
+func broadcast(logger zerolog.Logger, hub *ws.Hub, message domain.Message) {
+	data, err := json.Marshal(message)
+	if err != nil {
+		logger.Error().Err(err).Str("type", string(message.Type)).Msg("failed to encode message")
+		return
+	}
+	hub.Broadcast(data)
 }

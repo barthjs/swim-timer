@@ -10,6 +10,7 @@ import (
 	"context"
 	"encoding/json/v2"
 	"fmt"
+	"maps"
 	"net/http"
 	"sync"
 	"time"
@@ -42,6 +43,12 @@ type Checker struct {
 	started  time.Time
 	pingers  map[string]Pinger
 	optional map[string]Pinger
+	onChange func(checks map[string]string)
+
+	// refreshing runs the refreshes one after the other, so they report their states in order.
+	refreshing sync.Mutex
+	mu         sync.Mutex
+	reported   map[string]string
 }
 
 // Option configures a Checker.
@@ -56,6 +63,13 @@ func WithOptional(name string, pinger Pinger) Option {
 			panic(fmt.Sprintf("health: the dependency %q is registered twice", name))
 		}
 		c.optional[name] = pinger
+	}
+}
+
+// WithOnChecksChange calls onChange with the state of every dependency once Refresh finds that one of them changed.
+func WithOnChecksChange(onChange func(checks map[string]string)) Option {
+	return func(c *Checker) {
+		c.onChange = onChange
 	}
 }
 
@@ -82,6 +96,42 @@ func (c *Checker) Version() string {
 // Uptime returns how long the process has been running.
 func (c *Checker) Uptime() time.Duration {
 	return time.Since(c.started)
+}
+
+// Checks returns the state of every dependency.
+func (c *Checker) Checks(ctx context.Context) map[string]string {
+	ctx, cancel := context.WithTimeout(ctx, readyTimeout)
+	defer cancel()
+
+	checks, _, _ := c.pingAll(ctx)
+	return checks
+}
+
+// Refresh checks every dependency and reports their states to the callback of WithOnChecksChange
+// when they differ from the last reported ones. A dependency calls it once it notices a change of its own,
+// so the states are reported without polling.
+func (c *Checker) Refresh() {
+	c.refreshing.Lock()
+	defer c.refreshing.Unlock()
+
+	checks := c.Checks(context.Background())
+	c.mu.Lock()
+	changed := c.reported == nil || !maps.Equal(checks, c.reported)
+	c.reported = checks
+	c.mu.Unlock()
+
+	if changed && c.onChange != nil {
+		c.onChange(checks)
+	}
+}
+
+// Reported returns the states the last Refresh found without checking the dependencies again,
+// so a caller on a hot path never waits for a ping. It is empty before the first Refresh.
+func (c *Checker) Reported() map[string]string {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	return maps.Clone(c.reported)
 }
 
 // status is the JSON body of the health endpoints.

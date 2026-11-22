@@ -19,7 +19,7 @@ import (
 	"github.com/barthjs/swim-timer/internal/config/structconf"
 	"github.com/barthjs/swim-timer/internal/i18n"
 	"github.com/barthjs/swim-timer/internal/server"
-	"github.com/barthjs/swim-timer/web/src/assets/images/logo"
+	"github.com/barthjs/swim-timer/web"
 )
 
 // supervisedEnv marks a process that a service manager runs and restarts once it exits. The systemd units,
@@ -146,7 +146,7 @@ func runTray(logger zerolog.Logger, options trayOptions, quit func()) {
 	}
 
 	systray.Run(func() {
-		systray.SetIcon(logo.Icon)
+		systray.SetIcon(web.Icon)
 		systray.SetTitle(options.Title)
 
 		// Without a handler, every left click opens the menu, and the second click of a double click opens it again

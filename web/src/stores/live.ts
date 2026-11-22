@@ -18,12 +18,6 @@ export const useLiveStore = defineStore('live', () => {
   const realtime = useRealtimeStore();
 
   const state = ref<LiveHeat | null>(null);
-  const connected = computed(() => realtime.isConnected);
-  // Counts the announced reloads of the meet data, so pages showing the meet can watch it
-  const meetRevision = ref(0);
-  // Counts the connections opened after a lost or failed one.
-  // Pages watch it to fetch again what they might have missed meanwhile.
-  const reconnects = computed(() => realtime.reconnects);
 
   const clock = createClockSync();
   let unsubscribe: (() => void)[] = [];
@@ -34,9 +28,7 @@ export const useLiveStore = defineStore('live', () => {
       unsubscribe = [
         // The server may have restarted with another clock
         realtime.on(RESYNC_MESSAGE, () => clock.reset()),
-        realtime.on<LiveMessage>(LiveMessageType.Init, applyHeat),
-        realtime.on<LiveMessage>(LiveMessageType.Update, applyHeat),
-        realtime.on(LiveMessageType.Meet, () => meetRevision.value++),
+        realtime.onState<LiveMessage>([LiveMessageType.Init, LiveMessageType.Update], applyHeat),
       ];
     }
     realtime.connect();
@@ -78,9 +70,6 @@ export const useLiveStore = defineStore('live', () => {
 
   return {
     state,
-    connected,
-    meetRevision,
-    reconnects,
     displayTime,
     connect,
     disconnect,

@@ -767,6 +767,21 @@
       "title": "Anzeigetafel"
     }
   },
+  "pwa": {
+    "error": {
+      "message": "Die Seite ist auf einen Fehler gestoßen.",
+      "title": "Ein Fehler ist aufgetreten"
+    },
+    "offline": {
+      "message": "Der Server ist nicht erreichbar.",
+      "retry": "Erneut versuchen",
+      "title": "Keine Verbindung"
+    },
+    "reload": "Neu laden",
+    "update": {
+      "title": "Eine neue Version ist verfügbar"
+    }
+  },
   "table": {
     "perPage": "Pro Seite",
     "range": "{start}–{end} von {total}",

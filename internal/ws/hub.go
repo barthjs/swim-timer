@@ -52,8 +52,8 @@ func WithPongWait(d time.Duration) Option {
 	}
 }
 
-// SnapshotFunc returns the message a newly connected client receives first, or nil if there is nothing to send yet.
-type SnapshotFunc func() ([]byte, error)
+// SnapshotFunc returns the messages a newly connected client receives first, in their order.
+type SnapshotFunc func() ([][]byte, error)
 
 // client represents a single WebSocket connection.
 type client struct {
@@ -263,12 +263,12 @@ func (h *Hub) addClient(c *client) {
 		return
 	}
 
-	message, err := h.snapshot()
+	messages, err := h.snapshot()
 	if err != nil {
 		h.logger.Error().Err(err).Msg("failed to build websocket snapshot")
 		return
 	}
-	if message != nil {
+	for _, message := range messages {
 		c.send <- message
 	}
 }

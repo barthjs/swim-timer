@@ -11,6 +11,9 @@ import (
 	"github.com/barthjs/swim-timer/internal/webhook"
 )
 
+// splashColor is the background of the app icon, which the splash screen of the installed app shows around it.
+const splashColor = "#004b71"
+
 // apiOptions maps the configuration onto the options of the API.
 func apiOptions(cfg config.Config) api.Options {
 	return api.Options{
@@ -25,6 +28,7 @@ func apiOptions(cfg config.Config) api.Options {
 			Error:     cfg.Theme.Error,
 			Neutral:   cfg.Theme.Neutral,
 		},
+		SplashColor:          splashColor,
 		TrustedProxies:       cfg.Server.TrustedProxies,
 		CORSAllowedOrigins:   cfg.Server.CORSAllowedOrigins,
 		CORSAllowCredentials: cfg.Server.CORSAllowCredentials,

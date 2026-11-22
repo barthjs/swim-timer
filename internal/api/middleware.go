@@ -39,6 +39,15 @@ func (a *API) cacheHeaderMiddleware(next http.Handler) http.Handler {
 	})
 }
 
+// noCacheHeaderMiddleware sets headers that make browsers revalidate a file on every request.
+func (a *API) noCacheHeaderMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-cache")
+
+		next.ServeHTTP(w, r)
+	})
+}
+
 // rateLimitPerIP limits requests per resolved client IP.
 func (a *API) rateLimitPerIP(name string, limit int, window time.Duration) func(http.Handler) http.Handler {
 	return a.rateLimit(limit, window, func(r *http.Request) string { return name + ":ip:" + r.RemoteAddr })

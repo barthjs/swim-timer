@@ -94,58 +94,6 @@ func TestTimingService_GetLiveHeat(t *testing.T) {
 	})
 }
 
-func TestTimingService_GetStatus(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name string
-		port string
-		want TimingStatus
-	}{
-		{
-			name: "returns the status of a connected device",
-			port: "/dev/ttyUSB0",
-			want: TimingStatus{
-				Connected:      true,
-				Port:           "/dev/ttyUSB0",
-				ConfiguredPort: "COM3",
-				SimulateEvent:  7,
-				ReplayFile:     "recording_2026-10-18.jsonl",
-			},
-		},
-		{
-			name: "returns the status of a disconnected device",
-			port: "",
-			want: TimingStatus{
-				Connected:      false,
-				Port:           "",
-				ConfiguredPort: "COM3",
-				SimulateEvent:  7,
-				ReplayFile:     "recording_2026-10-18.jsonl",
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
-			options := TimingOptions{
-				ConfiguredPort: "COM3",
-				SimulateEvent:  7,
-				ReplayFile:     "recording_2026-10-18.jsonl",
-			}
-			svc := NewTimingService(zerolog.Nop(), options, &fakeBroadcaster{}, fakeDevice{
-				port: tt.port,
-			}, nil, nil, nil, nil)
-
-			status := svc.GetStatus()
-
-			assert.Equal(t, tt.want, status)
-		})
-	}
-}
-
 func TestTimingService_Run(t *testing.T) {
 	t.Parallel()
 
@@ -180,6 +128,25 @@ func TestTimingService_Run(t *testing.T) {
 		}, meetFileNames(entries[1].Files))
 		assert.Equal(t, recording.HexBytes(stream), entries[2].Data)
 		assert.Equal(t, 2, svc.GetLiveHeat().Heat, "the recorded data reaches the live heat")
+	})
+
+	t.Run("announces the connection when the port opens and when it closes", func(t *testing.T) {
+		t.Parallel()
+
+		broadcaster := &fakeBroadcaster{}
+		svc := NewTimingService(zerolog.Nop(), TimingOptions{
+			PoolLength: 50,
+		}, broadcaster, streamDevice{
+			port: "/dev/ttyUSB0",
+		}, nil, newTestTimingService(t, 50).store, nil, nil)
+
+		svc.Run(t.Context())
+
+		require.Equal(t, 2, broadcaster.count())
+		for _, raw := range broadcaster.messages {
+			assertChanged(t, raw, domain.ResourceTiming, "")
+		}
+		assert.False(t, svc.GetStatus().Connected, "the closed port leaves the device disconnected")
 	})
 
 	t.Run("returns at once when it already runs", func(t *testing.T) {

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { isReloadHeld } from '@/composables/pwa/useReloadHold';
 import { useUnloadGuard } from '@/composables/ui/useUnloadGuard';
 import { withSetup } from '@/test/withSetup';
 
@@ -22,6 +23,15 @@ describe('useUnloadGuard', () => {
     unmount();
 
     expect(prevented).toBe(true);
+  });
+
+  it('holds the automatic reload while there are changes', () => {
+    const { unmount } = withSetup(() => useUnloadGuard(() => true));
+
+    const held = isReloadHeld();
+    unmount();
+
+    expect(held).toBe(true);
   });
 
   it('lets the page unload without changes', () => {

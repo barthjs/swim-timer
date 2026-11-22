@@ -35,6 +35,18 @@
 }
 
 /*
+Nuxt UI sets the color scheme on the body only, but browsers take the one of the page,
+such as for the canvas and its scrollbars, from the root element.
+*/
+:root {
+  color-scheme: light;
+}
+
+:root.dark {
+  color-scheme: dark;
+}
+
+/*
 The three levels of headings: the title of a page, the title of a section or panel,
 and the title of a card or a group inside a section. The color stays with the heading.
 */

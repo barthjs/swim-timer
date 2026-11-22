@@ -3,14 +3,23 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { useDiscardConfirm, useDiscardGuard } from '@/composables/form/useDiscardConfirm';
 
-const { confirm } = vi.hoisted(() => ({
+const { confirm, hold } = vi.hoisted(() => ({
   confirm: vi.fn<() => Promise<boolean>>(),
+  hold: {
+    current: (): boolean => false,
+  },
 }));
 
 vi.mock('vue-i18n', () => ({
   useI18n: () => ({
     t: (key: string) => key,
   }),
+}));
+
+vi.mock('@/composables/pwa/useReloadHold', () => ({
+  useReloadHold: (isHolding: () => boolean) => {
+    hold.current = isHolding;
+  },
 }));
 
 vi.mock('@/composables/ui/useConfirm', () => ({
@@ -73,6 +82,18 @@ describe('useDiscardGuard', () => {
 describe('useDiscardConfirm', () => {
   beforeEach(() => {
     confirm.mockReset();
+  });
+
+  it('holds the automatic reload while the open form has unsaved changes', () => {
+    const open = ref(true);
+    const isDirty = ref(true);
+    useDiscardConfirm(open, isDirty);
+
+    const held = [hold.current()];
+    open.value = false;
+    held.push(hold.current());
+
+    expect(held).toEqual([true, false]);
   });
 
   describe('attemptClose', () => {

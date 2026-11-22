@@ -1,17 +1,16 @@
 import { defineStore } from 'pinia';
-import { computed, ref, shallowRef, watch } from 'vue';
+import { computed, ref, shallowRef } from 'vue';
 
 import { meetRepository } from '@/api/repositories/meet';
 import type { MeetResponse } from '@/api/types/meet';
 import { buildMeetIndex } from '@/lib/meet/meet';
 import { useLiveStore } from '@/stores/live';
+import { useRealtimeStore } from '@/stores/realtime';
 
-/**
- * Holds the loaded meet. It loads again whenever the websocket announces a reload of the meet data
- * or reconnects, since a reload may have been missed while the connection was lost.
- */
+/** Holds the loaded meet and loads it again whenever it changes on the server. */
 export const useMeetStore = defineStore('meet', () => {
   const liveStore = useLiveStore();
+  const realtime = useRealtimeStore();
 
   // A shallow ref, since the meet is only ever replaced as a whole and holds thousands of entries
   const meet = shallowRef<MeetResponse | null>(null);
@@ -41,15 +40,13 @@ export const useMeetStore = defineStore('meet', () => {
 
   // Registered in the setup scope of the store, so it lives as long as the store and not only as long
   // as the component that called start first.
-  watch(
-    () => [liveStore.meetRevision, liveStore.reconnects],
-    () => void load(),
-  );
+  realtime.onChange('meet', () => void load());
 
-  /** Loads the meet and keeps it current. It also opens the websocket for the live heat. */
+  /** Loads the meet, keeps it current, and opens the websocket for the live heat. */
   function start(): void {
+    // A connection that opens loads the meet through the change it reports
+    if (!meet.value && realtime.isConnected) void load();
     liveStore.connect();
-    if (!meet.value) void load();
   }
 
   return {

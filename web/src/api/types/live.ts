@@ -80,8 +80,6 @@ export type LiveHeat = {
 export const LiveMessageType = {
   Init: 'init',
   Update: 'update',
-  // The meet data was reloaded. It carries no data, pages showing the meet fetch it again.
-  Meet: 'meet',
 } as const;
 export type LiveMessageType = (typeof LiveMessageType)[keyof typeof LiveMessageType];
 

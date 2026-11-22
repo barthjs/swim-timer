@@ -47,6 +47,7 @@ func TestAPIOptions(t *testing.T) {
 				Error:     cfg.Theme.Error,
 				Neutral:   cfg.Theme.Neutral,
 			},
+			SplashColor:          splashColor,
 			TrustedProxies:       cfg.Server.TrustedProxies,
 			CORSAllowedOrigins:   cfg.Server.CORSAllowedOrigins,
 			CORSAllowCredentials: cfg.Server.CORSAllowCredentials,

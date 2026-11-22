@@ -6,6 +6,7 @@ import { presetRepository } from '@/api/repositories/preset';
 import { HeatStatus, type Lane } from '@/api/types/live';
 import type { PresetResponse } from '@/api/types/preset';
 import ArLaneContent from '@/components/overlay/ArLaneContent.vue';
+import { useRealtimeChange } from '@/composables/realtime/useRealtimeChange';
 import { useRetry } from '@/composables/ui/useRetry';
 import {
   heatLaneNumber,
@@ -25,7 +26,7 @@ const presetName = computed(() =>
 );
 
 // The overlay runs unattended in the streaming software, so it stays empty instead of showing an error
-// and loads the preset again until it arrives, at once when the websocket reconnects.
+// and loads the preset again until it arrives, and again whenever it changes on the server.
 const presetLoad = useRetry(
   async () => presetRepository.get(presetName.value),
   (result) => {
@@ -48,10 +49,9 @@ watch(
   },
 );
 
-watch(
-  () => liveStore.reconnects,
-  () => presetLoad.retryNow(),
-);
+useRealtimeChange('preset', (name) => {
+  if (presetName.value && (name === undefined || name === presetName.value)) presetLoad.start();
+});
 
 // The preset stores the lanes as fractions of the image,
 // which the overlay draws at the size of its window, the browser source.

@@ -50,6 +50,8 @@ type Options struct {
 	Language string
 	// Theme holds the accent colors of the user interface.
 	Theme ThemeSettings
+	// SplashColor is the background of the splash screen of the installed app, the theme color when empty.
+	SplashColor string
 	// TrustedProxies may set the forwarding headers that name the client address.
 	TrustedProxies []*net.IPNet
 	// CORSAllowedOrigins may call the API from another domain, empty disables CORS.

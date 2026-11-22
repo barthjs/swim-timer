@@ -311,6 +311,8 @@ func (a *API) staticRoutes(r chi.Router) {
 	fileServer := http.FileServerFS(staticFS)
 
 	r.With(gorillaHandlers.CompressHandler, a.cacheHeaderMiddleware).Handle("/assets/*", fileServer)
+	r.With(gorillaHandlers.CompressHandler, a.noCacheHeaderMiddleware).Handle("/sw.js", fileServer)
+	r.With(gorillaHandlers.CompressHandler).Get("/site.webmanifest", a.manifestGetHandler)
 	r.With(gorillaHandlers.CompressHandler).Get("/", a.indexGetHandler)
 	r.With(gorillaHandlers.CompressHandler).Get("/overlays/*", a.overlayIndexGetHandler)
 

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"sync"
 	"testing"
+	"testing/synctest"
 	"time"
 
 	"github.com/stretchr/testify/assert"
@@ -25,28 +26,75 @@ func TestNewRecorder(t *testing.T) {
 func TestRecorder_RecordSuccess(t *testing.T) {
 	t.Parallel()
 
-	recorder := NewRecorder()
-	recorder.RecordFailure(errUnreachable)
+	t.Run("recovers from a failure and reports the recovery", func(t *testing.T) {
+		t.Parallel()
 
-	recorder.RecordSuccess()
+		var changes []bool
+		recorder := NewRecorder(WithOnChange(func(healthy bool) { changes = append(changes, healthy) }))
+		recorder.RecordFailure(errUnreachable)
 
-	assert.NoError(t, recorder.Ping(t.Context()), "a success recovers from a failure")
+		recorder.RecordSuccess()
+
+		assert.Equal(t, []bool{false, true}, changes)
+		assert.NoError(t, recorder.Ping(t.Context()))
+	})
+
+	t.Run("reports no change for a repeated success", func(t *testing.T) {
+		t.Parallel()
+
+		var changes []bool
+		recorder := NewRecorder(WithOnChange(func(healthy bool) { changes = append(changes, healthy) }))
+
+		recorder.RecordSuccess()
+
+		assert.Empty(t, changes)
+	})
 }
 
 func TestRecorder_RecordFailure(t *testing.T) {
 	t.Parallel()
 
-	recorder := NewRecorder()
+	t.Run("marks the dependency as unreachable and reports it once", func(t *testing.T) {
+		t.Parallel()
 
-	recorder.RecordFailure(errUnreachable)
+		var changes []bool
+		recorder := NewRecorder(WithOnChange(func(healthy bool) { changes = append(changes, healthy) }))
 
-	assert.ErrorIs(t, recorder.Ping(t.Context()), errUnreachable)
+		recorder.RecordFailure(errUnreachable)
+		recorder.RecordFailure(errUnreachable)
+
+		assert.Equal(t, []bool{false}, changes)
+		assert.ErrorIs(t, recorder.Ping(t.Context()), errUnreachable)
+	})
+
+	t.Run("reports the expired failure as healthy", func(t *testing.T) {
+		t.Parallel()
+
+		synctest.Test(t, func(t *testing.T) {
+			var mu sync.Mutex
+			var changes []bool
+			recorder := NewRecorder(WithOnChange(func(healthy bool) {
+				mu.Lock()
+				defer mu.Unlock()
+				changes = append(changes, healthy)
+			}))
+
+			recorder.RecordFailure(errUnreachable)
+			time.Sleep(failureTTL + time.Second)
+			synctest.Wait()
+
+			mu.Lock()
+			defer mu.Unlock()
+			assert.Equal(t, []bool{false, true}, changes)
+			assert.NoError(t, recorder.Ping(t.Context()))
+		})
+	})
 }
 
 func TestRecorder_Ping(t *testing.T) {
 	t.Parallel()
 
-	t.Run("forgets an expired failure", func(t *testing.T) {
+	t.Run("reports an expired failure as healthy", func(t *testing.T) {
 		t.Parallel()
 
 		recorder := NewRecorder()
@@ -57,7 +105,7 @@ func TestRecorder_Ping(t *testing.T) {
 		err := recorder.Ping(t.Context())
 
 		assert.NoError(t, err)
-		assert.NoError(t, recorder.err, "the expired failure is cleared")
+		assert.ErrorIs(t, recorder.err, errUnreachable, "only expire clears the failure, since it reports the change")
 	})
 
 	t.Run("is safe for concurrent use", func(t *testing.T) {

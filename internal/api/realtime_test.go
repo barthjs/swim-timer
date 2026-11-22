@@ -44,12 +44,18 @@ func TestRealtimeAccess(t *testing.T) {
 func TestRealtimeConnectHandler(t *testing.T) {
 	t.Parallel()
 
-	t.Run("sends the live heat on connect", func(t *testing.T) {
+	t.Run("greets and sends the state of the dependencies and the live heat on connect", func(t *testing.T) {
 		t.Parallel()
 		h := newHarness(t)
 
-		message := readMessage(t, h.connectOverlay())
+		conn := h.connectOverlay()
 
+		hello := readData[domain.Hello](t, conn, domain.MessageHello)
+		assert.Equal(t, harnessVersion, hello.Version)
+		assert.NotEmpty(t, hello.Meta)
+		checks := readData[map[string]string](t, conn, domain.MessageHealth)
+		assert.Contains(t, checks, "timing")
+		message := readMessage(t, conn)
 		assert.Equal(t, "init", message.Type)
 		assert.WithinDuration(t, time.Now(), message.ServerTime, eventuallyTimeout)
 		require.NotNil(t, message.Data)
@@ -62,6 +68,7 @@ func TestRealtimeConnectHandler(t *testing.T) {
 		meet := newMeetFixture(h.Faker, 1)
 		h.loadMeet(meet)
 		conn := h.connectOverlay()
+		readGreeting(t, conn)
 		readMessage(t, conn)
 
 		h.Device.Send(t, omega.FrameData{
@@ -82,13 +89,15 @@ func TestRealtimeConnectHandler(t *testing.T) {
 		t.Parallel()
 		h := newHarness(t)
 		conn := h.connectOverlay()
+		readGreeting(t, conn)
 		readMessage(t, conn)
 
 		h.loadMeet(newMeetFixture(h.Faker, 1))
 
-		message := readMessage(t, conn)
-		assert.Equal(t, "meet", message.Type)
-		assert.Nil(t, message.Data, "pages fetch the meet themselves")
+		changed := readData[domain.Changed](t, conn, domain.MessageChanged)
+		assert.Equal(t, domain.Changed{
+			Resource: domain.ResourceMeet,
+		}, changed)
 	})
 }
 
@@ -118,4 +127,29 @@ func readMessage(t *testing.T, conn *websocket.Conn) liveMessage {
 	var message liveMessage
 	require.NoError(t, json.Unmarshal(data, &message))
 	return message
+}
+
+// readGreeting reads the greeting and the state of the dependencies a client receives first.
+func readGreeting(t *testing.T, conn *websocket.Conn) {
+	t.Helper()
+
+	readData[domain.Hello](t, conn, domain.MessageHello)
+	readData[map[string]string](t, conn, domain.MessageHealth)
+}
+
+// readData reads the next websocket message, checks its type, and returns its data.
+func readData[T any](t *testing.T, conn *websocket.Conn, typ domain.MessageType) T {
+	t.Helper()
+
+	require.NoError(t, conn.SetReadDeadline(time.Now().Add(eventuallyTimeout)))
+	_, data, err := conn.ReadMessage()
+	require.NoError(t, err)
+
+	var message struct {
+		Type domain.MessageType `json:"type"`
+		Data T                  `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(data, &message))
+	require.Equal(t, typ, message.Type)
+	return message.Data
 }

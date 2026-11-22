@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { Lane, LiveMessage, LiveHeat } from '@/api/types/live';
 import { useLiveStore } from '@/stores/live';
-import { configureRealtime } from '@/stores/realtime';
+import { configureRealtime, useRealtimeStore } from '@/stores/realtime';
 
 /** Records every opened websocket and lets a test drive its events. */
 class FakeWebSocket extends EventTarget {
@@ -83,7 +83,7 @@ describe('useLiveStore', () => {
     FakeWebSocket.instances = [];
     vi.stubGlobal('WebSocket', FakeWebSocket);
     vi.useFakeTimers();
-    // Overlays run unattended, so the app reconnects them at a short fixed interval
+    // Unattended screens reconnect at a short fixed interval
     configureRealtime({
       url: 'ws://test/api/ws',
       reconnectBaseMs: 500,
@@ -112,15 +112,6 @@ describe('useLiveStore', () => {
       expect(latestSocket().url).toBe('ws://test/api/ws');
     });
 
-    it('tracks the open connection', () => {
-      const store = useLiveStore();
-      store.connect();
-
-      latestSocket().open();
-
-      expect(store.connected).toBe(true);
-    });
-
     it('keeps a single websocket when connected again', () => {
       const store = useLiveStore();
       store.connect();
@@ -141,6 +132,27 @@ describe('useLiveStore', () => {
       });
 
       expect(store.state?.heat).toBe(1);
+    });
+
+    it('takes the live heat the server sent before the store subscribed', () => {
+      useRealtimeStore().connect();
+      latestSocket().receive({
+        type: 'init',
+        serverTime: '2026-10-01T10:00:00Z',
+        data: liveHeat(),
+      });
+      latestSocket().receive({
+        type: 'update',
+        serverTime: '2026-10-01T10:00:01Z',
+        data: liveHeat({
+          heat: 2,
+        }),
+      });
+      const store = useLiveStore();
+
+      store.connect();
+
+      expect(store.state?.heat).toBe(2);
     });
 
     it('replaces the state with an update message', () => {
@@ -265,43 +277,8 @@ describe('useLiveStore', () => {
       latestSocket().close();
       vi.advanceTimersByTime(500);
 
-      expect(store.connected).toBe(false);
       expect(store.state).not.toBeNull();
       expect(FakeWebSocket.instances).toHaveLength(2);
-    });
-
-    it('does not count the first connection as a reconnect', () => {
-      const store = useLiveStore();
-      store.connect();
-
-      latestSocket().open();
-
-      expect(store.reconnects).toBe(0);
-    });
-
-    it('counts the connections opened after a lost or failed one', () => {
-      const store = useLiveStore();
-      store.connect();
-      latestSocket().open();
-      latestSocket().close();
-      vi.advanceTimersByTime(500);
-      latestSocket().close();
-      vi.advanceTimersByTime(500);
-
-      latestSocket().open();
-
-      expect(store.reconnects).toBe(1);
-    });
-
-    it('counts the first connection after a failed attempt as a reconnect', () => {
-      const store = useLiveStore();
-      store.connect();
-      latestSocket().close();
-      vi.advanceTimersByTime(500);
-
-      latestSocket().open();
-
-      expect(store.reconnects).toBe(1);
     });
   });
 
@@ -314,7 +291,6 @@ describe('useLiveStore', () => {
       store.disconnect();
       vi.advanceTimersByTime(500);
 
-      expect(store.connected).toBe(false);
       expect(FakeWebSocket.instances).toHaveLength(1);
     });
 

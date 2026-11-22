@@ -36,11 +36,6 @@ const (
 	baselineDrift = 2 * time.Second
 )
 
-// broadcaster publishes a message to every connected overlay.
-type broadcaster interface {
-	Broadcast(message []byte)
-}
-
 // TimingDevice keeps the connection to the timing device open, hands its byte stream to the timing service,
 // and reports the port in use and whether it is reachable. serial.Supervisor implements it,
 // and tests replace it, since it reads a serial port.
@@ -110,6 +105,8 @@ type TimingService struct {
 
 	mu   sync.RWMutex
 	heat *domain.LiveHeat
+	// port is the port the frame handling reads, empty while no port is open.
+	port string
 }
 
 // NewTimingService creates a TimingService with an optional recorder of the received data,
@@ -153,7 +150,9 @@ func (s *TimingService) GetLiveHeat() *domain.LiveHeat {
 
 // GetStatus returns the current state of the connection to the timing device.
 func (s *TimingService) GetStatus() TimingStatus {
-	port := s.device.Port()
+	s.mu.RLock()
+	port := s.port
+	s.mu.RUnlock()
 
 	return TimingStatus{
 		Connected:      port != "",
@@ -179,6 +178,9 @@ func (s *TimingService) Run(ctx context.Context) {
 	}
 
 	s.device.Run(ctx, func(ctx context.Context, r io.Reader) error {
+		s.setPort(s.device.Port())
+		defer s.setPort("")
+
 		if s.recorder != nil {
 			r = s.recorder.Reader(r)
 		}
@@ -194,6 +196,16 @@ func (s *TimingService) Run(ctx context.Context) {
 			s.handleFrame(frame)
 		}
 	})
+}
+
+// setPort records the port the frame handling reads and announces the changed connection.
+// The announcement carries no data, open pages fetch the status themselves.
+func (s *TimingService) setPort(port string) {
+	s.mu.Lock()
+	s.port = port
+	s.mu.Unlock()
+
+	announceChange(s.logger, s.broadcaster, domain.ResourceTiming, "")
 }
 
 // Snapshot returns the live heat as the init message for a newly connected overlay.

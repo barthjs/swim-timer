@@ -71,7 +71,7 @@ const {
     <UCard class="w-full max-w-sm">
       <template #header>
         <div class="flex flex-col items-center gap-3">
-          <img src="@/assets/images/logo/favicon.svg" alt="" class="size-12" />
+          <img src="/icons/icon.svg" alt="" class="size-12" />
           <h1 class="text-highlighted heading-page text-center">
             {{ t('pages.login.title') }}
           </h1>

@@ -85,47 +85,6 @@ describe('configureRealtime', () => {
 });
 
 describe('useRealtimeStore', () => {
-  describe('reconnects', () => {
-    it('counts the connections opened after a lost or failed one', async () => {
-      vi.useFakeTimers();
-      const store = useRealtimeStore();
-      store.connect();
-      FakeWebSocket.latest().open();
-      FakeWebSocket.latest().close();
-      await vi.advanceTimersByTimeAsync(1_000);
-      FakeWebSocket.latest().close();
-      await vi.advanceTimersByTimeAsync(2_000);
-
-      FakeWebSocket.latest().open();
-
-      expect(store.reconnects).toBe(1);
-    });
-
-    it('counts the first connection after a failed attempt', async () => {
-      vi.useFakeTimers();
-      const store = useRealtimeStore();
-      store.connect();
-      FakeWebSocket.latest().close();
-      await vi.advanceTimersByTimeAsync(1_000);
-
-      FakeWebSocket.latest().open();
-
-      expect(store.reconnects).toBe(1);
-    });
-
-    it('does not count the first connection or one after a disconnect', () => {
-      const store = useRealtimeStore();
-      store.connect();
-      FakeWebSocket.latest().open();
-      store.disconnect();
-      store.connect();
-
-      FakeWebSocket.latest().open();
-
-      expect(store.reconnects).toBe(0);
-    });
-  });
-
   describe('connect', () => {
     it('opens the realtime endpoint on the origin of the page and resyncs once open', () => {
       const store = useRealtimeStore();
@@ -208,6 +167,23 @@ describe('useRealtimeStore', () => {
       expect(other).not.toHaveBeenCalled();
     });
 
+    it('hands a resync of the server to the handlers after a random part of the jitter', () => {
+      vi.useFakeTimers();
+      vi.spyOn(Math, 'random').mockReturnValue(1);
+      const store = useRealtimeStore();
+      const handler = vi.fn<RealtimeHandler>();
+      store.on(RESYNC_MESSAGE, handler);
+      store.connect();
+
+      FakeWebSocket.latest().receive('{"type":"resync"}');
+      vi.advanceTimersByTime(2_999);
+      const before = handler.mock.calls.length;
+      vi.advanceTimersByTime(1);
+
+      expect(before).toBe(0);
+      expect(handler).toHaveBeenCalledOnce();
+    });
+
     it('skips a message that is not a message of the server', () => {
       const store = useRealtimeStore();
       const handler = vi.fn<RealtimeHandler>();
@@ -228,6 +204,131 @@ describe('useRealtimeStore', () => {
 
       off();
       FakeWebSocket.latest().receive('{"type":"status"}');
+
+      expect(handler).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('onState', () => {
+    it('hands the latest message of the type at once and every later one', () => {
+      const store = useRealtimeStore();
+      const handler = vi.fn<RealtimeHandler>();
+      store.connect();
+      FakeWebSocket.latest().receive('{"type":"status","data":1}');
+      FakeWebSocket.latest().receive('{"type":"status","data":2}');
+
+      store.onState('status', handler);
+      FakeWebSocket.latest().receive('{"type":"status","data":3}');
+
+      expect(handler.mock.calls).toEqual([
+        [
+          {
+            type: 'status',
+            data: 2,
+          },
+        ],
+        [
+          {
+            type: 'status',
+            data: 3,
+          },
+        ],
+      ]);
+    });
+
+    it('hands the newest message among several types at once', () => {
+      const store = useRealtimeStore();
+      const handler = vi.fn<RealtimeHandler>();
+      store.connect();
+      FakeWebSocket.latest().receive('{"type":"update","data":1}');
+      FakeWebSocket.latest().receive('{"type":"init","data":2}');
+
+      store.onState(['init', 'update'], handler);
+
+      expect(handler).toHaveBeenCalledExactlyOnceWith({
+        type: 'init',
+        data: 2,
+      });
+    });
+
+    it('waits for the first message of a type the server did not send yet', () => {
+      const store = useRealtimeStore();
+      const handler = vi.fn<RealtimeHandler>();
+
+      store.onState('status', handler);
+
+      expect(handler).not.toHaveBeenCalled();
+    });
+
+    it('returns the function that removes the handler', () => {
+      const store = useRealtimeStore();
+      const handler = vi.fn<RealtimeHandler>();
+      const off = store.onState('status', handler);
+      store.connect();
+
+      off();
+      FakeWebSocket.latest().receive('{"type":"status"}');
+
+      expect(handler).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('onChange', () => {
+    /** Delivers the change of a resource like the server. */
+    function announce(resource: string, id?: string): void {
+      FakeWebSocket.latest().receive(
+        JSON.stringify({
+          type: 'changed',
+          data: {
+            resource,
+            id,
+          },
+        }),
+      );
+    }
+
+    it('hands the announced change of the resource with its item to the handler', () => {
+      const store = useRealtimeStore();
+      const handler = vi.fn<(id?: string) => void>();
+      store.onChange('preset', handler);
+      store.connect();
+
+      announce('preset', 'main');
+
+      expect(handler).toHaveBeenCalledExactlyOnceWith('main');
+    });
+
+    it('runs the handler after every connect', () => {
+      const store = useRealtimeStore();
+      const handler = vi.fn<(id?: string) => void>();
+      store.onChange('preset', handler);
+      store.connect();
+
+      FakeWebSocket.latest().open();
+
+      expect(handler).toHaveBeenCalledExactlyOnceWith();
+    });
+
+    it('skips the changes of other resources', () => {
+      const store = useRealtimeStore();
+      const handler = vi.fn<(id?: string) => void>();
+      store.onChange('preset', handler);
+      store.connect();
+
+      announce('meet');
+
+      expect(handler).not.toHaveBeenCalled();
+    });
+
+    it('returns the function that removes the handler', () => {
+      const store = useRealtimeStore();
+      const handler = vi.fn<(id?: string) => void>();
+      const off = store.onChange('preset', handler);
+      store.connect();
+
+      off();
+      FakeWebSocket.latest().open();
+      announce('preset');
 
       expect(handler).not.toHaveBeenCalled();
     });

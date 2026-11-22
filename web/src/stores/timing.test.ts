@@ -1,10 +1,19 @@
 import { createPinia, setActivePinia } from 'pinia';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { faker } from '@faker-js/faker';
 
 import type { timingRepository } from '@/api/repositories/timing';
+import type { TimingStatusResponse } from '@/api/types/timing';
 import { useTimingStore } from '@/stores/timing';
 
-const getStatus = vi.hoisted(() => vi.fn<typeof timingRepository.getStatus>());
+const { getStatus, handlers, connect, connection } = vi.hoisted(() => ({
+  getStatus: vi.fn<typeof timingRepository.getStatus>(),
+  handlers: new Map<string, Set<() => void>>(),
+  connect: vi.fn<() => void>(),
+  connection: {
+    isConnected: true,
+  },
+}));
 
 vi.mock('@/api/repositories/timing', () => ({
   timingRepository: {
@@ -12,113 +21,126 @@ vi.mock('@/api/repositories/timing', () => ({
   },
 }));
 
-const connectedStatus = {
-  connected: true,
-  port: '/dev/ttyUSB0',
-  configuredPort: '',
-  simulateEvent: 0,
-  replayFile: '',
-};
+vi.mock('@/stores/realtime', () => ({
+  useRealtimeStore: () => ({
+    connect,
+    get isConnected() {
+      return connection.isConnected;
+    },
+    onChange: (resource: string, handler: () => void) => {
+      const set = handlers.get(resource) ?? new Set();
+      handlers.set(resource, set);
+      set.add(handler);
+      return () => set.delete(handler);
+    },
+  }),
+}));
 
-const disconnectedStatus = {
-  ...connectedStatus,
-  connected: false,
-  port: '',
-};
+/** Returns a status of the timing device that is connected or not. */
+function fakeStatus(connected: boolean): TimingStatusResponse {
+  return {
+    connected,
+    port: connected ? faker.system.filePath() : '',
+    configuredPort: '',
+    simulateEvent: 0,
+    replayFile: '',
+  };
+}
+
+/** Reports a change of the resource to its handlers like the realtime connection. */
+async function announce(resource: string): Promise<void> {
+  for (const handler of handlers.get(resource) ?? []) handler();
+  await vi.waitFor(() => expect(getStatus).toHaveBeenCalled());
+}
 
 describe('useTimingStore', () => {
   beforeEach(() => {
     setActivePinia(createPinia());
-    getStatus.mockReset();
-    vi.useFakeTimers();
-  });
-
-  afterEach(() => {
-    useTimingStore().stop();
-    vi.useRealTimers();
+    handlers.clear();
+    connection.isConnected = true;
+    vi.clearAllMocks();
   });
 
   describe('connected', () => {
-    it('is optimistic before the first poll', () => {
+    it('is optimistic before the first fetch', () => {
       const store = useTimingStore();
 
-      const connected = store.connected;
-
-      expect(connected).toBe(true);
-      expect(store.status).toBeNull();
+      expect(store.connected).toBe(true);
     });
   });
 
   describe('start', () => {
     it('stores the status of the timing device', async () => {
-      getStatus.mockResolvedValue(connectedStatus);
+      const status = fakeStatus(false);
+      getStatus.mockResolvedValue(status);
       const store = useTimingStore();
 
       store.start();
-      await vi.advanceTimersByTimeAsync(0);
 
-      expect(getStatus).toHaveBeenCalledOnce();
-      expect(store.status).toEqual(connectedStatus);
-    });
-
-    it('polls the status at a fixed interval', async () => {
-      getStatus.mockResolvedValueOnce(connectedStatus).mockResolvedValueOnce(disconnectedStatus);
-      const store = useTimingStore();
-
-      store.start();
-      await vi.advanceTimersByTimeAsync(5_000);
-
-      expect(getStatus).toHaveBeenCalledTimes(2);
+      await vi.waitFor(() => expect(store.status).toEqual(status));
       expect(store.connected).toBe(false);
+      expect(connect).toHaveBeenCalledOnce();
     });
 
-    it('keeps a running poll when started again', async () => {
-      getStatus.mockResolvedValue(connectedStatus);
+    it('leaves the first fetch to a connection that opens', () => {
+      connection.isConnected = false;
       const store = useTimingStore();
-      store.start();
 
       store.start();
-      await vi.advanceTimersByTimeAsync(0);
+
+      expect(getStatus).not.toHaveBeenCalled();
+    });
+
+    it('fetches the status again once it changes on the server', async () => {
+      getStatus.mockResolvedValue(fakeStatus(true));
+      const store = useTimingStore();
+      store.start();
+      await vi.waitFor(() => expect(store.status).not.toBeNull());
+      const changed = fakeStatus(false);
+      getStatus.mockClear().mockResolvedValue(changed);
+
+      await announce('timing');
+
+      await vi.waitFor(() => expect(store.status).toEqual(changed));
+    });
+
+    it('keeps the last status when a fetch fails', async () => {
+      const status = fakeStatus(true);
+      getStatus.mockResolvedValue(status);
+      const store = useTimingStore();
+      store.start();
+      await vi.waitFor(() => expect(store.status).toEqual(status));
+      getStatus.mockClear().mockRejectedValue(new TypeError('Failed to fetch'));
+
+      await announce('timing');
+
+      expect(store.status).toEqual(status);
+    });
+
+    it('follows the changes only once when started again', async () => {
+      getStatus.mockResolvedValue(fakeStatus(true));
+      const store = useTimingStore();
+      store.start();
+      store.start();
+      getStatus.mockClear();
+
+      await announce('timing');
 
       expect(getStatus).toHaveBeenCalledOnce();
-    });
-
-    it('keeps the last status when a poll fails', async () => {
-      getStatus.mockResolvedValueOnce(connectedStatus).mockRejectedValueOnce(new Error('offline'));
-      const store = useTimingStore();
-
-      store.start();
-      await vi.advanceTimersByTimeAsync(5_000);
-
-      expect(getStatus).toHaveBeenCalledTimes(2);
-      expect(store.status).toEqual(connectedStatus);
     });
   });
 
   describe('stop', () => {
-    it('ends the polling', async () => {
-      getStatus.mockResolvedValue(connectedStatus);
+    it('ends following the changes', async () => {
+      getStatus.mockResolvedValue(fakeStatus(true));
       const store = useTimingStore();
       store.start();
-      await vi.advanceTimersByTimeAsync(5_000);
-
       store.stop();
-      await vi.advanceTimersByTimeAsync(20_000);
+      getStatus.mockClear();
 
-      expect(getStatus).toHaveBeenCalledTimes(2);
-    });
+      for (const handler of handlers.get('timing') ?? []) handler();
 
-    it('keeps a stopped poll stopped when stopped again', async () => {
-      getStatus.mockResolvedValue(connectedStatus);
-      const store = useTimingStore();
-      store.start();
-      await vi.advanceTimersByTimeAsync(0);
-      store.stop();
-
-      store.stop();
-      await vi.advanceTimersByTimeAsync(20_000);
-
-      expect(getStatus).toHaveBeenCalledOnce();
+      expect(getStatus).not.toHaveBeenCalled();
     });
   });
 });

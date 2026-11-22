@@ -34,15 +34,26 @@ func TestNewMessage(t *testing.T) {
 		assert.WithinDuration(t, time.Now(), serverTime, time.Minute)
 	})
 
-	t.Run("encodes a meet message without data", func(t *testing.T) {
+	t.Run("encodes a message without data", func(t *testing.T) {
 		t.Parallel()
 
-		raw, err := json.Marshal(NewMessage(MessageMeet, nil))
+		raw, err := json.Marshal(NewMessage(MessageChanged, nil))
 
 		require.NoError(t, err)
 		fields := decodeMessage(t, raw)
 		assert.Equal(t, []string{"serverTime", "type"}, slices.Sorted(maps.Keys(fields)))
-		assert.JSONEq(t, `"meet"`, string(fields["type"]))
+		assert.JSONEq(t, `"changed"`, string(fields["type"]))
+	})
+
+	t.Run("encodes a changed resource without an empty id", func(t *testing.T) {
+		t.Parallel()
+
+		raw, err := json.Marshal(NewMessage(MessageChanged, Changed{
+			Resource: ResourceMeet,
+		}))
+
+		require.NoError(t, err)
+		assert.JSONEq(t, `{"resource":"meet"}`, string(decodeMessage(t, raw)["data"]))
 	})
 
 	t.Run("encodes a missing live heat as null", func(t *testing.T) {

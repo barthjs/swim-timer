@@ -132,7 +132,7 @@ const { mutate: logout, pending: loggingOut } = useMutation(async () => authStor
   >
     <template #logo>
       <span class="text-highlighted flex items-center gap-2 font-semibold">
-        <img src="@/assets/images/logo/favicon.svg" alt="" class="size-6" />
+        <img src="/icons/icon.svg" alt="" class="size-6" />
         {{ appName }}
       </span>
     </template>

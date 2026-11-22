@@ -6,11 +6,15 @@ import type { meetRepository } from '@/api/repositories/meet';
 import type { MeetResponse } from '@/api/types/meet';
 import { useMeetStore } from '@/stores/meet';
 
-const get = vi.hoisted(() => vi.fn<typeof meetRepository.get>());
-const live = vi.hoisted(() => ({
-  connect: vi.fn<() => void>(),
-  meetRevision: 0,
-  reconnects: 0,
+const { changeHandlers, connection, get, live } = vi.hoisted(() => ({
+  changeHandlers: new Set<() => void>(),
+  connection: {
+    isConnected: true,
+  },
+  get: vi.fn<typeof meetRepository.get>(),
+  live: {
+    connect: vi.fn<() => void>(),
+  },
 }));
 
 vi.mock('@/api/repositories/meet', () => ({
@@ -19,14 +23,22 @@ vi.mock('@/api/repositories/meet', () => ({
   },
 }));
 
-vi.mock('@/stores/live', async () => {
-  const { reactive: makeReactive } = await import('vue');
-  const store = makeReactive(live);
-  return {
-    useLiveStore: () => store,
-    liveState: store,
-  };
-});
+vi.mock('@/stores/live', () => ({
+  useLiveStore: () => live,
+}));
+
+vi.mock('@/stores/realtime', () => ({
+  useRealtimeStore: () => ({
+    get isConnected() {
+      return connection.isConnected;
+    },
+    onChange: (resource: string, handler: () => void) => {
+      if (resource !== 'meet') return () => {};
+      changeHandlers.add(handler);
+      return () => changeHandlers.delete(handler);
+    },
+  }),
+}));
 
 const meet: MeetResponse = {
   loadedAt: '2026-05-01T08:00:00Z',
@@ -72,12 +84,9 @@ async function flush(): Promise<void> {
   await nextTick();
 }
 
-/** importLiveState returns the reactive state behind the mocked live store. */
-async function importLiveState(): Promise<typeof live> {
-  const { liveState } = (await import('@/stores/live')) as unknown as {
-    liveState: typeof live;
-  };
-  return liveState;
+/** Reports a change of the meet on the server like the realtime connection. */
+function announceChange(): void {
+  for (const handler of changeHandlers) handler();
 }
 
 describe('useMeetStore', () => {
@@ -88,6 +97,8 @@ describe('useMeetStore', () => {
     setActivePinia(pinia);
     get.mockReset();
     live.connect.mockClear();
+    changeHandlers.clear();
+    connection.isConnected = true;
   });
 
   // The watcher of a store lives as long as its Pinia, so the store of a finished test must not reload
@@ -155,6 +166,17 @@ describe('useMeetStore', () => {
   });
 
   describe('start', () => {
+    it('leaves the first load to a connection that opens', async () => {
+      connection.isConnected = false;
+      const store = useMeetStore();
+
+      store.start();
+      await flush();
+
+      expect(get).not.toHaveBeenCalled();
+      expect(live.connect).toHaveBeenCalledOnce();
+    });
+
     it('loads the meet and opens the websocket', async () => {
       get.mockResolvedValue(meet);
       const store = useMeetStore();
@@ -191,23 +213,9 @@ describe('useMeetStore', () => {
       expect(get).toHaveBeenCalledOnce();
     });
 
-    it('reloads when the websocket announces new meet data', async () => {
+    it('reloads once the meet changes on the server', async () => {
       get.mockResolvedValue(meet);
       const store = useMeetStore();
-      const liveState = await importLiveState();
-      store.start();
-      await flush();
-
-      liveState.meetRevision++;
-      await flush();
-
-      expect(get).toHaveBeenCalledTimes(2);
-    });
-
-    it('reloads after the websocket reconnects', async () => {
-      get.mockResolvedValue(meet);
-      const store = useMeetStore();
-      const liveState = await importLiveState();
       store.start();
       await flush();
       const newer: MeetResponse = {
@@ -216,7 +224,7 @@ describe('useMeetStore', () => {
       };
       get.mockResolvedValue(newer);
 
-      liveState.reconnects++;
+      announceChange();
       await flush();
 
       expect(store.meet).toEqual(newer);
@@ -225,13 +233,12 @@ describe('useMeetStore', () => {
     it('keeps reloading after the component that started it is unmounted', async () => {
       get.mockResolvedValue(meet);
       const store = useMeetStore();
-      const liveState = await importLiveState();
       const componentScope = effectScope();
       componentScope.run(() => store.start());
       await flush();
       componentScope.stop();
 
-      liveState.meetRevision++;
+      announceChange();
       await flush();
 
       expect(get).toHaveBeenCalledTimes(2);

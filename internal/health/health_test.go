@@ -122,6 +122,92 @@ func TestChecker_Uptime(t *testing.T) {
 	assert.GreaterOrEqual(t, uptime, time.Duration(0))
 }
 
+func TestChecker_Checks(t *testing.T) {
+	t.Parallel()
+
+	t.Run("returns the state of every dependency", func(t *testing.T) {
+		t.Parallel()
+		checker := health.NewChecker("1.2.3", map[string]health.Pinger{"db": healthy()}, health.WithOptional("cache", failing()))
+
+		checks := checker.Checks(t.Context())
+
+		assert.Equal(t, map[string]string{"db": "ok", "cache": "unreachable"}, checks)
+	})
+}
+
+func TestChecker_Refresh(t *testing.T) {
+	t.Parallel()
+
+	// newWatchedChecker returns a checker of one dependency whose state the test switches, and the reported states
+	newWatchedChecker := func() (*health.Checker, *error, *[]map[string]string) {
+		var state error
+		var reported []map[string]string
+		checker := health.NewChecker("1.2.3", nil,
+			health.WithOptional("device", pingerFunc(func(context.Context) error { return state })),
+			health.WithOnChecksChange(func(checks map[string]string) { reported = append(reported, checks) }),
+		)
+		return checker, &state, &reported
+	}
+
+	t.Run("reports the states of the first refresh", func(t *testing.T) {
+		t.Parallel()
+		checker, _, reported := newWatchedChecker()
+
+		checker.Refresh()
+
+		assert.Equal(t, []map[string]string{{"device": "ok"}}, *reported)
+	})
+
+	t.Run("reports a changed state", func(t *testing.T) {
+		t.Parallel()
+		checker, state, reported := newWatchedChecker()
+		checker.Refresh()
+		*state = errors.New("disconnected")
+
+		checker.Refresh()
+
+		assert.Equal(t, []map[string]string{{"device": "ok"}, {"device": "unreachable"}}, *reported)
+	})
+
+	t.Run("skips unchanged states", func(t *testing.T) {
+		t.Parallel()
+		checker, _, reported := newWatchedChecker()
+		checker.Refresh()
+
+		checker.Refresh()
+
+		assert.Len(t, *reported, 1)
+	})
+
+	t.Run("keeps the states without a callback", func(t *testing.T) {
+		t.Parallel()
+		checker := health.NewChecker("1.2.3", map[string]health.Pinger{"db": healthy()})
+
+		checker.Refresh()
+
+		assert.Equal(t, map[string]string{"db": "ok"}, checker.Reported())
+	})
+}
+
+func TestChecker_Reported(t *testing.T) {
+	t.Parallel()
+
+	t.Run("returns the states of the last refresh without pinging", func(t *testing.T) {
+		t.Parallel()
+		pings := 0
+		checker := health.NewChecker("1.2.3", map[string]health.Pinger{"db": pingerFunc(func(context.Context) error {
+			pings++
+			return nil
+		})})
+		checker.Refresh()
+
+		checks := checker.Reported()
+
+		assert.Equal(t, map[string]string{"db": "ok"}, checks)
+		assert.Equal(t, 1, pings)
+	})
+}
+
 func TestChecker_Live(t *testing.T) {
 	t.Parallel()
 

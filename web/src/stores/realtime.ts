@@ -23,6 +23,34 @@ export type RealtimeOptions = {
 /** Tells the handlers to reload their state, since messages may have been missed. */
 export const RESYNC_MESSAGE = 'resync';
 
+/** A resync the server sends reaches all of its clients at once, so each one waits a random part of this. */
+const RESYNC_JITTER_MS = 3_000;
+
+/** The greeting the server sends on every connect, with the version and the settings it runs with. */
+export const HELLO_MESSAGE = 'hello';
+
+/** The data of the greeting. Meta is a hash of the settings the web interface reads. */
+export type Hello = {
+  version: string;
+  meta: string;
+};
+
+/** The greeting of the server. */
+export type HelloMessage = RealtimeMessage & {
+  data: Hello;
+};
+
+/** Announces that a resource changed on the server, see onChange. */
+export const CHANGED_MESSAGE = 'changed';
+
+/** Names the changed resource, and the changed item where only one changed. */
+export type ChangedMessage = RealtimeMessage & {
+  data: {
+    resource: string;
+    id?: string;
+  };
+};
+
 const options: RealtimeOptions = {
   reconnectBaseMs: 1_000,
   reconnectMaxMs: 30_000,
@@ -40,15 +68,12 @@ export function configureRealtime(changes: Partial<RealtimeOptions>): void {
  */
 export const useRealtimeStore = defineStore('realtime', () => {
   const isConnected = ref(false);
-  // Counts the connections opened after a lost or failed one
-  const reconnects = ref(0);
 
   const handlers = new Map<string, Set<RealtimeHandler>>();
+  const latestMessages = new Map<string, RealtimeMessage>();
   let socket: WebSocket | null = null;
   let wanted = false;
   let failures = 0;
-  // Set once a connection closed without being asked to, so the next open counts as a reconnect
-  let lostConnection = false;
   let reconnectTimer: ReturnType<typeof setTimeout> | undefined;
 
   /** Opens the connection unless it is already open. */
@@ -61,7 +86,6 @@ export const useRealtimeStore = defineStore('realtime', () => {
   /** Closes the connection and stops reconnecting. */
   function disconnect(): void {
     wanted = false;
-    lostConnection = false;
     clearTimeout(reconnectTimer);
     const current = socket;
     socket = null;
@@ -91,6 +115,45 @@ export const useRealtimeStore = defineStore('realtime', () => {
     return () => set.delete(registered);
   }
 
+  /**
+   * Registers a handler for the types whose messages carry the current state of the server,
+   * hands it the newest of them at once, and returns the function that removes it.
+   */
+  function onState<T extends RealtimeMessage>(
+    types: string | readonly string[],
+    handler: RealtimeHandler<T>,
+  ): () => void {
+    const list = typeof types === 'string' ? [types] : types;
+    // The map keeps the types in the order their latest messages arrived, so the last match is the newest state
+    let latest: RealtimeMessage | undefined;
+    for (const message of latestMessages.values()) {
+      if (list.includes(message.type)) latest = message;
+    }
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- messages of a type have the shape its handlers declare
+    if (latest) handler(latest as T);
+
+    const removers = list.map((type) => on(type, handler));
+    return () => {
+      for (const remove of removers) remove();
+    };
+  }
+
+  /**
+   * Registers a handler that fetches a resource again and returns the function that removes it.
+   * It runs whenever the server announces a change of the resource, with the id of the changed item if it names one,
+   * and after every connect without an id, since a change may have been missed meanwhile.
+   */
+  function onChange(resource: string, handler: (id?: string) => void): () => void {
+    const offChanged = on<ChangedMessage>(CHANGED_MESSAGE, (message) => {
+      if (message.data.resource === resource) handler(message.data.id);
+    });
+    const offResync = on(RESYNC_MESSAGE, () => handler());
+    return () => {
+      offChanged();
+      offResync();
+    };
+  }
+
   /** Creates the socket and wires its events. Events of a replaced socket are ignored. */
   function open(): void {
     const current = new WebSocket(options.url ?? sameOriginURL());
@@ -100,10 +163,6 @@ export const useRealtimeStore = defineStore('realtime', () => {
       if (socket !== current) return;
       failures = 0;
       isConnected.value = true;
-      if (lostConnection) {
-        lostConnection = false;
-        reconnects.value++;
-      }
       dispatch({
         type: RESYNC_MESSAGE,
       });
@@ -111,19 +170,25 @@ export const useRealtimeStore = defineStore('realtime', () => {
     current.addEventListener('message', (event: MessageEvent) => {
       if (socket !== current) return;
       const message = parseMessage(event.data);
-      if (message) dispatch(message);
+      if (!message) return;
+      if (message.type === RESYNC_MESSAGE) {
+        setTimeout(() => dispatch(message), Math.random() * RESYNC_JITTER_MS);
+        return;
+      }
+      dispatch(message);
     });
     current.addEventListener('close', () => {
       if (socket !== current) return;
       socket = null;
       isConnected.value = false;
-      lostConnection = true;
       if (wanted) scheduleReconnect();
     });
   }
 
-  /** Hands a message to the handlers of its type. */
+  /** Keeps a message as the latest of its type and hands it to the handlers of the type. */
   function dispatch(message: RealtimeMessage): void {
+    latestMessages.delete(message.type);
+    latestMessages.set(message.type, message);
     for (const handler of handlers.get(message.type) ?? []) {
       handler(message);
     }
@@ -139,11 +204,12 @@ export const useRealtimeStore = defineStore('realtime', () => {
 
   return {
     isConnected,
-    reconnects,
     connect,
     disconnect,
     reconnect,
     on,
+    onState,
+    onChange,
   };
 });
 

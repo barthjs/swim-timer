@@ -1,6 +1,7 @@
 import { computed, type ComputedRef, type Ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import { useReloadHold } from '@/composables/pwa/useReloadHold';
 import { useConfirm } from '@/composables/ui/useConfirm';
 
 /** Asks for confirmation before unsaved changes are dropped. */
@@ -30,7 +31,7 @@ export function useDiscardGuard(
 
 /**
  * Wraps a modal's open state, so every way of closing it asks for confirmation
- * while the form has unsaved changes.
+ * while the form has unsaved changes, and keeps the page from reloading on its own meanwhile.
  */
 export function useDiscardConfirm(
   open: Ref<boolean>,
@@ -38,6 +39,7 @@ export function useDiscardConfirm(
   skipConfirm?: Ref<boolean> | ComputedRef<boolean>,
 ) {
   const { confirmDiscard } = useDiscardGuard(isDirty, skipConfirm);
+  useReloadHold(() => open.value && isDirty.value);
 
   /** Closes the modal, after asking first while the form has unsaved changes. */
   async function attemptClose(): Promise<void> {

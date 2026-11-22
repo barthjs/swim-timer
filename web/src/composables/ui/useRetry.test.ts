@@ -132,38 +132,6 @@ describe('useRetry', () => {
     });
   });
 
-  describe('retryNow', () => {
-    it('retries at once while a retry is scheduled', async () => {
-      const result = faker.number.int();
-      const task = vi
-        .fn<() => Promise<number>>()
-        .mockRejectedValueOnce(new Error(faker.lorem.sentence()))
-        .mockResolvedValue(result);
-      const onSuccess = vi.fn<(result: number) => void>();
-      const retry = useRetry(task, onSuccess);
-      retry.start();
-      await settle();
-
-      retry.retryNow();
-      await settle();
-
-      expect(task).toHaveBeenCalledTimes(2);
-      expect(onSuccess).toHaveBeenCalledWith(result);
-    });
-
-    it('keeps a run that succeeded', async () => {
-      const task = vi.fn<() => Promise<number>>().mockResolvedValue(faker.number.int());
-      const retry = useRetry(task, () => {});
-      retry.start();
-      await settle();
-
-      retry.retryNow();
-      await settle();
-
-      expect(task).toHaveBeenCalledOnce();
-    });
-  });
-
   describe('stop', () => {
     it('ends the retries', async () => {
       const task = vi

@@ -1,6 +1,9 @@
 package api
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json/v2"
 	"net/http"
 )
 
@@ -14,12 +17,7 @@ import (
 //	@Failure		500	{object}	ErrorResponse
 //	@Router			/meta [get]
 func (a *API) metaGetHandler(w http.ResponseWriter, r *http.Request) {
-	a.writeJSON(w, r, http.StatusOK, MetaResponse{
-		Name:     a.options.Name,
-		Version:  a.health.Version(),
-		Language: a.options.Language,
-		Theme:    a.options.Theme,
-	}, nil)
+	a.writeJSON(w, r, http.StatusOK, a.meta(), nil)
 }
 
 type MetaResponse struct {
@@ -27,6 +25,23 @@ type MetaResponse struct {
 	Version  string        `json:"version"`
 	Language string        `json:"language"`
 	Theme    ThemeSettings `json:"theme"`
+}
+
+// MetaRevision returns a hash of the meta response, which changes with every setting the web interface reads.
+func (a *API) MetaRevision() string {
+	data, _ := json.Marshal(a.meta())
+	sum := sha256.Sum256(data)
+	return hex.EncodeToString(sum[:8])
+}
+
+// meta returns the public settings of the application.
+func (a *API) meta() MetaResponse {
+	return MetaResponse{
+		Name:     a.options.Name,
+		Version:  a.health.Version(),
+		Language: a.options.Language,
+		Theme:    a.options.Theme,
+	}
 }
 
 // pingGetHandler responds with "pong".

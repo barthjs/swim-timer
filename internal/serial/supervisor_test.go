@@ -53,6 +53,34 @@ func TestWithRetryInterval(t *testing.T) {
 func TestSupervisor_Run(t *testing.T) {
 	t.Parallel()
 
+	t.Run("reports the opened and the closed port", func(t *testing.T) {
+		t.Parallel()
+
+		address := listen(t, []byte("data"))
+		changes := make(chan bool, 2)
+		supervisor := New(zerolog.Nop(), address, Mode{}, WithOnChange(func(connected bool) { changes <- connected }))
+		ctx, cancel := context.WithCancel(t.Context())
+		stopped := make(chan struct{})
+
+		go func() {
+			supervisor.Run(ctx, func(ctx context.Context, r io.Reader) error {
+				<-ctx.Done()
+				return nil
+			})
+			close(stopped)
+		}()
+
+		select {
+		case connected := <-changes:
+			assert.True(t, connected, "after opening")
+		case <-time.After(2 * time.Second):
+			require.FailNow(t, "the opened port was not reported")
+		}
+		cancel()
+		<-stopped
+		assert.False(t, <-changes, "after closing")
+	})
+
 	t.Run("connects and reports the port", func(t *testing.T) {
 		t.Parallel()
 

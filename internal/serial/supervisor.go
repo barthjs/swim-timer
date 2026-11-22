@@ -35,6 +35,7 @@ type Supervisor struct {
 
 	listPorts     func() ([]string, error)
 	retryInterval time.Duration
+	onChange      func(connected bool)
 
 	// started guards Run, since two loops would compete for the same port.
 	started atomic.Bool
@@ -62,6 +63,13 @@ func WithRetryInterval(d time.Duration) Option {
 		if d > 0 {
 			s.retryInterval = d
 		}
+	}
+}
+
+// WithOnChange calls onChange whenever a port opens or closes, with whether one is open.
+func WithOnChange(onChange func(connected bool)) Option {
+	return func(s *Supervisor) {
+		s.onChange = onChange
 	}
 }
 
@@ -202,10 +210,13 @@ func (s *Supervisor) connectAndHandle(ctx context.Context, ports []string, handl
 	return true
 }
 
-// setConnected records the name of the currently open port, or empty if none is open.
+// setConnected records the name of the currently open port, or empty if none is open, and reports the change.
 func (s *Supervisor) setConnected(name string) {
 	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	s.connected = name
+	s.mu.Unlock()
+
+	if s.onChange != nil {
+		s.onChange(name != "")
+	}
 }

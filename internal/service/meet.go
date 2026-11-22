@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"cmp"
 	"context"
-	"encoding/json"
 	"slices"
 	"strings"
 	"time"
@@ -182,19 +181,8 @@ func (s *MeetService) Reload(ctx context.Context) error {
 	if s.onReload != nil {
 		s.onReload()
 	}
-	s.notifyReload()
+	announceChange(s.logger, s.broadcaster, domain.ResourceMeet, "")
 	return nil
-}
-
-// notifyReload broadcasts that the meet data changed. A failed notification is only logged,
-// since pages still see the new data on their next fetch.
-func (s *MeetService) notifyReload() {
-	message, err := json.Marshal(domain.NewMessage(domain.MessageMeet, nil))
-	if err != nil {
-		s.logger.Error().Err(err).Msg("failed to encode meet reload message")
-		return
-	}
-	s.broadcaster.Broadcast(message)
 }
 
 // sortedEvents returns the events in the order of the program.

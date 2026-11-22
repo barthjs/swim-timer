@@ -94,7 +94,23 @@ renders them with an old Chromium, see [Browser compatibility](../guides/overlay
 built for Chromium 90 and only use browser features available there.
 
 The live heat reaches the overlays, the scoreboard, and the web interface through a websocket. Everything else goes
-through the JSON API under `/api`, which the [API reference](/api/) describes.
+through the JSON API under `/api`, which the [API reference](/api/) describes. The websocket also carries:
+
+| Message   | Sent                                                      | Data                                                           |
+| --------- | --------------------------------------------------------- | -------------------------------------------------------------- |
+| `hello`   | on connect                                                | the version and a hash of the settings the web interface reads |
+| `health`  | on connect and when the timing device connects or drops   | the state of every dependency, as `/readyz` names it           |
+| `changed` | when the meet data, a preset, or the timing status change | the name of the resource and of the changed item               |
+
+- A page reloads once `hello` names another version or other settings, as soon as a reload loses nothing
+  and nobody reads the page, since it is hidden or its route sets `meta.unattended`. Until then it offers the reload,
+  and the next navigation loads a new page. Unsaved changes that `useUnloadGuard` or `useDiscardConfirm` watch,
+  and every other `useReloadHold`, keep it from reloading on its own.
+- A page fetches a resource again after `changed` and after every reconnect, since it may have missed a change.
+- An uncaught error shows a screen that reloads the page after 10 seconds, and after twice as long for every error
+  that returns. A navigation that finds a module of an older build missing loads its target as a new page.
+- A navigation without an answer from the server, or with a gateway error of a reverse proxy in front of it,
+  shows the offline page of the service worker, which tries again every 10 seconds.
 
 ## Translations
 

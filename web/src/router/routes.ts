@@ -13,6 +13,8 @@ declare module 'vue-router' {
     // From lg up, the page fills the height of the panel instead of scrolling,
     // for a page with sections only while the route names a section that needs it.
     fillViewport?: boolean | ((route: RouteLocationNormalizedLoaded) => boolean);
+    // Nobody reads the page interactively, so it loads a new version as soon as nothing on it would be lost
+    unattended?: boolean;
   }
 }
 
@@ -98,6 +100,7 @@ export const routes: RouteRecordRaw[] = [
     name: 'scoreboard',
     meta: {
       titleKey: 'pages.scoreboard.title',
+      unattended: true,
     },
     component: async () => import('@/pages/ScoreboardPage.vue'),
   },

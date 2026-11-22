@@ -1,7 +1,6 @@
 package service
 
 import (
-	"encoding/json/v2"
 	"fmt"
 	"testing"
 
@@ -343,23 +342,6 @@ func TestMeetService_Reload(t *testing.T) {
 		got, ok := meetStore.GetEvent(number)
 		require.True(t, ok)
 		assert.Equal(t, heatCount, got.HeatCount)
-	})
-
-	t.Run("notifies the open pages", func(t *testing.T) {
-		t.Parallel()
-
-		broadcaster := &fakeBroadcaster{}
-		svc := NewMeetService(zerolog.Nop(), broadcaster, store.NewMeetStore(newTestStorage(t)), nil)
-
-		err := svc.Reload(t.Context())
-
-		require.NoError(t, err)
-		require.Equal(t, 1, broadcaster.count())
-		var message map[string]any
-		require.NoError(t, json.Unmarshal(broadcaster.messages[0], &message))
-		assert.Equal(t, "meet", message["type"])
-		assert.NotEmpty(t, message["serverTime"])
-		assert.NotContains(t, message, "data")
 	})
 
 	t.Run("neither notifies nor calls back after a failed reload", func(t *testing.T) {

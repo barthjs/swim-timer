@@ -3,22 +3,22 @@ import { computed, ref } from 'vue';
 
 import { timingRepository } from '@/api/repositories/timing';
 import type { TimingStatusResponse } from '@/api/types/timing';
+import { useRealtimeStore } from '@/stores/realtime';
 
-/** The interval of the checks of the connection to the timing device. */
-const POLL_INTERVAL_MS = 5_000;
-
-/** Polls and holds the connection status of the timing device. */
+/** Holds the connection status of the timing device and fetches it again whenever it changes on the server. */
 export const useTimingStore = defineStore('timing', () => {
-  // The last status the backend reported, or null before the first poll resolves
+  const realtime = useRealtimeStore();
+
+  // The last status the backend reported, or null before the first fetch resolves
   const status = ref<TimingStatusResponse | null>(null);
 
-  // Optimistic until the first poll resolves, so the dashboard never flashes a false "disconnected" state on load
+  // Optimistic until the first fetch resolves, so the dashboard never flashes a false "disconnected" state on load
   const connected = computed(() => status.value?.connected ?? true);
 
-  let timer: ReturnType<typeof setInterval> | null = null;
+  let unsubscribe: (() => void) | null = null;
 
   /** Reads the status of the timing device. */
-  async function poll(): Promise<void> {
+  async function load(): Promise<void> {
     try {
       status.value = await timingRepository.getStatus();
     } catch {
@@ -26,18 +26,22 @@ export const useTimingStore = defineStore('timing', () => {
     }
   }
 
-  /** Polls the status of the timing device at a fixed interval. */
+  /**
+   * Fetches the status and follows the announced changes until stop.
+   * A connection that opens fetches it through the change it reports, so only an open one needs a fetch here.
+   */
   function start(): void {
-    if (timer !== null) return;
-    void poll();
-    timer = setInterval(() => void poll(), POLL_INTERVAL_MS);
+    if (unsubscribe) return;
+
+    unsubscribe = realtime.onChange('timing', () => void load());
+    if (realtime.isConnected) void load();
+    realtime.connect();
   }
 
-  /** Ends the polling. */
+  /** Ends following the changes. */
   function stop(): void {
-    if (timer === null) return;
-    clearInterval(timer);
-    timer = null;
+    unsubscribe?.();
+    unsubscribe = null;
   }
 
   return {

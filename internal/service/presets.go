@@ -4,20 +4,26 @@ import (
 	"context"
 	"errors"
 
+	"github.com/rs/zerolog"
+
 	"github.com/barthjs/swim-timer/internal/apperr"
 	"github.com/barthjs/swim-timer/internal/domain"
 	"github.com/barthjs/swim-timer/internal/store"
 )
 
-// PresetService manages the presets of the AR overlay.
+// PresetService manages the presets of the AR overlay and announces every change, so open overlays show it at once.
 type PresetService struct {
-	store *store.PresetStore
+	logger      zerolog.Logger
+	broadcaster broadcaster
+	store       *store.PresetStore
 }
 
 // NewPresetService creates a PresetService.
-func NewPresetService(store *store.PresetStore) *PresetService {
+func NewPresetService(logger zerolog.Logger, broadcaster broadcaster, store *store.PresetStore) *PresetService {
 	return &PresetService{
-		store: store,
+		logger:      logger,
+		broadcaster: broadcaster,
+		store:       store,
 	}
 }
 
@@ -47,7 +53,12 @@ func (s *PresetService) Save(ctx context.Context, name string, preset domain.Pre
 	if errors.Is(err, store.ErrInvalidName) {
 		return apperr.NewValidationError("name", "invalid")
 	}
-	return err
+	if err != nil {
+		return err
+	}
+
+	announceChange(s.logger, s.broadcaster, domain.ResourcePreset, name)
+	return nil
 }
 
 // Delete removes the preset with the given name, or returns apperr.ErrNotFound if it does not exist
@@ -57,5 +68,10 @@ func (s *PresetService) Delete(ctx context.Context, name string) error {
 	if errors.Is(err, store.ErrInvalidName) {
 		return apperr.ErrNotFound
 	}
-	return err
+	if err != nil {
+		return err
+	}
+
+	announceChange(s.logger, s.broadcaster, domain.ResourcePreset, name)
+	return nil
 }

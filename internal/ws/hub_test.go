@@ -290,13 +290,19 @@ func TestHub_TryDisconnect(t *testing.T) {
 func TestHub_ServeHTTP(t *testing.T) {
 	t.Parallel()
 
-	t.Run("sends the snapshot on connect", func(t *testing.T) {
+	t.Run("sends the messages of the snapshot on connect in their order", func(t *testing.T) {
 		t.Parallel()
 
-		_, server := startHub(t, func() ([]byte, error) { return []byte(`{"type":"init"}`), nil })
+		_, server := startHub(t, func() ([][]byte, error) {
+			return [][]byte{
+				[]byte(`{"type":"hello"}`),
+				[]byte(`{"type":"init"}`),
+			}, nil
+		})
 
 		conn := dial(t, server)
 
+		assert.Equal(t, `{"type":"hello"}`, read(t, conn))
 		assert.Equal(t, `{"type":"init"}`, read(t, conn))
 	})
 
@@ -310,11 +316,11 @@ func TestHub_ServeHTTP(t *testing.T) {
 		},
 		{
 			name:     "skips an empty snapshot",
-			snapshot: func() ([]byte, error) { return nil, nil },
+			snapshot: func() ([][]byte, error) { return nil, nil },
 		},
 		{
 			name:     "skips a failing snapshot",
-			snapshot: func() ([]byte, error) { return nil, errors.New("not ready") },
+			snapshot: func() ([][]byte, error) { return nil, errors.New("not ready") },
 		},
 	}
 

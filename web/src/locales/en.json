@@ -767,6 +767,21 @@
       "title": "Scoreboard"
     }
   },
+  "pwa": {
+    "error": {
+      "message": "The page ran into an error.",
+      "title": "Something went wrong"
+    },
+    "offline": {
+      "message": "The server cannot be reached.",
+      "retry": "Try again",
+      "title": "No connection"
+    },
+    "reload": "Reload",
+    "update": {
+      "title": "A new version is available"
+    }
+  },
   "table": {
     "perPage": "Per page",
     "range": "{start}–{end} of {total}",
