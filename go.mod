@@ -8,7 +8,6 @@ require (
 	github.com/brianvoe/gofakeit/v7 v7.18.10
 	github.com/go-chi/chi/v5 v5.5.0
 	github.com/go-playground/validator/v10 v10.30.6
-	github.com/gocarina/gocsv v0.0.0-20261012193826-401c25af6907
 	github.com/gorilla/handlers v1.5.2
 	github.com/gorilla/websocket v1.5.3
 	github.com/johannesboyne/gofakes3 v1.2.0

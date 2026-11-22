@@ -34,6 +34,14 @@ func TestAPI_RespondError(t *testing.T) {
 			code:   codeBadRequest,
 		},
 		{
+			name: "answers an unreadable data file as a bad request",
+			err: &service.DataFileError{
+				Err: errors.New("invalid"),
+			},
+			status: http.StatusBadRequest,
+			code:   codeBadRequest,
+		},
+		{
 			name:   "answers an invalid sort field with a bad request",
 			err:    apperr.ErrInvalidSort,
 			status: http.StatusBadRequest,

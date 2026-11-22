@@ -11,19 +11,19 @@ const unscheduledTime = "00:00"
 // Event represents an event of the meet from LSTRACE.TXT, a group of heats over one distance and style,
 // where the timing software numbers every phase as its own event.
 type Event struct {
-	Number     int       `csv:"event"` // event number, the key the device transmits
-	PhaseID    int       `csv:"round"` // see Phase.ID
-	Phase      *Phase    `csv:"-"`
-	HeatCount  int       `csv:"nbHeat"` // number of heats of the event
-	DistanceID int       `csv:"idLen"`  // see Distance.ID
-	Distance   *Distance `csv:"-"`
-	StyleID    int       `csv:"idStyle"` // see Style.ID
-	Style      *Style    `csv:"-"`
-	AbCat      string    `csv:"abCat"` // see Category.Abbreviation
-	Category   *Category `csv:"-"`
-	Date       string    `csv:"date"` // scheduled date as exported in yy/mm/dd, e.g. "26/05/01" for 1 May 2026
-	Time       string    `csv:"time"` // scheduled start time as exported, e.g. "16:00", or "00:00" without one
-	Order      int       `csv:"-"`    // position in the file, which lists the events in the order of the program
+	Number     int // event number, the key the device transmits
+	PhaseID    int // see Phase.ID
+	Phase      *Phase
+	HeatCount  int // number of heats of the event
+	DistanceID int // see Distance.ID
+	Distance   *Distance
+	StyleID    int // see Style.ID
+	Style      *Style
+	AbCat      string // see Category.Abbreviation
+	Category   *Category
+	Date       string // scheduled date as exported in yy/mm/dd, e.g. "26/05/01" for 1 May 2026
+	Time       string // scheduled start time as exported, e.g. "16:00", or "00:00" without one
+	Order      int    // position in the file, which lists the events in the order of the program
 }
 
 // DisplayName combines the distance, style, and category that are known into the name of the event.

@@ -54,8 +54,8 @@ func (a *API) respondError(w http.ResponseWriter, r *http.Request, err error) {
 		a.badRequestResponse(w, r, invalidErr)
 		return
 	}
-	// A meet file that cannot be read names itself and the line, so the admin can fix the export
-	if dataErr, ok := errors.AsType[*service.MeetDataError](err); ok {
+	// A data file that cannot be read names itself and the line, so the admin can fix it
+	if dataErr, ok := errors.AsType[*service.DataFileError](err); ok {
 		a.badRequestResponse(w, r, dataErr)
 		return
 	}

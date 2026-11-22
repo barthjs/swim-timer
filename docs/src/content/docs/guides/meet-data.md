@@ -25,12 +25,14 @@ If a file cannot be read, the reload fails with the name of the file and the lin
 and the previous meet data stays in use. A file cannot be read if:
 
 - a column that Swim-Timer reads is missing,
+- the header names a column twice,
 - a row ends early, as in a file that is still being written,
 - a key occurs twice,
-- it is not encoded in Windows-1252, as the timing system writes it.
+- it is encoded in UTF-16.
 
-A file that was opened and saved again in an editor is often stored as UTF-8 and is then rejected, since names
-with special characters would come out garbled. Upload the files as the timing system exported them.
+The timing system writes the files in Windows-1252. A file that was opened and saved again in an editor is often
+stored as UTF-8. Swim-Timer detects both encodings from the whole file, so names with special characters
+come out right either way.
 
 ## Changes during the meet
 

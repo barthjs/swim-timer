@@ -4,6 +4,7 @@ import type { WebhookDeliveryErrorCode } from '@/api/types/webhookDelivery';
 export const WebhookEvent = {
   HeatUpdated: 'heat.updated',
   MeetReloaded: 'meet.reloaded',
+  RecordSet: 'record.set',
 } as const;
 export type WebhookEvent = (typeof WebhookEvent)[keyof typeof WebhookEvent];
 

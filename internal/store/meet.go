@@ -1,16 +1,19 @@
 package store
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"io"
 	"path"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/barthjs/swim-timer/internal/domain"
 	"github.com/barthjs/swim-timer/internal/media"
+	"github.com/barthjs/swim-timer/internal/tabular"
 )
 
 const (
@@ -19,6 +22,8 @@ const (
 	// meetExtension is the extension the timing software exports the meet files with,
 	// and the one an uploaded meet file is stored with.
 	meetExtension = ".TXT"
+	// meetSeparator separates the values of the meet files.
+	meetSeparator = ";"
 )
 
 var (
@@ -187,7 +192,7 @@ func (s *MeetStore) Snapshot() MeetSnapshot {
 }
 
 // LoadAll reads all meet files and replaces the meet data with them at once, a missing file leaving its part empty.
-// A file that fails to parse returns a ParseError and keeps the previous meet data, so exports are never mixed.
+// A file that fails to parse returns a DataFileError and keeps the previous meet data, so exports are never mixed.
 func (s *MeetStore) LoadAll(ctx context.Context) error {
 	s.loadMu.Lock()
 	defer s.loadMu.Unlock()
@@ -204,9 +209,9 @@ func (s *MeetStore) LoadAll(ctx context.Context) error {
 		}
 
 		if err := data.load(ctx, s.storage, file, filePath); err != nil {
-			if parseErr, ok := errors.AsType[*ParseError](err); ok {
-				parseErr.File = path.Base(filePath)
-				return parseErr
+			if dataErr, ok := errors.AsType[*DataFileError](err); ok {
+				dataErr.File = path.Base(filePath)
+				return dataErr
 			}
 			return fmt.Errorf("store: loading %s: %w", filePath, err)
 		}
@@ -222,15 +227,15 @@ func (s *MeetStore) LoadAll(ctx context.Context) error {
 	return nil
 }
 
-// ParseMeetFiles reads meet data from the contents of meet files, such as the files kept in a recording,
-// without changing the store. A file that fails to parse returns a ParseError that names it.
+// ParseMeetFiles reads meet data from the contents of meet files without changing the store,
+// and fails with a DataFileError that names a file that does not parse.
 func ParseMeetFiles(contents []MeetFileContent) (MeetSnapshot, error) {
 	data := newMeetData()
 	for _, content := range contents {
 		if err := data.parse(content.File, content.Content); err != nil {
-			if parseErr, ok := errors.AsType[*ParseError](err); ok {
-				parseErr.File = string(content.File)
-				return MeetSnapshot{}, parseErr
+			if dataErr, ok := errors.AsType[*DataFileError](err); ok {
+				dataErr.File = string(content.File)
+				return MeetSnapshot{}, dataErr
 			}
 			return MeetSnapshot{}, fmt.Errorf("store: parsing %s: %w", content.File, err)
 		}
@@ -304,20 +309,24 @@ func (d *meetData) parse(file domain.MeetFile, content []byte) error {
 
 	switch file {
 	case domain.MeetFileCategories:
-		return loadMap(content, d.categories, func(c *domain.Category) string { return c.Abbreviation })
+		return loadMap(content, categorySchema, d.categories, func(c *domain.Category) string { return c.Abbreviation })
 	case domain.MeetFileDistances:
-		return loadMap(content, d.distances, func(dist *domain.Distance) int { return dist.ID })
+		return loadMap(content, distanceSchema, d.distances, func(dist *domain.Distance) int { return dist.ID })
 	case domain.MeetFileCompetitors:
-		return loadMap(content, d.competitors, func(c *domain.Competitor) int { return c.ID })
+		return loadMap(content, competitorSchema, d.competitors, func(c *domain.Competitor) int { return c.ID })
 	case domain.MeetFileEvents:
 		return d.loadEvents(content)
 	case domain.MeetFilePhases:
-		return loadMap(content, d.phases, func(p *domain.Phase) int { return p.ID })
+		return loadMap(content, phaseSchema, d.phases, func(p *domain.Phase) int { return p.ID })
 	case domain.MeetFileStartEntries:
-		_, err := readCSV(content, &d.starts)
-		return err
+		starts, _, err := readCSV(content, startEntrySchema)
+		if err != nil {
+			return err
+		}
+		d.starts = append(d.starts[:0], starts...)
+		return nil
 	case domain.MeetFileStyles:
-		return loadMap(content, d.styles, func(st *domain.Style) int { return st.ID })
+		return loadMap(content, styleSchema, d.styles, func(st *domain.Style) int { return st.ID })
 	default:
 		return nil
 	}
@@ -325,8 +334,7 @@ func (d *meetData) parse(file domain.MeetFile, content []byte) error {
 
 // loadEvents reads the events and keeps their order in the file, which is the order of the program.
 func (d *meetData) loadEvents(content []byte) error {
-	var events []*domain.Event
-	lines, err := readCSV(content, &events)
+	events, lines, err := readCSV(content, eventSchema)
 	if err != nil {
 		return err
 	}
@@ -369,4 +377,187 @@ func (d *meetData) buildStartsIndex() {
 // startsKey builds the lookup key for the starts index.
 func startsKey(event, phase, heat int) string {
 	return fmt.Sprintf("%d-%d-%d", event, phase, heat)
+}
+
+// readMeetFile reads a meet file from the storage. Export files are small, so the whole content is read at once.
+func readMeetFile(ctx context.Context, storage media.Storage, path string) ([]byte, error) {
+	reader, err := storage.Get(ctx, path)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = reader.Close() }()
+
+	return io.ReadAll(reader)
+}
+
+// loadMap loads the rows of a meet file into dest by the key keyFunc returns,
+// reporting a key that occurs twice, since one of the entries would be lost.
+func loadMap[T any, K comparable](content []byte, schema *tabular.Schema[T], dest map[K]*T, keyFunc func(*T) K) error {
+	items, lines, err := readCSV(content, schema)
+	if err != nil {
+		return err
+	}
+	return fillMap(items, lines, dest, keyFunc)
+}
+
+// readCSV reads the rows of a meet file with values and returns the line of every row, so later checks can name it.
+func readCSV[T any](content []byte, schema *tabular.Schema[T]) ([]*T, []int, error) {
+	// The timing software exports Windows-1252, and a file saved again by an editor is often UTF-8,
+	// so the encoding is detected from the whole file. The writer of the timing software quotes inconsistently,
+	// pads the values, and ends every row with a separator, so the files are read leniently.
+	format := tabular.CompleteFormat(tabular.Format{
+		Separator: meetSeparator,
+	}, content)
+
+	imp, err := schema.Read(bytes.NewReader(content), schema.Identity(format), tabular.Lenient())
+	if err != nil {
+		return nil, nil, toDataFileError(err)
+	}
+
+	var items []*T
+	var lines []int
+	// The meet files are read from memory, so nothing can cancel the reading of their rows
+	for row, err := range imp.Rows(context.Background()) {
+		if err != nil {
+			return nil, nil, toDataFileError(err)
+		}
+		items = append(items, row.Value)
+		lines = append(lines, row.Line)
+	}
+	return items, lines, nil
+}
+
+// toDataFileError describes an error of reading a meet file with its position, so the admin can fix the export.
+func toDataFileError(err error) error {
+	if fileErr, ok := errors.AsType[*tabular.FileError](err); ok {
+		return &DataFileError{
+			Line:   fileErr.Line,
+			Column: fileErr.Column,
+			Err:    describeFileError(fileErr.Err),
+		}
+	}
+	if mappingErr, ok := errors.AsType[*tabular.MappingError](err); ok {
+		return &DataFileError{
+			Line: 1,
+			Err:  fmt.Errorf("the header lacks the columns %s", strings.Join(mappingErr.Columns.Keys(), ", ")),
+		}
+	}
+	if rowErr, ok := errors.AsType[*tabular.RowError](err); ok {
+		column := rowErr.Fields.Keys()[0]
+		return &DataFileError{
+			Line:   rowErr.Line,
+			Column: column,
+			Err:    describeFieldError(rowErr.Fields[column][0]),
+		}
+	}
+	return err
+}
+
+// describeFileError explains a file in an encoding that cannot be read.
+func describeFileError(err error) error {
+	if _, ok := errors.AsType[*tabular.EncodingError](err); ok {
+		return errors.New("the file is UTF-16 encoded, but a meet file has to be UTF-8 or Windows-1252")
+	}
+	return err
+}
+
+// describeFieldError explains the failure of a value of a meet file.
+func describeFieldError(failed tabular.FieldError) error {
+	switch failed.Tag {
+	case "number":
+		return fmt.Errorf("the value %q is not a number", failed.Value)
+	case "short_row":
+		return fmt.Errorf("the row has %s of %s values", failed.Value, failed.Param)
+	default:
+		return &failed
+	}
+}
+
+// fillMap puts the items into dest by their key and reports a key that occurs twice
+// with the line of its second occurrence, taken from lines, which holds the line in the file of every item.
+func fillMap[T any, K comparable](items []*T, lines []int, dest map[K]*T, keyFunc func(*T) K) error {
+	clear(dest)
+	for i, item := range items {
+		key := keyFunc(item)
+		if _, exists := dest[key]; exists {
+			result := &DataFileError{
+				Err: fmt.Errorf("the key %v occurs more than once", key),
+			}
+			if i < len(lines) {
+				result.Line = lines[i]
+			}
+			return result
+		}
+		dest[key] = item
+	}
+	return nil
+}
+
+// The schemas of the meet files name every column as the header of the export does.
+var (
+	categorySchema = tabular.New([]tabular.Column[domain.Category]{
+		meetString("Category", func(c *domain.Category, v string) { c.Name = v }),
+		meetString("AbrevCat", func(c *domain.Category, v string) { c.Abbreviation = v }),
+	})
+	competitorSchema = tabular.New([]tabular.Column[domain.Competitor]{
+		meetInt("id", func(c *domain.Competitor, v int) { c.ID = v }),
+		meetInt("bib", func(c *domain.Competitor, v int) { c.BIB = v }),
+		meetString("lastname", func(c *domain.Competitor, v string) { c.LastName = v }),
+		meetString("firstname", func(c *domain.Competitor, v string) { c.FirstName = v }),
+		meetString("birthyear", func(c *domain.Competitor, v string) { c.BirthYear = v }),
+		meetString("abNat", func(c *domain.Competitor, v string) { c.AbNat = v }),
+		meetString("abCat", func(c *domain.Competitor, v string) { c.AbCat = v }),
+	})
+	distanceSchema = tabular.New([]tabular.Column[domain.Distance]{
+		meetInt("idLength", func(d *domain.Distance, v int) { d.ID = v }),
+		meetString("Longueur", func(d *domain.Distance, v string) { d.Name = v }),
+		meetInt("Mlongueur", func(d *domain.Distance, v int) { d.Length = v }),
+		meetInt("Relais", func(d *domain.Distance, v int) { d.Relay = v }),
+	})
+	eventSchema = tabular.New([]tabular.Column[domain.Event]{
+		meetInt("event", func(e *domain.Event, v int) { e.Number = v }),
+		meetInt("round", func(e *domain.Event, v int) { e.PhaseID = v }),
+		meetInt("nbHeat", func(e *domain.Event, v int) { e.HeatCount = v }),
+		meetInt("idLen", func(e *domain.Event, v int) { e.DistanceID = v }),
+		meetInt("idStyle", func(e *domain.Event, v int) { e.StyleID = v }),
+		meetString("abCat", func(e *domain.Event, v string) { e.AbCat = v }),
+		meetString("date", func(e *domain.Event, v string) { e.Date = v }),
+		meetString("time", func(e *domain.Event, v string) { e.Time = v }),
+	})
+	phaseSchema = tabular.New([]tabular.Column[domain.Phase]{
+		meetInt("idRound", func(p *domain.Phase, v int) { p.ID = v }),
+		meetString("TITLE", func(p *domain.Phase, v string) { p.Name = v }),
+		meetString("RoundAbrev", func(p *domain.Phase, v string) { p.Abbreviation = v }),
+	})
+	startEntrySchema = tabular.New([]tabular.Column[domain.StartEntry]{
+		meetInt("event", func(s *domain.StartEntry, v int) { s.Event = v }),
+		meetInt("round", func(s *domain.StartEntry, v int) { s.PhaseID = v }),
+		meetInt("heat", func(s *domain.StartEntry, v int) { s.Heat = v }),
+		meetInt("lane", func(s *domain.StartEntry, v int) { s.Lane = v }),
+		meetInt("relais", func(s *domain.StartEntry, v int) { s.Relais = v }),
+		meetInt("idBib", func(s *domain.StartEntry, v int) { s.CompetitorID = v }),
+	})
+	styleSchema = tabular.New([]tabular.Column[domain.Style]{
+		meetInt("idStyle", func(s *domain.Style, v int) { s.ID = v }),
+		meetString("Style", func(s *domain.Style, v string) { s.Name = v }),
+		meetString("StyleAbrév", func(s *domain.Style, v string) { s.Abbreviation = v }),
+	})
+)
+
+// meetInt returns a column of a meet file that holds a whole number, zero if it is empty.
+func meetInt[T any](key string, set func(*T, int)) tabular.Column[T] {
+	return tabular.Field(tabular.FieldOptions[T, int]{
+		Key:   key,
+		Parse: tabular.ParseInt,
+		Set:   set,
+	})
+}
+
+// meetString returns a column of a meet file that holds text.
+func meetString[T any](key string, set func(*T, string)) tabular.Column[T] {
+	return tabular.Field(tabular.FieldOptions[T, string]{
+		Key:   key,
+		Parse: tabular.ParseString,
+		Set:   set,
+	})
 }

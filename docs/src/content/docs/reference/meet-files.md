@@ -6,7 +6,8 @@ sidebar:
 ---
 
 The meet files are the export files of the Omega timing system: text files with the extension `.TXT`, separated
-by semicolons and encoded in Windows-1252. Swim-Timer stores them as uploaded. Some column names are French
+by semicolons and encoded in Windows-1252. Swim-Timer also reads them in UTF-8, as an editor saves them,
+and detects the encoding from the whole file. It stores them as uploaded. Some column names are French
 or misleading, so the tables below describe what each column holds. Other columns are not read.
 
 ## LSTCAT (categories)

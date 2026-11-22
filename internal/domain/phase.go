@@ -18,7 +18,7 @@ const (
 
 // Phase represents a phase of an event from LSTROUND.TXT, a fixed catalog of the timing software.
 type Phase struct {
-	ID           int    `csv:"idRound"`    // see Event.PhaseID
-	Name         string `csv:"TITLE"`      // display name, e.g. "Final"
-	Abbreviation string `csv:"RoundAbrev"` // abbreviation, e.g. "FIN"
+	ID           int    // see Event.PhaseID
+	Name         string // display name, e.g. "Final"
+	Abbreviation string // abbreviation, e.g. "FIN"
 }

@@ -70,9 +70,6 @@ type MeetHeat struct {
 	StartEntries []*domain.StartEntry
 }
 
-// MeetDataError reports a meet file whose content cannot be read.
-type MeetDataError = store.ParseError
-
 // MeetService manages the Swiss Timing export files the meet data is read from.
 type MeetService struct {
 	logger      zerolog.Logger
@@ -176,7 +173,7 @@ func (s *MeetService) SaveFile(ctx context.Context, file domain.MeetFile, data [
 }
 
 // Reload reads all meet files again and notifies the open pages, so they show the new data.
-// A file that cannot be read fails with a MeetDataError, and the previous meet data stays in use.
+// A file that cannot be read fails with a DataFileError, and the previous meet data stays in use.
 func (s *MeetService) Reload(ctx context.Context) error {
 	if err := s.store.LoadAll(ctx); err != nil {
 		return err
